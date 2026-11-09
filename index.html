@@ -518,7 +518,7 @@ function equipDlg(id){const e=id?S.equip[id]:{name:'',cat:'Other',fmc:'',pmc:'',
   <label>NMC qty<input name="nmc" type="number" min="0" value="${esc(e.nmc??'')}"></label>
   <label>Poker chips (medic pack, max 15)<input name="chips" type="number" min="0" max="15" value="${esc(e.chips??'')}"></label>
   <label class="wide">Notes<input name="note" value="${esc(e.note||'')}"></label></div>
-  ${id?(()=>{const hs=ROSTER.filter(p=>gearOf(p.pid)[id]);return `<div><b class="small">Issued to ${hs.length} of ${ROSTER.length}</b>${hs.length?`<div class="chips" style="margin-top:4px">${hs.map(p=>{const g=gearOf(p.pid)[id];return `<button type="button" class="chip" data-gear="${p.pid}">${esc(short(p.pid))}${g.qty>1?' ×'+esc(g.qty):''}${g.serial?' · '+esc(g.serial):''}</button>`}).join('')}</div>`:''}<div class="tools" style="margin-top:6px"><button type="button" class="btn sm" data-act="issueall">Issue 1 to everyone without one</button>${hs.length?'<button type="button" class="btn sm badb" data-act="returnall">Return from everyone</button>':''}</div></div>`})():''}
+  ${id?(()=>{const hs=ROSTER.filter(p=>gearOf(p.pid)[id]);return `<div><b class="small">Issued to ${hs.length} of ${ROSTER.length}</b>${hs.length?`<div class="chips" style="margin-top:4px">${hs.map(p=>{const g=gearOf(p.pid)[id];return `<button type="button" class="chip" data-gear="${p.pid}">${esc(short(p.pid))}${g.qty>1?' ×'+esc(g.qty):''}${g.serial?' · '+esc(g.serial):''}</button>`}).join('')}</div>`:''}<div class="tools" style="margin-top:6px"><button type="button" class="btn sm pri" data-serials="${esc(id)}">Enter serials${hs.length?` (${hs.filter(p=>!gearOf(p.pid)[id].serial).length} missing)`:''}</button><button type="button" class="btn sm" data-act="issueall">Issue 1 to everyone without one</button>${hs.length?'<button type="button" class="btn sm badb" data-act="returnall">Return from everyone</button>':''}</div></div>`})():''}
   <p class="small muted" style="margin:0">Any change in equipment status is an exercise CCIR (OPORD 3.j.2.d). It is logged and flagged for the ATF/CC.</p></form>
   <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delequip">Remove</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveequip">Save</button></div>`)}
 function saveEquip(){const f=document.getElementById('eform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.eid;const old=id?S.equip[id]:null;id=id||('e'+uid());
@@ -552,7 +552,7 @@ function saveResupply(){const f=document.getElementById('rform');if(!f.reportVal
 function setResupply(id,st){const r=S.resupply[id];if(!r)return;writeDoc('resupply',id,Object.assign({},r,{status:st}));logIt({type:'rs',text:`Resupply ${st.toLowerCase()} by A1/4: ${r.qty} × ${r.item}`})}
 
 const SEED=[
- {name:'Airsoft M4 carbine (individual issue)',cat:'Weapons',loc:'Individual / armory',note:'Verify count at initial issue'},
+ {name:'Airsoft M4 carbine (individual issue)',cat:'Weapons',loc:'Individual / armory',note:'Record serials: tap item, then Enter serials'},
  {name:'M4 magazines',cat:'Ammunition',loc:'Individual issue'},
  {name:'Airsoft pellets',cat:'Ammunition',loc:'Armory'},{name:'Green gas',cat:'Ammunition',loc:'Armory'},
  {name:'Plastic clearing rods',cat:'Ammunition',loc:'Armory'},{name:'Speed loaders',cat:'Ammunition',loc:'Armory'},
@@ -570,6 +570,36 @@ function gearDlg(pid){const g=gearOf(pid);const items=Object.entries(S.equip).so
   ${Object.keys(g).length?`<div class="tablewrap"><table style="min-width:0"><thead><tr><th>Item</th><th>Qty</th><th>Serial / #</th><th>Issued</th><th></th></tr></thead><tbody class="tnum">${Object.entries(g).map(([eid,x])=>`<tr><td>${esc(S.equip[eid]?.name||'Removed item')}</td><td>${esc(x.qty||1)}</td><td class="mono small">${esc(x.serial||'')}</td><td class="small muted">${fmtDT(x.ts)}</td><td><button type="button" class="btn sm" data-ret="${pid}|${esc(eid)}">Return</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small" style="margin:0">Nothing issued to this person.</p>'}
   ${items.length?`<div class="fields"><label class="wide">Issue item<select name="eid">${opt([['','Choose item'],...items.map(([id,e])=>[id,e.name])],'')}</select></label><label>Qty<input name="qty" type="number" min="1" value="1"></label><label>Serial / # (optional)<input name="serial" autocomplete="off"></label></div>`:'<p class="small muted" style="margin:0">Add equipment on the Equipment tab first.</p>'}</form>
   <div class="dfoot"><div class="left"><button type="button" class="btn sm ghost" data-person="${pid}">Status</button></div><button type="button" class="btn ghost" data-act="close">Close</button>${items.length?'<button type="button" class="btn pri" data-act="issue">Issue</button>':''}</div>`)}
+function serialsDlg(eid){const e=S.equip[eid];if(!e)return;
+  const seen={};ROSTER.forEach(p=>{const s=String(gearOf(p.pid)[eid]?.serial||'').trim().toLowerCase();if(s)(seen[s]=seen[s]||[]).push(p.pid)});
+  openDlg(`<form class="dlg" id="sform" data-eid="${esc(eid)}"><h3>Serials · ${esc(e.name)}</h3>
+  <p class="small muted" style="margin:0">Type a serial next to each name. A serial issues the item to that person if they don't have it yet. Leave a box blank to skip.</p>
+  <details><summary class="small" style="cursor:pointer;font-weight:600">Paste from a hand receipt</summary>
+   <p class="small muted" style="margin:6px 0">One person per line: name, then serial, e.g. <span class="mono">Stratton, Zachary  W123456</span>. The last word on each line is read as the serial.</p>
+   <textarea id="spaste" rows="5" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--soft)"></textarea>
+   <div class="tools"><button type="button" class="btn sm" data-act="fillpaste">Fill boxes from list</button><span class="small" id="pastemsg"></span></div></details>
+  <div class="picker" style="max-height:min(55vh,460px)">${ROSTER.map(p=>{const g=gearOf(p.pid)[eid];const s=g?.serial||'';const dup=s&&seen[s.toLowerCase()]?.length>1;
+    return `<label style="grid-template-columns:1fr 150px"><span>${esc(p.name)} <span class="small muted">${p.flt}</span>${g?'':' <span class="small muted">· not issued</span>'}${dup?' <span class="pill e-NMC">duplicate</span>':''}</span><input class="mono" data-spid="${p.pid}" value="${esc(s)}" autocomplete="off" style="padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--soft);font-size:13px"></label>`}).join('')}</div></form>
+  <div class="dfoot"><div class="left"><button type="button" class="btn sm ghost" data-equip="${esc(eid)}">Back</button></div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveserials">Save serials</button></div>`)}
+function fillPaste(){const txt=document.getElementById('spaste').value;let ok=0;const miss=[];
+  txt.split(/\n/).map(l=>l.trim()).filter(Boolean).forEach(line=>{const parts=line.split(/[\s\t]+/);if(parts.length<2){miss.push(line);return}
+    const serial=parts.pop().replace(/[,;]$/,'');const name=parts.join(' ').replace(/[,;]+$/,'').toLowerCase().replace(/\s+/g,' ');
+    const last=name.split(/[ ,]+/)[0];const rest=name.slice(last.length).replace(/[ ,]+/g,' ').trim();
+    let c=ROSTER.filter(p=>p.name.toLowerCase().split(',')[0].trim()===last);
+    if(c.length>1&&rest)c=c.filter(p=>(p.name.toLowerCase().split(',')[1]||'').trim().startsWith(rest.split(' ')[0]));
+    if(c.length===1){const inp=document.querySelector(`[data-spid="${c[0].pid}"]`);if(inp){inp.value=serial;ok++}}else miss.push(line)});
+  document.getElementById('pastemsg').textContent=`Filled ${ok}.`+(miss.length?` Not matched: ${miss.slice(0,4).join(' | ')}${miss.length>4?' …':''}`:'')}
+function saveSerials(){const f=document.getElementById('sform');const eid=f.dataset.eid;const name=S.equip[eid]?.name||'item';
+  const vals={};f.querySelectorAll('[data-spid]').forEach(i=>vals[i.dataset.spid]=i.value.trim());
+  const cnt={};Object.values(vals).filter(Boolean).forEach(v=>cnt[v.toLowerCase()]=(cnt[v.toLowerCase()]||0)+1);
+  const dups=Object.keys(cnt).filter(k=>cnt[k]>1);if(dups.length){toast('Duplicate serial: '+dups.slice(0,3).join(', ')+'. Fix it before saving.');return}
+  let issued=0,changed=0;
+  ROSTER.forEach(p=>{const v=vals[p.pid];const g=gearOf(p.pid);const cur=g[eid];
+    if(!v&&!cur)return;if(cur&&String(cur.serial||'')===v)return;
+    if(!cur&&v){setGear(p.pid,Object.assign({},g,{[eid]:{qty:1,serial:v,ts:Date.now()}}));issued++}
+    else if(cur){setGear(p.pid,Object.assign({},g,{[eid]:Object.assign({},cur,{serial:v})}));changed++}});
+  if(issued||changed)logIt({type:'gear',text:`${name} serials recorded: ${changed} updated${issued?`, ${issued} newly issued`:''}`});
+  toast(issued||changed?'Serials saved':'No changes');closeDlg()}
 function issueGear(){const f=document.getElementById('gform');const fd=new FormData(f);const pid=f.dataset.pid;const eid=fd.get('eid');if(!eid){toast('Choose an item to issue.');return}
   const qty=Math.max(1,Number(fd.get('qty')||1));const serial=String(fd.get('serial')||'').trim();const g=Object.assign({},gearOf(pid));const had=g[eid];
   g[eid]={qty,serial,ts:Date.now()};setGear(pid,g);
@@ -581,7 +611,8 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.serials){serialsDlg(t.dataset.serials);return}
   if(t.dataset.gear){gearDlg(t.dataset.gear);return}
   if(t.dataset.ret){const [pid,eid]=t.dataset.ret.split('|');returnGear(pid,eid);return}
   if(t.dataset.day){UI.day=t.dataset.day;render();return}
@@ -597,6 +628,8 @@ document.addEventListener('click',e=>{
   if(a==='close')closeDlg();
   else if(a==='saveperson')savePerson();
   else if(a==='issue')issueGear();
+  else if(a==='fillpaste')fillPaste();
+  else if(a==='saveserials')saveSerials();
   else if(a==='issueall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=gearOf(p.pid);if(!g[id]){setGear(p.pid,Object.assign({},g,{[id]:{qty:1,serial:'',ts:Date.now()}}));n++}});logIt({type:'gear',text:`Issued 1 × ${S.equip[id]?.name} to ${n} personnel`});equipDlg(id)}
   else if(a==='returnall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=Object.assign({},gearOf(p.pid));if(g[id]){delete g[id];setGear(p.pid,g);n++}});logIt({type:'gear',text:`${S.equip[id]?.name} returned by ${n} personnel`});equipDlg(id)}
   else if(a==='who'){openDlg(`<form class="dlg" id="whoform"><h3>Your name for the log</h3><div class="fields"><label class="wide">Name or role (e.g. Stratton A1/4)<input name="who" maxlength="40" value="${esc(ME||'')}"></label></div><p class="small muted" style="margin:0">Saved on this device only. Every change you make is tagged with it.</p></form><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savewho">Save</button></div>`)}
