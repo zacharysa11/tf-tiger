@@ -224,6 +224,13 @@ dialog::backdrop{background:rgba(3,6,10,.6);backdrop-filter:blur(2px)}
 .segpick input:checked+span{background:var(--accent);border-color:var(--accent);color:#fff}
 .segpick input:focus-visible+span{outline:2px solid var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+#tourov{position:fixed;inset:0;z-index:80}
+#tourhole{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(3,6,10,.72);outline:2px solid var(--accent);transition:all .2s ease;pointer-events:none}
+#tourtip{position:fixed;background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-top:3px solid var(--accent);border-radius:12px;padding:12px 14px;box-shadow:0 18px 50px rgba(0,0,0,.55);display:grid;gap:6px;transition:top .2s ease,left .2s ease}
+#tourtip h4{margin:0;font:700 16px var(--display);letter-spacing:.03em}
+#tourtip p{margin:0;font-size:13.5px;line-height:1.45}
+.welcome{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:11px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accentbg)}
+.welcome b{font:700 14px var(--display);letter-spacing:.04em}
 </style>
 </head>
 <body>
@@ -502,7 +509,7 @@ function renderHeader(A){
     `<span class="tick ${out?'':'ok'}" data-tab="a3">Out <span class="mono">${out}</span></span>`+
     `<span class="tick ${ccir?'bad':''}" data-tab="a3">CCIR <span class="mono">${ccir}</span></span>`+
     `<span class="tick" data-tab="personnel">PAX <span class="mono">${s.EFF}/${ROSTER.length}</span></span>`;
-  document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Name shown in the log">${ME?esc(ME):'Set name'}</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
+  document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Name shown in the log">${ME?esc(ME):'Set name'}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
 }
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
@@ -523,6 +530,7 @@ document.addEventListener('keydown',e=>{const tg=e.target;const typing=tg&&(/INP
   if(e.key==='Enter'&&tg&&tg.id==='opstxt'){e.preventDefault();quickLog();return}
   if(typing||dlg.open||e.metaKey||e.ctrlKey||e.altKey)return;
   const i=Number(e.key);if(i>=1&&i<=TABS.length){setTab(TABS[i-1][0]);e.preventDefault();return}
+  if(e.key==='?'){helpDlg();e.preventDefault();return}
   if(e.key==='/'){const el=document.getElementById('opstxt')||document.getElementById('q');if(el){el.focus();e.preventDefault()}}
   if(e.key==='n'&&UI.tab!=='a3'){setTab('a3');setTimeout(()=>{const el=document.getElementById('opstxt');if(el)el.focus()},50);e.preventDefault()}});
 let lastTab=null;
@@ -534,7 +542,10 @@ function render(){
   const [t,sub]=TITLES[UI.tab];const d=dayObj(UI.day);
   const head=UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`;
   const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
-  main.innerHTML=banner+head+body;
+  let seen='1';try{seen=localStorage.getItem('tftiger-toured')}catch(e){}
+  const welcome=!seen&&!TOUR?'<div class="welcome"><b>New to the board?</b><span class="small">A 2-minute guided tour shows you where everything is.</span><span style="margin-left:auto"></span><button type="button" class="btn sm ghost" data-act="welcomeno">No thanks</button><button type="button" class="btn sm pri" data-act="welcomego">Start tour</button></div>':'';
+  main.innerHTML=banner+welcome+head+body;
+  if(TOUR)setTimeout(tourPlace,0);
   const pf=document.getElementById('pf');if(pf)pf.value=UI.pf;const lf=document.getElementById('lf');if(lf)lf.value=UI.lf;
   if(keep){const el=document.getElementById(keep.id);if(el){if(typeof keep.v==='string'&&el.value!==keep.v)el.value=keep.v;el.focus();try{el.setSelectionRange(keep.s,keep.e)}catch(e){}}}
   lastTab=UI.tab;
@@ -736,6 +747,94 @@ ${ms.map(m=>`- ${nm2(m)} ${m.start}-${m.end}: ${m.state||'Planned'}${m.go&&m.go.
 6. Intel from AARs (to A2): ${ms.filter(m=>m.aar&&m.aar.contact).map(m=>`${nm2(m)}: ${m.aar.contact}`).join('; ')||'None'}
 7. Items to confirm with incoming A3: CUB times, CYOA windows, TOC planning start times, Go/No-Go authority from ATF/CC.`}
 function dayOfTs(ts){if(!ts)return null;const d=new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ts));const m=DAYS.find(x=>x.date===d);return m?m.id:null}
+
+/* ---------- guided tour + help ---------- */
+const TOURS={
+ intro:[
+  {sel:'.topbar .brand',title:'Welcome to the TF Tiger board',text:'Everything here is shared live with anyone who has the link. Changes you make show up on every screen within a second or two.'},
+  {sel:'#ticker',title:'Live status strip',text:'Always on top: overdue A3 items (or what is next), missions out, CCIRs not yet reported, and effective PAX. Tap any chip to jump to it.'},
+  {sel:'#days',title:'Pick the day',text:'Switch between Day 1, 2 and 3. Missions, exemptions and deadlines follow the day you pick. It opens on today automatically.'},
+  {sel:'[data-act="who"]',title:'Set your name first',text:'Your name tags every change in the log, so the WOC knows who did what. It is saved on this device only.'},
+  {sel:'#tabs,#bnav',title:'Sections',text:'Overview, People, Missions, A3 Ops, Equipment, Resupply, Log and CUB slides. On a phone the last four are under More. On a laptop, keys 1–8 jump between them.'},
+  {sel:'[data-act="help"]',title:'Help is always here',text:'Tap ? on any page for quick how-tos, color meanings, shortcuts, and a tour of just that page.'}],
+ overview:[
+  {sel:'.kpis',title:'Personnel at a glance',text:'Assigned, effective, WIA by triage color, KIA, MIA, and exercises still owed.'},
+  {sel:'#alerts',title:'Needs attention',text:'Annex B participation problems, double-bookings, CCIRs, CYOA deadlines, AARs owed and equipment issues. Tap any line to open it.'},
+  {sel:'#participation',title:'Mission participation',text:'The floor is the lowest mission count. Nobody goes again until everyone reaches it. The chips are people at the floor who are not tasked yet.'},
+  {sel:'#now',title:'Missions now or next',text:'Who is out right now, or what launches next, with each person’s status color.'}],
+ personnel:[
+  {sel:'#q',title:'Find anyone fast',text:'Search by name, flight number, or a weapon serial to see who holds it.'},
+  {sel:'#pf',title:'Filters',text:'Show only casualties, people not yet passed to the TOC, exercises owed, people at the participation floor, or one team.'},
+  {sel:'#roster tbody tr',title:'Tap a person',text:'Set status (Effective, WIA, KIA, MIA), the source, the exercise they chose, mission count, and gear. Return to duty is one tap.'}],
+ missions:[
+  {sel:'.blockh',title:'Blocks',text:'WOC/TOC staff first, then each mission block. NOW marks the block running at this moment.'},
+  {sel:'.lanegrid .mission',title:'Mission card',text:'★ is the MC; the number by each name is completed missions. Tap a name to open that person. Colors show casualties.'},
+  {sel:'.lanegrid .mission [data-mission]',title:'Edit crew and times',text:'Move people between missions at any time. The picker warns when someone is already busy or above the participation floor.'},
+  {sel:'[data-act="addmission"]',title:'Add a mission',text:'For anything not on the plan: CYOA, base defense, or extra tasks.'}],
+ a3:[
+  {sel:'#queue',title:'Your action queue',text:'Everything that needs you, most urgent first. Red is overdue, amber is due within 10 minutes. Handle each item with its own buttons and it drops off.'},
+  {sel:'#queue .qi .act',title:'Act right in the queue',text:'Done for CYOA handoffs, Checklist or GO for Go/No-Go, Mark out, RTB, Enter AAR, Complete, and Reported for CCIRs.'},
+  {sel:'#timeline',title:'Timeline',text:'All of today’s missions against the clock. The red line is now. A dot means GO, blue is out, green is done. Tap a bar to work that mission.'},
+  {sel:'[data-act="addcyoa"]',title:'Add a CYOA mission',text:'Enter the mission and when TOC planning starts. The board works out T-20 and T-10 and puts each handoff in your queue with a countdown.'},
+  {sel:'#board .mrow',title:'One tap to the next step',text:'Each mission shows its progress (GO → OUT → RTB → AAR → DONE) and one button for the next step. ⋯ opens every action for that mission.'},
+  {sel:'#quickbar',title:'Quick log',text:'Pick the mission, then one tap for Troops in contact, ROE violation, Raider sighted or Comms lost. Or type a note and press Enter. On a laptop, / jumps here.'},
+  {sel:'#feed',title:'Ops feed',text:'Every decision, AAR and CCIR with the time. CCIRs stay red until you tick Reported after telling the ATF/CC.'},
+  {sel:'[data-act="copya3"]',title:'CUB and turnover',text:'Copy A3 slide gives you briefing text from live data. Turnover builds the handover for the next A3.'}],
+ equipment:[
+  {sel:'.tools .pill',title:'Status totals',text:'FMC, PMC and NMC across all equipment.'},
+  {sel:'#equip tbody tr,[data-act="seedequip"]',title:'Tap an item',text:'Enter counts by status, location, notes and medic-pack chips. Any status change after the first count is logged as a CCIR.'},
+  {sel:'[data-act="addequip"]',title:'Add items',text:'Anything not on the OPORD list.'}],
+ resupply:[{sel:'[data-act="addresupply"]',title:'Resupply requests',text:'Log a request, then Approve, Deny or mark Delivered. A1/4 holds approval authority.'}],
+ log:[{sel:'#lf',title:'Filter the log',text:'Everything, items not yet passed to the TOC, casualties only, or CCIRs. Tick TOC once an item is passed.'}],
+ cub:[{sel:'#slide-a1',title:'Live CUB slides',text:'A1, A4 and A3 slides built from current data.'},{sel:'[data-act="copya3"]',title:'Copy for the brief',text:'Copy any slide as text to read from or paste into the CUB deck.'}]
+};
+const HELP={
+ overview:['Read the red and amber lines first; tap one to open it.','Use the participation card before the CABS/CC fills the next block.'],
+ personnel:['Casualty: tap the person → pick status → source → mission → Save.','Exercise: open the person → Exercise chosen → status In progress (timeouts count down 60 min) → Return to duty when done.','Gear: open the person → Gear → pick item, serial → Issue.'],
+ missions:['Change a crew: Edit on the card → tick names → Save.','Complete · count participation adds one mission to everyone on that crew.'],
+ a3:['Start of block: work the queue top to bottom.','CYOA: + CYOA mission → enter TOC planning time → tick each handoff by T-20 and T-10.','Go/No-Go: Checklist → Check all or tick items → GO or NO-GO (a reason is required).','During a mission: pick it in the quick log → one-tap TIC or ROE → report to the ATF/CC → tick Reported.','After: RTB → Enter AAR (result + a line or two) → Complete.'],
+ equipment:['First time: Load OPORD issue list (once).','At issue: tap an item → enter FMC count → Save.','Serials: tap the weapon → Enter serials → type or paste from the hand receipt → Save.'],
+ resupply:['New request → fill item, qty, for → Save.','Approve or Deny right from the list.'],
+ log:['Tick TOC when an item has been passed.','Copy unpassed gives you a list to read to the TOC.'],
+ cub:['Before the CUB: open this tab, pick the day, Copy each slide.']
+};
+let TOUR=null;
+function tourVisible(sel){for(const s of sel.split(',')){const els=[...document.querySelectorAll(s)];const el=els.find(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0});if(el)return el}return null}
+function startTour(name,thenA3){const steps=TOURS[name];if(!steps)return;if(dlg.open)closeDlg();
+  if(name!=='intro'&&UI.tab!==name)setTab(name);
+  TOUR={name,steps,i:0,thenA3};if(!document.getElementById('tourov')){document.body.insertAdjacentHTML('beforeend','<div id="tourov" aria-hidden="false"><div id="tourhole"></div><div id="tourtip" role="dialog" aria-live="polite"></div></div>')}
+  try{localStorage.setItem('tftiger-toured','1')}catch(e){}
+  setTimeout(()=>tourGo(0),60)}
+function tourGo(i){if(!TOUR)return;const n=TOUR.steps.length;
+  while(i<n&&!tourVisible(TOUR.steps[i].sel))i+=(i>=TOUR.i?1:-1);
+  if(i<0)i=0;
+  if(i>=n){const then=TOUR.thenA3;endTour();if(then){startTour('a3')}return}
+  TOUR.i=i;const st=TOUR.steps[i];const el=tourVisible(st.sel);
+  el.scrollIntoView({block:'center',behavior:'instant'});
+  const tip=document.getElementById('tourtip');
+  const last=i===n-1&&!TOUR.thenA3;
+  tip.innerHTML=`<div class="small muted mono">${TOUR.name==='intro'?'Tour':esc(TITLES[TOUR.name][0])} · ${i+1} of ${n}${TOUR.thenA3?' · A3 next':''}</div><h4>${esc(st.title)}</h4><p>${esc(st.text)}</p><div class="tools"><button type="button" class="btn sm ghost" data-tour="end">${last?'Close':'Skip'}</button><span style="margin-left:auto"></span>${i>0?'<button type="button" class="btn sm" data-tour="back">Back</button>':''}<button type="button" class="btn sm pri" data-tour="next">${last?'Done':TOUR.thenA3&&i===n-1?'Continue to A3':'Next'}</button></div>`;
+  tourPlace();setTimeout(tourPlace,80);const nb=tip.querySelector('[data-tour="next"]');if(nb)nb.focus({preventScroll:true})}
+function tourPlace(){if(!TOUR)return;const st=TOUR.steps[TOUR.i];const el=tourVisible(st.sel);const hole=document.getElementById('tourhole'),tip=document.getElementById('tourtip');if(!el||!hole)return;
+  const r=el.getBoundingClientRect();const pad=6;const vw=innerWidth,vh=innerHeight;
+  const top=Math.max(4,r.top-pad),left=Math.max(4,r.left-pad),w=Math.min(vw-8,r.width+pad*2),h=Math.min(vh-8,r.height+pad*2);
+  Object.assign(hole.style,{top:top+'px',left:left+'px',width:w+'px',height:h+'px'});
+  const tw=Math.min(360,vw-24);tip.style.width=tw+'px';const th=tip.offsetHeight;
+  let ty=top+h+10;if(ty+th>vh-8)ty=top-th-10;if(ty<8)ty=Math.min(vh-th-8,Math.max(8,top+12));
+  let tx=Math.min(Math.max(12,left),vw-tw-12);tip.style.top=ty+'px';tip.style.left=tx+'px'}
+function endTour(){TOUR=null;const o=document.getElementById('tourov');if(o)o.remove()}
+addEventListener('resize',tourPlace);addEventListener('scroll',tourPlace,{passive:true});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-tour]');if(!b)return;e.stopPropagation();const a=b.dataset.tour;
+  if(a==='next')tourGo(TOUR.i+1);else if(a==='back')tourGo(TOUR.i-1);else endTour()},true);
+document.addEventListener('keydown',e=>{if(!TOUR)return;if(e.key==='Escape'){endTour();e.preventDefault()}else if(e.key==='ArrowRight'){tourGo(TOUR.i+1);e.preventDefault()}else if(e.key==='ArrowLeft'){tourGo(TOUR.i-1);e.preventDefault()}},true);
+function helpDlg(){const k=UI.tab;const [t]=TITLES[k];
+  openDlg(`<div class="dlg"><h3>Help · ${esc(t)}</h3>
+  <div class="sheetbtns"><button type="button" class="btn pri" data-act="tourpage">Tour this page</button><button type="button" class="btn" data-act="tourall">Full tour</button></div>
+  <div><b class="small">How to</b><ol style="margin:6px 0 0;padding-left:20px;display:grid;gap:4px">${(HELP[k]||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol></div>
+  <div><b class="small">Colors</b><div class="chips" style="margin-top:6px"><span class="pill s-EFF">Effective / FMC / done</span><span class="pill s-WIAY">Warning · due soon · WIA yellow</span><span class="pill s-WIAR">Overdue · CCIR · WIA red · NMC</span><span class="pill st-Out">Out on mission</span><span class="pill s-KIA">KIA</span><span class="pill s-MIA">MIA</span></div></div>
+  <div><b class="small">Shortcuts (laptop)</b><div class="small muted" style="margin-top:6px;display:grid;gap:3px"><span><span class="kbd">1</span>–<span class="kbd">8</span> switch tabs</span><span><span class="kbd">/</span> jump to search or the A3 quick log</span><span><span class="kbd">n</span> new ops log entry</span><span><span class="kbd">Enter</span> in the quick log saves it</span><span><span class="kbd">?</span> this help · <span class="kbd">Esc</span> close</span></div></div>
+  <p class="small muted" style="margin:0">Changes save instantly for everyone. If the dot at the top is not green, check your connection and reload.</p></div>
+  <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
 
 /* ---------- dialogs ---------- */
 const dlg=document.getElementById('dlg');
@@ -966,6 +1065,11 @@ document.addEventListener('click',e=>{
   else if(a==='saveaar')saveAar();
   else if(a==='logops')quickLog();
   else if(a==='more')moreSheet();
+  else if(a==='help')helpDlg();
+  else if(a==='tourpage'){closeDlg();startTour(UI.tab)}
+  else if(a==='tourall'){closeDlg();startTour('intro',true)}
+  else if(a==='welcomego'){try{localStorage.setItem('tftiger-toured','1')}catch(e){}startTour('intro',true)}
+  else if(a==='welcomeno'){try{localStorage.setItem('tftiger-toured','1')}catch(e){}render()}
   else if(a==='mode'){THEME=THEME==='light'?'dark':'light';document.documentElement.dataset.mode=THEME;try{localStorage.setItem('tftiger-mode',THEME)}catch(e){}render()}
   else if(a==='checkall'){document.querySelectorAll('#goform input[name^=ck_]').forEach(c=>c.checked=true)}
   else if(a==='copya3')copy(a3Text(A()));
