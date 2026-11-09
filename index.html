@@ -241,6 +241,7 @@ function analyze(){
   // exercises owed
   ROSTER.forEach(p=>{const x=person(p.pid);if(x.exStatus==='Owed'&&!x.exercise)alerts.push({k:'info',t:`${short(p.pid)} owes an exercise choice`,pid:p.pid});
     if(x.exercise==='60-min timeout'&&x.exStatus==='In progress'&&x.exStart&&Date.now()-x.exStart>=3600000)alerts.push({k:'ok',t:`${short(p.pid)} timeout complete (60 min elapsed). Confirm RTD.`,pid:p.pid})});
+  a3Alerts({dayMs}).forEach(x=>alerts.push(x));
   // equipment NMC
   Object.entries(S.equip).forEach(([id,e])=>{if(Number(e.nmc)>0)alerts.push({k:'warn',t:`${e.name}: ${e.nmc} NMC`,eid:id});
     if(e.cat==='Medical'&&e.chips!=null&&e.chips!==''&&Number(e.chips)<=3)alerts.push({k:'warn',t:`${e.name}: only ${e.chips} poker chips left. Request resupply through CABS/CC.`,eid:id})});
@@ -271,7 +272,7 @@ function renderHeader(){
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k!=='ok').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
   const toc=Object.values(S.log).filter(l=>!l.toc).length;
-  const T=[['overview','Overview',n],['personnel','Personnel',0],['missions','Missions',0],['equipment','Equipment',0],['resupply','Resupply',pend],['log','Log',toc],['cub','CUB slides',0]];
+  const T=[['overview','Overview',n],['personnel','Personnel',0],['missions','Missions',0],['a3','A3 Ops',a3Alerts(A).filter(x=>x.k==='bad').length],['equipment','Equipment',0],['resupply','Resupply',pend],['log','Log',toc],['cub','CUB slides',0]];
   document.getElementById('tabs').innerHTML=T.map(([k,l,c])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${UI.tab===k}">${l}${c?`<span class="ct tnum">${c}</span>`:''}</button>`).join('');
 }
 function statusCounts(){const c={EFF:0,WIAY:0,WIAR:0,WIAB:0,KIA:0,MIA:0};ROSTER.forEach(p=>c[person(p.pid).status]++);return c}
@@ -289,7 +290,7 @@ function missionCard(m,A,now){
   const fl=A.flags[m.id];
   const chips=crew(m).map(x=>{const p=person(x);return `<button type="button" class="chip ${x===m.mc?'mc':''} ${p.status!=='EFF'?'s-'+p.status:''}" data-person="${x}" title="${esc(nm(x))}">${x===m.mc?'★ ':''}${esc(short(x))}${isMission(m)?` <span class="muted tnum">${A.c[x]}</span>`:''}</button>`}).join('');
   return `<div class="mission ${isNow?'now':''} ${fl==='bad'?'badc':fl==='warn'?'warnc':''}" id="m-${esc(m.id)}">
-   <div class="mhead"><b>${esc(m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-mission="${esc(m.id)}">Edit</button></div>
+   <div class="mhead"><b>${esc(m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${isMission(m)&&m.go&&m.go.d?goPill(m):''}${aarPill(m)}${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-mission="${esc(m.id)}">Edit</button></div>
    <div class="small muted">${isMission(m)?'MC':'Lead'}: <b style="color:var(--ink)">${m.mc?esc(nm(m.mc)):'Not assigned'}</b> · ${crew(m).length} pax</div>
    <div class="chips">${chips||'<span class="muted small">No crew assigned</span>'}</div>
    ${m.note?`<div class="small">${esc(m.note)}</div>`:''}
@@ -383,7 +384,7 @@ function renderCUB(A){
   const {s,cas,ex}=a1Text(A);const t=equipTotals();const nmc=Object.values(S.equip).filter(e=>Number(e.nmc)>0||Number(e.pmc)>0);
   const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');const med=Object.values(S.equip).filter(e=>e.cat==='Medical'&&e.chips!=null&&e.chips!=='');
   const dist={};ROSTER.forEach(p=>{if(!exempt(p.pid,UI.day,A.ms))dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
-  return `<div class="tools"><span class="small muted">Live as of ${nowParts().hm} CST. Copy either slide as text for the CUB.</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copya1">Copy A1</button><button type="button" class="btn" data-act="copya4">Copy A4</button></div>
+  return `<div class="tools"><span class="small muted">Live as of ${nowParts().hm} CST. Copy either slide as text for the CUB.</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copya1">Copy A1</button><button type="button" class="btn" data-act="copya4">Copy A4</button><button type="button" class="btn" data-act="copya3">Copy A3</button></div>
   <div class="grid2">
   <section class="slide" id="slide-a1"><h3><span>A1 · Personnel</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
    <div class="big tnum"><div><b>${ROSTER.length}</b>Assigned</div><div><b>${s.EFF}</b>Effective</div><div><b>${s.WIAY+s.WIAR+s.WIAB}</b>WIA</div><div><b>${s.KIA}</b>KIA</div><div><b>${s.MIA}</b>MIA</div></div>
@@ -397,6 +398,15 @@ function renderCUB(A){
    <div><b>Medic packs</b>${med.length?`<ul>${med.map(e=>`<li>${esc(e.name)}: ${esc(e.chips)} chips / ${Math.ceil(Number(e.chips)/3)} sandbags</li>`).join('')}</ul>`:' not tracked'}</div>
    <div><b>Issued to personnel</b>${(()=>{const l=Object.entries(S.equip).map(([id,e])=>[e,issuedOf(id)]).filter(([,i])=>i.n);return l.length?`<ul>${l.map(([e,i])=>`<li>${esc(e.name)}: ${i.q} to ${i.n} of ${ROSTER.length}</li>`).join('')}</ul>`:' none recorded'})()}</div>
    <div><b>Resupply pending</b>${pend.length?`<ul>${pend.map(r=>`<li>${esc(r.qty)} × ${esc(r.item)}${r.forWhat?` for ${esc(r.forWhat)}`:''}</li>`).join('')}</ul>`:' none'}</div>
+  </section>
+  <section class="slide" id="slide-a3"><h3><span>A3 · Operations</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
+   ${(()=>{const ms=A.dayMs.filter(isMission);const k=s=>ms.filter(m=>(m.state||'Planned')===s).length;const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
+   const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
+   return `<div class="big tnum"><div><b>${k('Complete')}</b>Complete</div><div><b>${k('Out')}</b>Out</div><div><b>${k('Planned')}</b>Planned</div><div><b>${ms.filter(aarOwed).length}</b>AARs owed</div></div>
+   <div><b>Results</b>${ms.filter(m=>m.state==='Complete').length?`<ul>${ms.filter(m=>m.state==='Complete').map(m=>`<li>${esc(nm2(m))} ${esc(m.start)}: ${m.aar?esc(m.aar.result):'AAR owed'}${casualtiesFor(m.id)?`, ${casualtiesFor(m.id)} cas`:''}</li>`).join('')}</ul>`:' none yet'}</div>
+   <div><b>CYOA:</b> ${A.dayMs.filter(m=>m.cyoa).map(m=>`${esc(m.note||'CYOA')} ${esc(m.start)} (${m.go&&m.go.d?esc(m.go.d):'pending'})`).join('; ')||'none'}</div>
+   <div><b>CCIRs</b>${cc.length?`<ul>${cc.map(l=>`<li>${fmtT(l.ts)} ${esc(l.text)}</li>`).join('')}</ul>`:' none'}</div>
+   <div><b>Next:</b> ${ms.filter(m=>(m.state||'Planned')==='Planned').slice(0,4).map(m=>`${esc(nm2(m))} ${esc(m.start)}`).join('; ')||'none planned'}</div>`})()}
   </section></div>`}
 function cubText(which,A){
   if(which==='a1'){const {s,cas,ex}=a1Text(A);return `A1 PERSONNEL (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nAssigned ${ROSTER.length} | Effective ${s.EFF} | WIA ${s.WIAY+s.WIAR+s.WIAB} (Y${s.WIAY}/R${s.WIAR}/B${s.WIAB}) | KIA ${s.KIA} | MIA ${s.MIA}\nCasualties:\n${cas.map(p=>{const x=person(p.pid);return `- ${p.name}: ${SLBL[x.status]}${x.source?' ('+x.source+')':''}${x.exercise?', '+x.exercise+' '+(x.exStatus||''):''}`}).join('\n')||'- None'}\nMission participation floor: ${A.fl}\nExercises owed/in progress: ${ex.length}`}
@@ -409,12 +419,135 @@ function render(){
   const main=document.getElementById('main');
   const focus=document.activeElement&&document.activeElement.id==='q';const caret=focus?document.activeElement.selectionStart:0;
   const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet. Add the project keys to config.js.</div>':MODE==='error'?'<div class="banner">Live sync stopped. If this is a new setup, publish the Firestore rules, then reload.</div>':MODE==='local'?'<div class="banner">Shared storage is not available in this view, so changes save on this device only. Open the board from its claude.ai link to share it live with the TOC.</div>':'';
-  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
+  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
   main.innerHTML=banner+body;
   const pf=document.getElementById('pf');if(pf)pf.value=UI.pf;const lf=document.getElementById('lf');if(lf)lf.value=UI.lf;
   if(focus){const q=document.getElementById('q');if(q){q.focus();q.setSelectionRange(caret,caret)}}
   if(lastTab!==UI.tab){lastTab=UI.tab}
 }
+
+/* ---------- A3 operations ---------- */
+function toMin(h){h=hhmm(h);return (+h.slice(0,2))*60+(+h.slice(2))}
+function fromMin(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+String(m%60).padStart(2,'0')}
+function nowMinFor(day){const n=nowParts();const d=dayObj(day);return d&&d.date===n.date?toMin(n.hm):null}
+function patchMission(id,patch){return writeDoc('missions',id,Object.assign({},S.missions[id]||{},patch))}
+function mLabel(m){return `${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start}`}
+const CYSTEPS=[['decided','Decided at WOC with ATF/CC',20],['atfInstr','Details + resupply to ATF/CC eval instructor',20],['cabs','Passed to TOC (CABS/CC)',10],['cabsInstr','Confirmed with CABS/CC eval instructor',10]];
+function cyoaSteps(m,nowM){const toc=m.cyoa&&m.cyoa.toc;if(!toc)return null;const T=toMin(toc);
+  return CYSTEPS.map(([k,l,off])=>{const due=T-off;const done=m.cyoa[k]&&m.cyoa[k].at;const left=nowM==null?null:due-nowM;return{k,l,off,due:fromMin(due),done,left,late:!done&&left!=null&&left<0,soon:!done&&left!=null&&left>=0&&left<=10}})}
+const GOCHK=[['mto','MTO received; MC understands task and timeline'],['plan','MC plan: route, # personnel, equipment, risk assessment'],['pax','Crew meets Annex B participation (A1 flags clear)'],['escort','If leaving perimeter: ATF/CC coordinated and instructor escort set'],['toolbox','Toolbox with team if setting up or destroying field equipment'],['comms','Comms plan set (LMRs limited off base, walkies on-base only)'],['med','Medic pack / litter with team; no more than 1 chaplain'],['roe','ROE briefed: defensive posture, escalation of force, red patches'],['resupply','Resupply items requested and approved (A1/4)']];
+function goPill(m){const g=m.go&&m.go.d;return g==='GO'?'<span class="pill e-FMC">GO</span>':g==='NOGO'?'<span class="pill e-NMC">NO-GO</span>':'<span class="pill st-Planned">Go/No-Go pending</span>'}
+function aarOwed(m){return isMission(m)&&(m.state==='RTB'||m.state==='Complete')&&!m.aar}
+function aarPill(m){return m.aar?`<span class="pill e-FMC">AAR ${esc(m.aar.result||'in')}</span>`:aarOwed(m)?'<span class="pill e-NMC">AAR owed</span>':''}
+function a3Alerts(A){const out=[];const nowM=nowMinFor(UI.day);
+  A.dayMs.filter(m=>m.cyoa&&m.cyoa.toc&&m.state!=='Scrubbed').forEach(m=>{(cyoaSteps(m,nowM)||[]).forEach(s=>{if(s.late)out.push({k:'bad',t:`CYOA ${mLabel(m)}: "${s.l}" overdue (due ${s.due})`,mid:m.id});else if(s.soon)out.push({k:'warn',t:`CYOA ${mLabel(m)}: "${s.l}" due ${s.due} (${s.left} min)`,mid:m.id})})});
+  A.dayMs.filter(aarOwed).forEach(m=>out.push({k:'warn',t:`AAR owed: ${mLabel(m)}${m.mc?' (MC '+short(m.mc)+')':''}`,mid:m.id}));
+  A.dayMs.filter(m=>isMission(m)&&m.state==='Out'&&!(m.go&&m.go.d==='GO')).forEach(m=>out.push({k:'bad',t:`${mLabel(m)} is out without a recorded GO`,mid:m.id}));
+  return out}
+function renderA3(A){
+  const nowM=nowMinFor(UI.day);const ms=A.dayMs.filter(isMission).filter(m=>m.state!=='Scrubbed'||true);
+  const c=k=>ms.filter(m=>(m.state||'Planned')===k).length;
+  const goPend=ms.filter(m=>(m.state==='Planned')&&!(m.go&&m.go.d)).length;const owed=ms.filter(aarOwed).length;
+  const cy=A.dayMs.filter(m=>m.lane==='CYOA'||m.cyoa);
+  const al=a3Alerts(A);
+  const opsLog=Object.entries(S.log).filter(([,l])=>l.type==='ops'||l.type==='go'||l.type==='aar'||l.type==='cyoa'||l.ccir).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).slice(0,12);
+  return `<div class="kpis tnum">
+   <div class="kpi info"><b>${c('Planned')}</b><span>Planned</span></div><div class="kpi warn"><b>${c('Out')}</b><span>Out</span></div>
+   <div class="kpi warn"><b>${c('RTB')}</b><span>RTB</span></div><div class="kpi ok"><b>${c('Complete')}</b><span>Complete</span></div>
+   <div class="kpi ${goPend?'warn':'ok'}"><b>${goPend}</b><span>Go/No-Go pending</span></div><div class="kpi ${owed?'bad':'ok'}"><b>${owed}</b><span>AARs owed</span></div></div>
+  ${al.length?`<ul class="alerts">${al.map(a=>`<li class="${a.k}" data-mission="${esc(a.mid)}" style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>`:''}
+  <section class="card" id="cyoa"><h2>CYOA missions <span class="sub">Decide NLT T-20 · pass to TOC NLT T-10 (T = TOC mission planning start)</span><span class="right"><button type="button" class="btn sm pri" data-act="addcyoa">Add CYOA mission</button></span></h2>
+   <div class="lanegrid">${cy.map(m=>{const st=cyoaSteps(m,nowM);return `<div class="mission ${st&&st.some(s=>s.late)?'badc':st&&st.some(s=>s.soon)?'warnc':''}">
+    <div class="mhead"><b>${esc(m.note||'CYOA')}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(m.state||'Planned')}">${esc(m.state||'Planned')}</span>${goPill(m)}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-cyedit="${esc(m.id)}">Edit</button></div>
+    <div class="small muted">TOC planning ${m.cyoa&&m.cyoa.toc?`<b class="mono" style="color:var(--ink)">${esc(m.cyoa.toc)}</b>`:'<b style="color:var(--bad)">time not set</b>'}${m.cyoa&&m.cyoa.offbase?' · leaves perimeter':''}${m.cyoa&&m.cyoa.resupply?` · resupply: ${esc(m.cyoa.resupply)}`:''}</div>
+    ${st?`<div style="display:grid;gap:4px">${st.map(s=>`<label class="small" style="display:flex;gap:6px;align-items:center;${s.late?'color:var(--bad);font-weight:600':s.soon?'color:var(--warn);font-weight:600':''}"><input type="checkbox" data-cy="${esc(m.id)}|${s.k}" ${s.done?'checked':''}> <span class="mono">T-${s.off} ${s.due}</span> ${esc(s.l)}${s.done?` <span class="muted">✓ ${fmtT(s.done)}</span>`:s.left!=null?` <span>${s.left<0?'OVERDUE':s.left+' min'}</span>`:''}</label>`).join('')}</div>`:''}
+    <div class="tools"><button type="button" class="btn sm" data-mission="${esc(m.id)}">Crew</button><button type="button" class="btn sm" data-go="${esc(m.id)}">Go/No-Go</button></div></div>`}).join('')||'<div class="empty">No CYOA missions yet. Add one when the window is announced.</div>'}</div></section>
+  <section class="card" id="ops"><h2>Mission tracker <span class="sub">${esc(dayObj(UI.day).name)} · offense & defense</span></h2>
+   <div class="lanegrid">${ms.map(m=>{const cas=casualtiesFor(m.id);const st=m.state||'Planned';return `<div class="mission ${m.state==='Out'?'now':''}" id="a3-${esc(m.id)}">
+    <div class="mhead"><b>${esc(m.lane==='CYOA'?(m.note||'CYOA'):m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${goPill(m)}${aarPill(m)}${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}</div>
+    <div class="small muted">MC <b style="color:var(--ink)">${m.mc?esc(nm(m.mc)):'not assigned'}</b> · ${crew(m).length} pax${m.go&&m.go.offbase?' · off-perimeter':''}${m.go&&m.go.d?` · ${m.go.d==='GO'?'GO':'NO-GO'} ${fmtT(m.go.at)}${m.go.reason?' ('+esc(m.go.reason)+')':''}`:''}</div>
+    <div class="tools"><button type="button" class="btn sm" data-go="${esc(m.id)}">Go/No-Go</button>${st==='Planned'?`<button type="button" class="btn sm" data-ops="${esc(m.id)}|Out">Out</button>`:''}${st==='Out'?`<button type="button" class="btn sm badb" data-ops="${esc(m.id)}|TIC">Troops in contact</button><button type="button" class="btn sm" data-ops="${esc(m.id)}|RTB">RTB</button>`:''}<button type="button" class="btn sm ${aarOwed(m)?'pri':''}" data-aar="${esc(m.id)}">${m.aar?'View AAR':'AAR'}</button></div></div>`}).join('')||'<div class="empty">No missions on this day.</div>'}</div></section>
+  <section class="card" id="opslog"><h2>Ops log <span class="sub">CCIRs: ROE violation · troops in contact · >5 casualties · equipment status</span></h2>
+   <form id="opsform" class="tools" style="margin-bottom:8px"><input type="search" name="txt" id="opstxt" placeholder="Log an ops event (e.g. Raider patrol sighted N of base)" style="flex:1 1 220px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><label class="small" style="display:flex;gap:4px;align-items:center"><input type="checkbox" name="ccir"> CCIR</label><button type="button" class="btn sm pri" data-act="logops">Log</button><button type="button" class="btn sm badb" data-act="logroe">ROE violation</button></form>
+   <div class="log">${opsLog.map(([id,l])=>`<div class="logrow ${l.ccir?'ccir':''}"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div><span></span></div>`).join('')||'<div class="empty">No ops entries yet.</div>'}</div></section>
+  <div class="tools"><button type="button" class="btn" data-act="copya3">Copy A3 CUB text</button><button type="button" class="btn" data-act="turnover">Turnover sheet</button></div>`}
+function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:'',end:'',cyoa:{toc:'',resupply:'',offbase:false}};const cy=m.cyoa||{};
+  openDlg(`<form class="dlg" id="cyform" data-mid="${esc(id||'')}"><h3>${id?'Edit CYOA mission':'Add CYOA mission'} <span class="small muted">${esc(dayObj(id?m.day:UI.day).name)}</span></h3>
+  <div class="fields"><label class="wide">Mission chosen (short name)<input name="note" value="${esc(m.note||'')}" required placeholder="e.g. Recon of runway site"></label>
+  <label>TOC planning starts (CST)<input name="toc" inputmode="numeric" pattern="[0-9]{4}" value="${esc(cy.toc||'')}" required placeholder="0700"></label>
+  <label>Mission start<input name="start" inputmode="numeric" pattern="[0-9]{4}" value="${esc(m.start||'')}" required></label>
+  <label>Mission end<input name="end" inputmode="numeric" pattern="[0-9]{4}" value="${esc(m.end||'')}" required></label>
+  <label class="wide">Resupply items to request<input name="resupply" value="${esc(cy.resupply||'')}"></label>
+  <label class="wide" style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" name="offbase" ${cy.offbase?'checked':''}> Leaves the base perimeter (coordinate with ATF/CC, instructor escort)</label></div>
+  <p class="small muted" style="margin:0">Deadlines: decide at WOC and brief the ATF/CC eval instructor by T-20; pass to CABS/CC and confirm with their eval instructor by T-10. Assign the crew with the mission's Crew button.</p></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delcyoa">Scrub</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savecyoa">Save</button></div>`)}
+function saveCyoa(){const f=document.getElementById('cyform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.mid;const isNew=!id;id=id||('c'+uid());
+  const old=S.missions[id]||{};const cy=Object.assign({},old.cyoa||{},{toc:hhmm(fd.get('toc')),resupply:fd.get('resupply'),offbase:fd.get('offbase')==='on'});
+  const n=Object.assign({},old,{day:old.day||UI.day,lane:'CYOA',note:fd.get('note'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),state:old.state||'Planned',mc:old.mc||'',members:old.members||[],cyoa:cy});
+  writeDoc('missions',id,n);logIt({type:'cyoa',mid:id,text:`CYOA ${isNew?'added':'updated'}: ${n.note} ${n.start}–${n.end}, TOC planning ${cy.toc}${cy.resupply?', resupply: '+cy.resupply:''}${cy.offbase?', leaves perimeter':''}`});closeDlg()}
+function toggleCy(id,k,on){const m=allMissions().find(x=>x.id===id);if(!m)return;const cy=Object.assign({},m.cyoa||{});cy[k]=on?{at:Date.now(),by:ME||null}:null;patchMission(id,{cyoa:cy});
+  const lbl=(CYSTEPS.find(s=>s[0]===k)||[])[1];if(on)logIt({type:'cyoa',mid:id,text:`CYOA ${m.note||mLabel(m)}: ${lbl}`})}
+function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)return;const g=m.go||{};const ck=g.checks||{};
+  const flags=A.alerts.filter(a=>a.mid===id);
+  openDlg(`<form class="dlg" id="goform" data-mid="${esc(id)}"><h3>Go/No-Go · ${esc(m.lane==='CYOA'?(m.note||'CYOA'):m.lane)} ${esc(m.start)} ${goPill(m)}</h3>
+  <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax</div>
+  ${flags.length?`<ul class="alerts">${flags.map(a=>`<li class="${a.k}">${esc(a.t)}</li>`).join('')}</ul>`:''}
+  <label class="small" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" name="offbase" ${(g.offbase||(m.cyoa&&m.cyoa.offbase))?'checked':''}> Mission leaves the base perimeter</label>
+  <div class="picker" style="max-height:none">${GOCHK.map(([k,l])=>`<label style="grid-template-columns:22px 1fr"><input type="checkbox" name="ck_${k}" ${ck[k]?'checked':''}><span>${esc(l)}</span></label>`).join('')}</div>
+  <div class="fields"><label class="wide">Reason / conditions (required for NO-GO)<input name="reason" value="${esc(g.reason||'')}"></label></div></form>
+  <div class="dfoot"><div class="left"><button type="button" class="btn ghost sm" data-act="close">Cancel</button></div><button type="button" class="btn badb" data-act="nogo">NO-GO</button><button type="button" class="btn okb" data-act="go">GO</button></div>`)}
+function saveGo(d){const f=document.getElementById('goform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);
+  const checks={};GOCHK.forEach(([k])=>checks[k]=fd.get('ck_'+k)==='on');const reason=String(fd.get('reason')||'').trim();
+  if(d==='NOGO'&&!reason){toast('Add the reason for the NO-GO.');return}
+  const miss=GOCHK.filter(([k])=>!checks[k]).length;
+  patchMission(id,{go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
+  logIt({type:'go',mid:id,text:`${d==='GO'?'GO':'NO-GO'}: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start}${reason?' ('+reason+')':''}${d==='GO'&&miss?` · ${miss} checklist item${miss>1?'s':''} open`:''}${fd.get('offbase')==='on'?' · off-perimeter':''}`});closeDlg()}
+function aarDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;const a=m.aar||{};const cas=casualtiesFor(id);
+  openDlg(`<form class="dlg" id="aarform" data-mid="${esc(id)}"><h3>AAR · ${esc(m.lane==='CYOA'?(m.note||'CYOA'):m.lane)} ${esc(m.start)}</h3>
+  <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax · ${cas} casualties logged by A1</div>
+  <div class="fields"><label>Result<select name="result">${opt(['Success','Partial','Failed','Scrubbed'],a.result||'Success')}</select></label>
+  <label>Received from<input name="from" value="${esc(a.from||'CABS/CC')}"></label>
+  <label class="wide">What happened (objective, route, timeline)<textarea name="summary" rows="3">${esc(a.summary||'')}</textarea></label>
+  <label class="wide">Enemy contact / intel (for A2)<textarea name="contact" rows="2">${esc(a.contact||'')}</textarea></label>
+  <label class="wide">Equipment issues (for A4)<input name="equip" value="${esc(a.equip||'')}"></label>
+  <label>Sustain<textarea name="sustain" rows="2">${esc(a.sustain||'')}</textarea></label>
+  <label>Improve<textarea name="improve" rows="2">${esc(a.improve||'')}</textarea></label>
+  <label class="wide">Follow-up / requests to ATF/CC<input name="follow" value="${esc(a.follow||'')}"></label></div></form>
+  <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveaar">Save AAR</button></div>`)}
+function saveAar(){const f=document.getElementById('aarform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);const had=!!m.aar;
+  const a={};['result','from','summary','contact','equip','sustain','improve','follow'].forEach(k=>a[k]=String(fd.get(k)||'').trim());a.at=(m.aar&&m.aar.at)||Date.now();a.by=ME||null;
+  patchMission(id,{aar:a});logIt({type:'aar',mid:id,text:`AAR ${had?'updated':'received'}: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start} · ${a.result}${a.contact?' · contact reported':''}${a.equip?' · equipment issue':''}`});closeDlg()}
+function opsEvent(id,ev){const m=allMissions().find(x=>x.id===id);if(!m)return;
+  if(ev==='Out'){if(!(m.go&&m.go.d==='GO')&&!window.__goWarned){window.__goWarned=1;toast('No GO recorded yet. Tap Out again to send it anyway.');setTimeout(()=>window.__goWarned=0,4000);return}setMissionState(id,'Out')}
+  else if(ev==='RTB')setMissionState(id,'RTB');
+  else if(ev==='TIC')logIt({type:'ops',mid:id,ccir:true,text:`CCIR troops in contact: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start}`})}
+function a3Text(A){const ms=A.dayMs.filter(isMission);const by=k=>ms.filter(m=>(m.state||'Planned')===k);
+  const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
+  const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
+  return `A3 OPERATIONS (${dayObj(UI.day).name}, ${nowParts().hm} CST)
+Missions: ${by('Complete').length} complete | ${by('Out').length} out | ${by('RTB').length} RTB | ${by('Planned').length} planned | ${by('Scrubbed').length} scrubbed
+Completed:
+${by('Complete').map(m=>`- ${nm2(m)} ${m.start}: ${m.aar?m.aar.result:'AAR owed'}${casualtiesFor(m.id)?', '+casualtiesFor(m.id)+' cas':''}${m.aar&&m.aar.improve?' | improve: '+m.aar.improve:''}`).join('\n')||'- None'}
+Out now: ${by('Out').map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None'}
+CYOA: ${A.dayMs.filter(m=>m.cyoa).map(m=>`${m.note||'CYOA'} ${m.start} (${m.go&&m.go.d?m.go.d:'Go/No-Go pending'})`).join('; ')||'None'}
+NO-GO decisions: ${ms.filter(m=>m.go&&m.go.d==='NOGO').map(m=>`${nm2(m)} ${m.start} (${m.go.reason})`).join('; ')||'None'}
+CCIRs today:
+${cc.map(l=>`- ${fmtT(l.ts)} ${l.text}`).join('\n')||'- None'}
+AARs owed: ${ms.filter(aarOwed).map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None'}
+Next: ${by('Planned').slice(0,4).map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None planned'}`}
+function turnoverText(A){const ms=A.dayMs.filter(isMission);const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
+  const open=Object.values(S.log).filter(l=>!l.toc&&l.ccir).sort((a,b)=>a.ts-b.ts);
+  return `A3 TURNOVER · ${dayObj(UI.day).name} ${dayObj(UI.day).label} · ${nowParts().hm} CST
+Outgoing A3: ${ME||'________'}   Incoming A3: ________
+1. Missions and results
+${ms.map(m=>`- ${nm2(m)} ${m.start}-${m.end}: ${m.state||'Planned'}${m.go&&m.go.d?' / '+m.go.d:''}${m.aar?' / AAR '+m.aar.result:aarOwed(m)?' / AAR OWED':''}`).join('\n')||'- None'}
+2. AARs still owed: ${ms.filter(aarOwed).map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None'}
+3. Open CCIRs not yet passed: ${open.map(l=>`${fmtT(l.ts)} ${l.text}`).join('; ')||'None'}
+4. CYOA decisions and windows: ${A.dayMs.filter(m=>m.cyoa).map(m=>`${m.note||'CYOA'} ${m.start} (TOC ${m.cyoa.toc})`).join('; ')||'None'}
+5. Key AAR lessons: ${ms.filter(m=>m.aar&&m.aar.improve).map(m=>`${nm2(m)}: ${m.aar.improve}`).join('; ')||'None'}
+6. Intel from AARs (to A2): ${ms.filter(m=>m.aar&&m.aar.contact).map(m=>`${nm2(m)}: ${m.aar.contact}`).join('; ')||'None'}
+7. Items to confirm with incoming A3: CUB times, CYOA windows, TOC planning start times, Go/No-Go authority from ATF/CC.`}
+function dayOfTs(ts){if(!ts)return null;const d=new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ts));const m=DAYS.find(x=>x.date===d);return m?m.id:null}
 
 /* ---------- dialogs ---------- */
 const dlg=document.getElementById('dlg');
@@ -495,7 +628,7 @@ function saveMission(){
   const f=document.getElementById('mform');if(!f.reportValidity())return;const fd=new FormData(f);
   const isNew=!!f.dataset.new;const id=isNew?('x'+uid()):f.dataset.mid;const old=isNew?null:allMissions().find(m=>m.id===id);
   const mc=fd.get('mc');const crewSel=fd.getAll('crew');
-  const n={day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note')};
+  const n=Object.assign({},S.missions[id]||{},{day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note')});
   writeDoc('missions',id,n);
   const lbl=`Day ${n.day} ${n.lane} ${n.start}`;
   if(isNew)logIt({type:'msn',mid:id,text:`Mission added: ${lbl}, MC ${mc?nm(mc):'TBD'}, ${crew(n).length} pax`});
@@ -506,7 +639,7 @@ function saveMission(){
   closeDlg();
 }
 function setMissionState(id,state){const m=allMissions().find(x=>x.id===id);if(!m)return;
-  const n={day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state,note:m.note||''};
+  const n=Object.assign({},S.missions[id]||{},{day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state,note:m.note||''});
   writeDoc('missions',id,n);logIt({type:'msn',mid:id,text:`Day ${m.day} ${m.lane} ${m.start}: ${m.state||'Planned'} → ${state}${state==='Complete'?` · participation counted for ${crew(m).length}`:''}`})}
 function equipDlg(id){const e=id?S.equip[id]:{name:'',cat:'Other',fmc:'',pmc:'',nmc:'',loc:'',note:''};
   openDlg(`<form class="dlg" id="eform" data-eid="${esc(id||'')}"><h3>${id?esc(e.name):'Add equipment'}</h3>
@@ -611,7 +744,11 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.cyedit){cyoaDlg(t.dataset.cyedit);return}
+  if(t.dataset.go){goDlg(t.dataset.go);return}
+  if(t.dataset.aar){aarDlg(t.dataset.aar);return}
+  if(t.dataset.ops){const [id,ev]=t.dataset.ops.split('|');opsEvent(id,ev);return}
   if(t.dataset.serials){serialsDlg(t.dataset.serials);return}
   if(t.dataset.gear){gearDlg(t.dataset.gear);return}
   if(t.dataset.ret){const [pid,eid]=t.dataset.ret.split('|');returnGear(pid,eid);return}
@@ -628,6 +765,16 @@ document.addEventListener('click',e=>{
   if(a==='close')closeDlg();
   else if(a==='saveperson')savePerson();
   else if(a==='issue')issueGear();
+  else if(a==='addcyoa')cyoaDlg(null);
+  else if(a==='savecyoa')saveCyoa();
+  else if(a==='delcyoa'){const id=document.getElementById('cyform').dataset.mid;const m=allMissions().find(x=>x.id===id);setMissionState(id,'Scrubbed');closeDlg()}
+  else if(a==='go')saveGo('GO');
+  else if(a==='nogo')saveGo('NOGO');
+  else if(a==='saveaar')saveAar();
+  else if(a==='logops'||a==='logroe'){const f=document.getElementById('opsform');const txt=f.txt.value.trim();if(a==='logops'&&!txt){toast('Type what happened first.');return}
+    logIt({type:'ops',ccir:a==='logroe'||f.ccir.checked,text:a==='logroe'?`CCIR ROE violation${txt?': '+txt:''}`:(f.ccir.checked?'CCIR: ':'')+txt});f.txt.value='';f.ccir.checked=false}
+  else if(a==='copya3')copy(a3Text(A()));
+  else if(a==='turnover')copy(turnoverText(A()));
   else if(a==='fillpaste')fillPaste();
   else if(a==='saveserials')saveSerials();
   else if(a==='issueall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=gearOf(p.pid);if(!g[id]){setGear(p.pid,Object.assign({},g,{[id]:{qty:1,serial:'',ts:Date.now()}}));n++}});logIt({type:'gear',text:`Issued 1 × ${S.equip[id]?.name} to ${n} personnel`});equipDlg(id)}
@@ -657,6 +804,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
 });
 document.addEventListener('change',e=>{
+  if(e.target.dataset.cy){const [id,k]=e.target.dataset.cy.split('|');toggleCy(id,k,e.target.checked);return}
   if(e.target.id==='pf'){UI.pf=e.target.value;render()}
   if(e.target.id==='lf'){UI.lf=e.target.value;render()}
   if(e.target.name==='crew'){const c=document.querySelectorAll('#picker input:checked').length;const s=document.getElementById('crewct');if(s)s.textContent=c+' selected'}
