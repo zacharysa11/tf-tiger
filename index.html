@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TF Tiger A1/4 Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Ops-board layout: status strip on top, tabbed work areas below; semantic triage + FMC colors kept apart from the Tiger-red accent. */
+:root{
+  --bg:#eef0f2; --panel:#ffffff; --ink:#1b2127; --muted:#5c6670; --line:#d5dade; --soft:#f4f5f7;
+  --accent:#b3261e; --accent-ink:#ffffff;
+  --ok:#1f7a3f; --okbg:#e3f3e8; --warn:#9a6a00; --warnbg:#fbf1d6; --bad:#b3261e; --badbg:#fae3e1;
+  --blk:#1b1b1b; --blkbg:#d9d9d9; --info:#22578f; --infobg:#e2ecf7;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161a; --panel:#1b2026; --ink:#e7eaed; --muted:#9aa4ad; --line:#2e353d; --soft:#222830;
+  --accent:#e0574d; --accent-ink:#1a0b0a;
+  --ok:#5cc785; --okbg:#173323; --warn:#e5b543; --warnbg:#3a2f12; --bad:#f07a70; --badbg:#3d1d1b;
+  --blk:#f2f2f2; --blkbg:#3a3a3a; --info:#7fb2ea; --infobg:#18293d; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#12161a; --panel:#1b2026; --ink:#e7eaed; --muted:#9aa4ad; --line:#2e353d; --soft:#222830;
+  --accent:#e0574d; --accent-ink:#1a0b0a;
+  --ok:#5cc785; --okbg:#173323; --warn:#e5b543; --warnbg:#3a2f12; --bad:#f07a70; --badbg:#3d1d1b;
+  --blk:#f2f2f2; --blkbg:#3a3a3a; --info:#7fb2ea; --infobg:#18293d; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--body)}
+button,input,select,textarea{font:inherit;color:inherit}
+.tnum{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+header.top{background:var(--panel);border-bottom:3px solid var(--accent);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:10px}
+.patch{width:30px;height:30px;border-radius:6px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 13px var(--display)}
+.brand h1{font:700 18px/1.1 var(--display);margin:0;letter-spacing:.02em}
+.brand small{display:block;color:var(--muted);font-size:12px}
+.days{display:flex;gap:4px;flex-wrap:wrap}
+.days button,.tabs button{border:1px solid var(--line);background:var(--soft);border-radius:6px;padding:5px 10px;cursor:pointer}
+.days button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.clock{margin-left:auto;display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:13px}
+.sync{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--body);color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.live{background:var(--ok)} .dot.local{background:var(--warn)}
+nav.tabs{display:flex;gap:6px;padding:10px 16px 0;overflow-x:auto}
+.tabs button{white-space:nowrap;font-weight:600}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tabs .ct{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--badbg);color:var(--bad);font-size:11px}
+.tabs button[aria-selected="true"] .ct{background:var(--accent-ink);color:var(--accent)}
+main{padding:12px 16px 40px;display:grid;gap:14px}
+.banner{padding:8px 12px;border-radius:8px;background:var(--warnbg);color:var(--warn);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:8px;padding:8px 10px}
+.kpi b{display:block;font:700 26px/1.1 var(--display)}
+.kpi span{color:var(--muted);font-size:12px}
+.kpi.ok{border-left-color:var(--ok)} .kpi.warn{border-left-color:var(--warn)} .kpi.bad{border-left-color:var(--bad)} .kpi.blk{border-left-color:var(--blk)} .kpi.info{border-left-color:var(--info)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.card h2{font:700 15px var(--display);letter-spacing:.03em;text-transform:uppercase;margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;text-wrap:balance}
+.card h2 .sub{font:400 12px var(--body);text-transform:none;letter-spacing:0;color:var(--muted)}
+.card h2 .right{margin-left:auto}
+.alerts{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.alerts li{padding:6px 10px;border-radius:6px;border-left:4px solid}
+.alerts .bad{background:var(--badbg);border-color:var(--bad)} .alerts .warn{background:var(--warnbg);border-color:var(--warn)} .alerts .ok{background:var(--okbg);border-color:var(--ok)} .alerts .info{background:var(--infobg);border-color:var(--info)}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+.s-EFF{background:var(--okbg);color:var(--ok)} .s-WIAY{background:var(--warnbg);color:var(--warn)} .s-WIAR{background:var(--badbg);color:var(--bad)}
+.s-WIAB{background:var(--blkbg);color:var(--blk)} .s-KIA{background:var(--blk);color:var(--panel)} .s-MIA{background:var(--infobg);color:var(--info);border-color:var(--info)}
+.e-FMC{background:var(--okbg);color:var(--ok)} .e-PMC{background:var(--warnbg);color:var(--warn)} .e-NMC{background:var(--badbg);color:var(--bad)}
+.st-Planned{background:var(--soft);color:var(--muted);border-color:var(--line)} .st-Out{background:var(--infobg);color:var(--info)} .st-RTB{background:var(--warnbg);color:var(--warn)} .st-Complete{background:var(--okbg);color:var(--ok)} .st-Scrubbed{background:var(--blkbg);color:var(--muted)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools input[type=search]{flex:1 1 200px;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.tools select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn.ghost{background:transparent}
+.btn.okb{background:var(--okbg);color:var(--ok);border-color:transparent} .btn.badb{background:var(--badbg);color:var(--bad);border-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--soft);position:sticky;top:0}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
+tr.flag td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+.muted{color:var(--muted)} .small{font-size:12px}
+.lanegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
+.mission{border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:10px;display:grid;gap:6px;align-content:start}
+.mission.now{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.mission.warnc{border-left:4px solid var(--warn)} .mission.badc{border-left:4px solid var(--bad)}
+.mhead{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mhead b{font:700 15px var(--display)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;cursor:pointer;background:var(--soft)}
+.chip.mc{font-weight:700;border-color:var(--ink)}
+.chip.s-WIAY,.chip.s-WIAR,.chip.s-WIAB,.chip.s-KIA,.chip.s-MIA{border-color:transparent}
+.blockh{font:700 13px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 -4px;display:flex;gap:8px;align-items:center}
+.blockh.now{color:var(--accent)}
+.bars{display:grid;gap:4px}
+.bar{display:grid;grid-template-columns:90px 1fr 34px;gap:8px;align-items:center;font-size:12px}
+.bar i{display:block;height:14px;border-radius:3px;background:var(--info);min-width:2px}
+.bar.floor i{background:var(--accent)}
+.slide{border:2px solid var(--ink);border-radius:6px;padding:14px 16px;background:var(--panel);display:grid;gap:10px;aspect-ratio:auto}
+.slide h3{margin:0;font:700 20px var(--display);display:flex;justify-content:space-between;gap:8px;border-bottom:3px solid var(--accent);padding-bottom:6px}
+.slide .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
+.slide .big div{border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.slide .big b{display:block;font:700 24px var(--display)}
+.slide ul{margin:0;padding-left:18px}
+.log{display:grid;gap:0}
+.logrow{display:grid;grid-template-columns:64px 1fr auto;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);align-items:start}
+.logrow .t{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.logrow.ccir{background:var(--badbg)}
+dialog{border:none;border-radius:12px;padding:0;background:var(--panel);color:var(--ink);width:min(560px,calc(100% - 24px));max-height:calc(100% - 24px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{display:grid;gap:10px;padding:14px 16px}
+.dlg h3{margin:0;font:700 18px var(--display);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.fields label,.fl{display:grid;gap:3px;font-size:12px;color:var(--muted);font-weight:600}
+.fields input,.fields select,.fields textarea{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--soft);color:var(--ink);font-weight:400;font-size:14px}
+.fields .wide{grid-column:1/-1}
+.picker{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.picker label{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink);font-weight:400}
+.picker label.busy{opacity:.55}
+.dfoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
+.dfoot .left{margin-right:auto;display:flex;gap:8px;flex-wrap:wrap}
+.hist{font-size:12px;color:var(--muted);margin:0;padding-left:16px}
+.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;z-index:50;font-weight:500;max-width:90%}
+.empty{padding:18px;text-align:center;color:var(--muted)}
+.ro [data-mstate],.ro [data-rs],.ro [data-act=addmission],.ro [data-act=addequip],.ro [data-act=addresupply],.ro [data-act=seedequip],.ro [data-act=equalize],.ro [data-act=rtd],.ro [data-act=tofloor],.ro [data-act=saveperson],.ro [data-act=savemission],.ro [data-act=saveequip],.ro [data-act=saveresupply],.ro [data-act=delmission],.ro [data-act=resetmission],.ro [data-act=delequip],.ro [data-act=delresupply],.ro [data-setstatus],.ro input[data-toc]{display:none!important}
+.ro .mission [data-mission]::after{content:""}
+#login{position:fixed;inset:0;background:var(--bg);z-index:40;display:grid;place-items:center;padding:16px}
+#login[hidden]{display:none}
+#login form{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:20px;width:min(380px,100%);display:grid;gap:12px}
+#login h2{margin:0;font:700 20px var(--display)}
+#login label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+#login input[type=password],#login input[type=email]{padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--soft);font-size:15px}
+#login .chk{display:flex;gap:6px;align-items:center;font-weight:500;color:var(--ink)}
+#loginmsg{min-height:1.2em;color:var(--bad);font-size:13px;margin:0}
+@media (max-width:520px){.clock{margin-left:0;width:100%;justify-content:space-between}.bar{grid-template-columns:70px 1fr 28px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div class="patch" aria-hidden="true">A1</div><div><h1>TF TIGER · A1/4 BOARD</h1><small>OP PACIFIC SWORD · Personnel &amp; Logistics</small></div></div>
+  <div class="days" id="days" role="group" aria-label="Exercise day"></div>
+  <div class="clock"><span id="clock" class="tnum">--:--</span><span class="sync" id="sync"><i class="dot"></i><span>Connecting…</span></span></div>
+</header>
+<nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+<main id="main"></main>
+<dialog id="dlg"></dialog>
+<div id="login" hidden><form id="loginform" autocomplete="on">
+ <h2>TF Tiger A1/4 Board</h2><p class="small muted" style="margin:0">For TF Tiger eyes only. Enter the class passcode to view. A1/4 and TOC editors sign in with their own email.</p>
+ <label id="emrow" hidden>Editor email<input id="lem" type="email" autocomplete="username"></label>
+ <label id="lpwl">Class passcode<input id="lpw" type="password" required autocomplete="current-password"></label>
+ <label class="chk"><input type="checkbox" id="edmode"> I'm an editor (A1/4 or TOC)</label>
+ <button class="btn pri" id="lgo" type="submit">Sign in</button><p id="loginmsg" role="alert"></p></form></div>
+<script src="config.js"></script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+Object.assign(window.FB,{initializeApp,getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
+window.bootFirebase();
+</script>
+<script>
+window.FB={};
+const BASE = {"roster":[{"pid":"albee-sarah","name":"Albee, Sarah","flt":17,"team":1,"tl":true,"role":""},{"pid":"everett-madeleine","name":"Everett, Madeleine","flt":14,"team":2,"tl":true,"role":""},{"pid":"liu-stephanie","name":"Liu, Stephanie","flt":18,"team":3,"tl":true,"role":""},{"pid":"schultz-sierra","name":"Schultz, Sierra","flt":20,"team":4,"tl":true,"role":""},{"pid":"alldredge-richard","name":"Alldredge, Richard","flt":14,"team":1,"tl":false,"role":""},{"pid":"feng-gabriel","name":"Feng, Gabriel","flt":19,"team":2,"tl":false,"role":""},{"pid":"long-justin","name":"Long, Justin","flt":14,"team":3,"tl":false,"role":""},{"pid":"seward-dantae","name":"Seward, Dantae","flt":20,"team":4,"tl":false,"role":""},{"pid":"apiag-ione","name":"Apiag, Ione","flt":10,"team":1,"tl":false,"role":""},{"pid":"fernanders-jarel","name":"Fernanders, Jarel","flt":19,"team":2,"tl":false,"role":""},{"pid":"lyles-chad","name":"Lyles, Chad","flt":21,"team":3,"tl":false,"role":""},{"pid":"sheppard-marcus","name":"Sheppard, Marcus","flt":18,"team":4,"tl":false,"role":""},{"pid":"balcarce-lucas","name":"Balcarce, Lucas","flt":20,"team":1,"tl":false,"role":""},{"pid":"flores-kristofer-jayson","name":"Flores, Kristofer Jayson","flt":20,"team":2,"tl":false,"role":""},{"pid":"magtoto-nathan","name":"Magtoto, Nathan","flt":18,"team":3,"tl":false,"role":""},{"pid":"snyder-sarah","name":"Snyder, Sarah","flt":13,"team":4,"tl":false,"role":""},{"pid":"banks-spencer","name":"Banks, Spencer","flt":15,"team":1,"tl":false,"role":""},{"pid":"freeman-emmanual","name":"Freeman, Emmanual","flt":18,"team":2,"tl":false,"role":""},{"pid":"mcdonald-david","name":"McDonald, David","flt":16,"team":3,"tl":false,"role":""},{"pid":"springer-nanette","name":"Springer, Nanette","flt":19,"team":4,"tl":false,"role":""},{"pid":"barnes-collin","name":"Barnes, Collin","flt":18,"team":1,"tl":false,"role":""},{"pid":"garino-schyanne","name":"Garino, Schyanne","flt":10,"team":2,"tl":false,"role":""},{"pid":"meyer-clay","name":"Meyer, Clay","flt":11,"team":3,"tl":false,"role":""},{"pid":"stephenson-zachary","name":"Stephenson, Zachary","flt":15,"team":4,"tl":false,"role":""},{"pid":"blanco-samantha","name":"Blanco, Samantha","flt":18,"team":1,"tl":false,"role":""},{"pid":"hall-katlyn","name":"Hall, Katlyn","flt":18,"team":2,"tl":false,"role":""},{"pid":"mihelich-darby","name":"Mihelich, Darby","flt":14,"team":3,"tl":false,"role":""},{"pid":"stratton-zachary","name":"Stratton, Zachary","flt":19,"team":4,"tl":false,"role":""},{"pid":"bosma-elise","name":"Bosma, Elise","flt":17,"team":1,"tl":false,"role":""},{"pid":"harrell-rochelle","name":"Harrell, Rochelle","flt":20,"team":2,"tl":false,"role":""},{"pid":"molinari-tim","name":"Molinari, Tim","flt":15,"team":3,"tl":false,"role":""},{"pid":"sullivan-james","name":"Sullivan, James","flt":15,"team":4,"tl":false,"role":""},{"pid":"bustamante-alan","name":"Bustamante, Alan","flt":13,"team":1,"tl":false,"role":""},{"pid":"hoffman-gabrielle","name":"Hoffman, Gabrielle","flt":11,"team":2,"tl":false,"role":""},{"pid":"moushon-jacob","name":"Moushon, Jacob","flt":13,"team":3,"tl":false,"role":""},{"pid":"talley-douglas","name":"Talley, Douglas","flt":19,"team":4,"tl":false,"role":""},{"pid":"churchill-olivia","name":"Churchill, Olivia","flt":17,"team":1,"tl":false,"role":""},{"pid":"imbert-fran","name":"Imbert, Fran","flt":13,"team":2,"tl":false,"role":""},{"pid":"nail-jamie","name":"Nail, Jamie","flt":14,"team":3,"tl":false,"role":""},{"pid":"urgilez-jessica","name":"Urgilez, Jessica","flt":10,"team":4,"tl":false,"role":""},{"pid":"colan-david","name":"Colan, David","flt":21,"team":1,"tl":false,"role":""},{"pid":"johnson-claudia","name":"Johnson, Claudia","flt":10,"team":2,"tl":false,"role":""},{"pid":"nelson-jonathan","name":"Nelson, Jonathan","flt":10,"team":3,"tl":false,"role":""},{"pid":"valencia-melanie","name":"Valencia, Melanie","flt":17,"team":4,"tl":false,"role":""},{"pid":"danielson-christopher","name":"Danielson, Christopher","flt":14,"team":1,"tl":false,"role":""},{"pid":"jonasen-caitlin","name":"Jonasen, Caitlin","flt":16,"team":2,"tl":false,"role":""},{"pid":"ohemeng-samuel","name":"Ohemeng, Samuel","flt":17,"team":3,"tl":false,"role":""},{"pid":"valere-joseph","name":"Valere, Joseph","flt":16,"team":4,"tl":false,"role":""},{"pid":"davis-matt","name":"Davis, Matt","flt":15,"team":1,"tl":false,"role":""},{"pid":"junck-allanna","name":"Junck, Allanna","flt":15,"team":2,"tl":false,"role":""},{"pid":"paras-edward","name":"Paras, Edward","flt":21,"team":3,"tl":false,"role":""},{"pid":"vales-leinz","name":"Vales, Leinz","flt":14,"team":4,"tl":false,"role":""},{"pid":"davis-nikaylah","name":"Davis, Nikaylah","flt":10,"team":1,"tl":false,"role":""},{"pid":"keely-spencer","name":"Keely, Spencer","flt":20,"team":2,"tl":false,"role":""},{"pid":"payne-mason","name":"Payne, Mason","flt":18,"team":3,"tl":false,"role":""},{"pid":"valyer-mikhail","name":"Valyer, Mikhail","flt":19,"team":4,"tl":false,"role":""},{"pid":"dean-andre","name":"Dean, Andre","flt":21,"team":1,"tl":false,"role":"IDO"},{"pid":"knipp-skylar","name":"Knipp, Skylar","flt":19,"team":2,"tl":false,"role":""},{"pid":"reyes-roland","name":"Reyes, Roland","flt":10,"team":3,"tl":false,"role":""},{"pid":"vinson-michael","name":"Vinson, Michael","flt":14,"team":4,"tl":false,"role":""},{"pid":"ehlert-cason","name":"Ehlert, Cason","flt":10,"team":1,"tl":false,"role":""},{"pid":"lane-richard","name":"Lane, Richard","flt":20,"team":2,"tl":false,"role":""},{"pid":"rios-david","name":"Rios, David","flt":16,"team":3,"tl":false,"role":""},{"pid":"wells-stephany","name":"Wells, Stephany","flt":11,"team":4,"tl":false,"role":""},{"pid":"engono-nsa-maria","name":"Engono Nsa, Maria","flt":11,"team":1,"tl":false,"role":""},{"pid":"lee-daniel","name":"Lee, Daniel","flt":17,"team":2,"tl":false,"role":""},{"pid":"sathya-deepak","name":"Sathya, Deepak","flt":13,"team":3,"tl":false,"role":""},{"pid":"westerman-samantha","name":"Westerman, Samantha","flt":14,"team":4,"tl":false,"role":""}],"slots":[{"id":"1-WOC-0700","day":"1","lane":"WOC","start":"0700","end":"1530","mc":"freeman-emmanual","members":["meyer-clay","davis-matt","snyder-sarah","valere-joseph","imbert-fran","ehlert-cason"]},{"id":"1-TOC-0700","day":"1","lane":"TOC","start":"0700","end":"1530","mc":"balcarce-lucas","members":["dean-andre","albee-sarah","banks-spencer","knipp-skylar","lyles-chad","sullivan-james"]},{"id":"1-Tiger1-0730","day":"1","lane":"Tiger 1","start":"0730","end":"0945","mc":"davis-nikaylah","members":["junck-allanna","garino-schyanne","payne-mason","reyes-roland","johnson-claudia","churchill-olivia"]},{"id":"1-Tiger2-0730","day":"1","lane":"Tiger 2","start":"0730","end":"0945","mc":"engono-nsa-maria","members":["fernanders-jarel","hoffman-gabrielle","wells-stephany","paras-edward","rios-david","blanco-samantha"]},{"id":"1-Tiger3-0730","day":"1","lane":"Tiger 3","start":"0730","end":"0945","mc":"feng-gabriel","members":["springer-nanette","valyer-mikhail","bosma-elise","colan-david","sathya-deepak","nelson-jonathan"]},{"id":"1-Tiger4-0730","day":"1","lane":"Tiger 4","start":"0730","end":"0945","mc":"alldredge-richard","members":["westerman-samantha","seward-dantae","everett-madeleine","stratton-zachary","talley-douglas","stephenson-zachary"]},{"id":"1-Tiger1-1015","day":"1","lane":"Tiger 1","start":"1015","end":"1230","mc":"hall-katlyn","members":["lee-daniel","danielson-christopher","ohemeng-samuel","blanco-samantha","urgilez-jessica","sathya-deepak"]},{"id":"1-Tiger2-1015","day":"1","lane":"Tiger 2","start":"1015","end":"1230","mc":"keely-spencer","members":["colan-david","fernanders-jarel","springer-nanette","talley-douglas","stratton-zachary","nelson-jonathan"]},{"id":"1-Tiger3-1015","day":"1","lane":"Tiger 3","start":"1015","end":"1230","mc":"lane-richard","members":["schultz-sierra","flores-kristofer-jayson","wells-stephany","valencia-melanie","molinari-tim","harrell-rochelle"]},{"id":"1-Tiger4-1015","day":"1","lane":"Tiger 4","start":"1015","end":"1230","mc":"liu-stephanie","members":["apiag-ione","barnes-collin","sheppard-marcus","junck-allanna","valyer-mikhail","stephenson-zachary"]},{"id":"1-Tiger1-1300","day":"1","lane":"Tiger 1","start":"1300","end":"1515","mc":"magtoto-nathan","members":["barnes-collin","lee-daniel","westerman-samantha","ohemeng-samuel","seward-dantae","sheppard-marcus"]},{"id":"1-Tiger2-1300","day":"1","lane":"Tiger 2","start":"1300","end":"1515","mc":"mcdonald-david","members":["rios-david","hoffman-gabrielle","jonasen-caitlin","paras-edward","payne-mason","johnson-claudia"]},{"id":"1-Tiger3-1300","day":"1","lane":"Tiger 3","start":"1300","end":"1515","mc":"mihelich-darby","members":["vinson-michael","long-justin","everett-madeleine","danielson-christopher","churchill-olivia","bustamante-alan"]},{"id":"1-Tiger4-1300","day":"1","lane":"Tiger 4","start":"1300","end":"1515","mc":"nail-jamie","members":["bosma-elise","vales-leinz","garino-schyanne","moushon-jacob","reyes-roland","apiag-ione"]},{"id":"2-WOC-0700","day":"2","lane":"WOC","start":"0700","end":"1530","mc":"payne-mason","members":["rios-david","stratton-zachary","magtoto-nathan","feng-gabriel","mcdonald-david","moushon-jacob"]},{"id":"2-TOC-0700","day":"2","lane":"TOC","start":"0700","end":"1530","mc":"urgilez-jessica","members":["dean-andre","junck-allanna","nelson-jonathan","hoffman-gabrielle","molinari-tim","blanco-samantha"]},{"id":"2-Tiger1-0730","day":"2","lane":"Tiger 1","start":"0730","end":"0945","mc":"westerman-samantha","members":["stephenson-zachary","vales-leinz","alldredge-richard","balcarce-lucas","lane-richard","nail-jamie"]},{"id":"2-Tiger2-0730","day":"2","lane":"Tiger 2","start":"0730","end":"0945","mc":"meyer-clay","members":["davis-nikaylah","freeman-emmanual","keely-spencer","imbert-fran","barnes-collin","colan-david"]},{"id":"2-Tiger3-0730","day":"2","lane":"Tiger 3","start":"0730","end":"0945","mc":"vinson-michael","members":["lyles-chad","engono-nsa-maria","harrell-rochelle","fernanders-jarel","churchill-olivia","flores-kristofer-jayson"]},{"id":"2-Tiger4-0730","day":"2","lane":"Tiger 4","start":"0730","end":"0945","mc":"long-justin","members":["mihelich-darby","banks-spencer","davis-matt","ehlert-cason","valere-joseph","valencia-melanie"]},{"id":"2-Tiger1-1015","day":"2","lane":"Tiger 1","start":"1015","end":"1230","mc":"paras-edward","members":["davis-nikaylah","wells-stephany","knipp-skylar","ohemeng-samuel","snyder-sarah","engono-nsa-maria"]},{"id":"2-Tiger2-1015","day":"2","lane":"Tiger 2","start":"1015","end":"1230","mc":"schultz-sierra","members":["hall-katlyn","liu-stephanie","lee-daniel","nail-jamie","barnes-collin","colan-david"]},{"id":"2-Tiger3-1015","day":"2","lane":"Tiger 3","start":"1015","end":"1230","mc":"albee-sarah","members":["jonasen-caitlin","sathya-deepak","seward-dantae","sheppard-marcus","talley-douglas","valere-joseph"]},{"id":"2-Tiger4-1015","day":"2","lane":"Tiger 4","start":"1015","end":"1230","mc":"sullivan-james","members":["banks-spencer","springer-nanette","stephenson-zachary","valencia-melanie","vales-leinz","valyer-mikhail"]},{"id":"2-Tiger1-1300","day":"2","lane":"Tiger 1","start":"1300","end":"1515","mc":"bosma-elise","members":["mihelich-darby","valyer-mikhail","reyes-roland","davis-matt","ehlert-cason","everett-madeleine"]},{"id":"2-Tiger2-1300","day":"2","lane":"Tiger 2","start":"1300","end":"1515","mc":"danielson-christopher","members":["lane-richard","nail-jamie","bustamante-alan","alldredge-richard","balcarce-lucas","jonasen-caitlin"]},{"id":"2-Tiger3-1300","day":"2","lane":"Tiger 3","start":"1300","end":"1515","mc":"johnson-claudia","members":["freeman-emmanual","hall-katlyn","liu-stephanie","bustamante-alan","churchill-olivia","fernanders-jarel"]},{"id":"2-Tiger4-1300","day":"2","lane":"Tiger 4","start":"1300","end":"1515","mc":"flores-kristofer-jayson","members":["keely-spencer","apiag-ione","garino-schyanne","harrell-rochelle","imbert-fran","knipp-skylar"]},{"id":"3-WOC-0700","day":"3","lane":"WOC","start":"0700","end":"1530","mc":"ohemeng-samuel","members":["dean-andre","valencia-melanie","wells-stephany","flores-kristofer-jayson","springer-nanette","sheppard-marcus"]},{"id":"3-TOC-0700","day":"3","lane":"TOC","start":"0700","end":"1530","mc":"sathya-deepak","members":["johnson-claudia","long-justin","barnes-collin","garino-schyanne","harrell-rochelle","seward-dantae"]},{"id":"3-Tiger1-0730","day":"3","lane":"Tiger 1","start":"0730","end":"0945","mc":"nelson-jonathan","members":["urgilez-jessica","albee-sarah","sullivan-james","moushon-jacob","talley-douglas","bustamante-alan"]},{"id":"3-Tiger2-0730","day":"3","lane":"Tiger 2","start":"0730","end":"0945","mc":"knipp-skylar","members":["magtoto-nathan","keely-spencer","feng-gabriel","freeman-emmanual","hall-katlyn","liu-stephanie"]},{"id":"3-Tiger3-0730","day":"3","lane":"Tiger 3","start":"0730","end":"0945","mc":"molinari-tim","members":["vinson-michael","alldredge-richard","apiag-ione","bosma-elise","paras-edward","mihelich-darby"]},{"id":"3-Tiger4-0730","day":"3","lane":"Tiger 4","start":"0730","end":"0945","mc":"rios-david","members":["imbert-fran","lyles-chad","mcdonald-david","payne-mason","blanco-samantha","danielson-christopher"]},{"id":"3-Tiger1-1015","day":"3","lane":"Tiger 1","start":"1015","end":"1230","mc":"jonasen-caitlin","members":["ehlert-cason","davis-nikaylah","urgilez-jessica","albee-sarah","banks-spencer","bosma-elise"]},{"id":"3-Tiger2-1015","day":"3","lane":"Tiger 2","start":"1015","end":"1230","mc":"reyes-roland","members":["westerman-samantha","hoffman-gabrielle","davis-matt","lane-richard","magtoto-nathan","junck-allanna"]},{"id":"3-Tiger3-1015","day":"3","lane":"Tiger 3","start":"1015","end":"1230","mc":"snyder-sarah","members":["mcdonald-david","meyer-clay","schultz-sierra","balcarce-lucas","everett-madeleine","vales-leinz"]},{"id":"3-Tiger4-1015","day":"3","lane":"Tiger 4","start":"1015","end":"1230","mc":"valere-joseph","members":["lee-daniel","lyles-chad","moushon-jacob","stratton-zachary","sullivan-james","vinson-michael"]},{"id":"3-Tiger1-1300","day":"3","lane":"Tiger 1","start":"1300","end":"1515","mc":"","members":[]},{"id":"3-Tiger2-1300","day":"3","lane":"Tiger 2","start":"1300","end":"1515","mc":"","members":[]},{"id":"3-Tiger3-1300","day":"3","lane":"Tiger 3","start":"1300","end":"1515","mc":"","members":[]},{"id":"3-Tiger4-1300","day":"3","lane":"Tiger 4","start":"1300","end":"1515","mc":"","members":[]}],"days":[{"id":"1","name":"Day 1","label":"Tue 10 Nov","date":"2026-11-10","oom":true},{"id":"2","name":"Day 2","label":"Wed 11 Nov","date":"2026-11-11","oom":false},{"id":"3","name":"Day 3","label":"Thu 12 Nov","date":"2026-11-12","oom":false}]};
+const TZ='America/Chicago';
+const STATUS=[['EFF','Effective'],['WIAY','WIA – Yellow'],['WIAR','WIA – Red'],['WIAB','WIA – Black'],['KIA','KIA'],['MIA','MIA']];
+const SLBL=Object.fromEntries(STATUS);
+const SOURCES=['Mission inject','Instructor inject','Base firefight','Other'];
+const EXERCISES=['45 burpees','100 air squats','60-min timeout'];
+const ROLES=['','ATF/CC','A-Staff','CABS/CC','TOC key personnel','IDO','Chaplain'];
+const MSTATES=['Planned','Out','RTB','Complete','Scrubbed'];
+const ECATS=['Weapons','Ammunition','Medical','Comms','Mission gear','Other'];
+const P={}; BASE.roster.forEach(p=>P[p.pid]=p);
+const ROSTER=BASE.roster.slice().sort((a,b)=>a.name.localeCompare(b.name));
+const DAYS=BASE.days;
+const FB=window.FB;
+const S={people:{},missions:{},equip:{},resupply:{},log:{}};
+let ME=null, MODE='connecting';
+const UI={tab:'overview',day:autoDay(),q:'',pf:'all',lf:'all'};
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function nowParts(){const f=new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());const g=t=>f.find(x=>x.type===t).value;return{date:`${g('year')}-${g('month')}-${g('day')}`,hm:g('hour')+g('minute')}}
+function autoDay(){const d=nowParts().date;const m=BASE.days.find(x=>x.date===d);return m?m.id:BASE.days[0].id}
+function fmtT(ms){if(!ms)return'';return new Intl.DateTimeFormat('en-US',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(ms)).replace(':','')}
+function fmtDT(ms){if(!ms)return'';return new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(ms))}
+function nm(pid){return P[pid]?P[pid].name:(pid||'—')}
+function short(pid){const n=nm(pid);const [l,f]=n.split(', ');return f?`${l}, ${f[0]}`:n}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function laneOf(m){return m.lane}
+function isMission(m){return !(m.lane==='WOC'||m.lane==='TOC')}
+function hhmm(s){return String(s||'').padStart(4,'0')}
+function dayObj(id){return DAYS.find(d=>d.id===id)}
+
+/* ---------- derived ---------- */
+function person(pid){return Object.assign({status:'EFF',adj:0,exHist:[],role:P[pid]?.role||''},P[pid],S.people[pid]||{})}
+function allMissions(){
+  const out=[];const seen=new Set();
+  BASE.slots.forEach(b=>{seen.add(b.id);const o=S.missions[b.id];const m=Object.assign({state:'Planned',note:'',base:true},b,o||{});m.id=b.id;m.members=(m.members||[]).filter(x=>x&&x!==m.mc);if(!m.deleted)out.push(m)});
+  for(const id in S.missions){if(seen.has(id))continue;const m=Object.assign({state:'Planned',members:[]},S.missions[id]);m.id=id;m.members=(m.members||[]).filter(x=>x&&x!==m.mc);if(!m.deleted)out.push(m)}
+  return out.sort((a,b)=>a.day.localeCompare(b.day)||hhmm(a.start).localeCompare(hhmm(b.start))||String(a.lane).localeCompare(String(b.lane)));
+}
+function crew(m){return [m.mc,...m.members].filter(Boolean)}
+function overlap(a,b){return a.day===b.day&&hhmm(a.start)<hhmm(b.end)&&hhmm(b.start)<hhmm(a.end)}
+function missionCounts(ms){const c={};ROSTER.forEach(p=>c[p.pid]=0);
+  ms.forEach(m=>{if(isMission(m)&&m.state==='Complete')crew(m).forEach(x=>{if(x in c)c[x]++})});
+  for(const k in c)c[k]+=Number(S.people[k]?.adj||0);return c}
+function staffOn(day,ms){const s=new Set();ms.forEach(m=>{if(m.day===day&&!isMission(m))crew(m).forEach(x=>s.add(x))});return s}
+function exempt(pid,day,ms){const r=person(pid).role;return r==='IDO'||['ATF/CC','A-Staff','CABS/CC','TOC key personnel'].includes(r)||staffOn(day,ms).has(pid)}
+function floorOf(c,day,ms){let f=Infinity;ROSTER.forEach(p=>{if(!exempt(p.pid,day,ms)&&person(p.pid).role!=='Chaplain')f=Math.min(f,c[p.pid])});return f===Infinity?0:f}
+function whereNow(pid,ms){const n=nowParts();const day=dayObj(UI.day);const t=(day&&day.date===n.date)?n.hm:null;
+  const mine=ms.filter(m=>m.day===UI.day&&crew(m).includes(pid));
+  if(t){const cur=mine.find(m=>hhmm(m.start)<=t&&t<hhmm(m.end)&&m.state!=='Scrubbed');if(cur)return{m:cur,now:true}}
+  return{list:mine}}
+function casualtiesFor(mid){return Object.values(S.log).filter(l=>l.type==='cas'&&l.mid===mid&&l.to!=='EFF').reduce((s,l)=>s.add(l.pid),new Set()).size}
+function curBlock(){const n=nowParts();const day=dayObj(UI.day);if(!day||day.date!==n.date)return null;return n.hm}
+function analyze(){
+  const ms=allMissions();const c=missionCounts(ms);const fl=floorOf(c,UI.day,ms);
+  const alerts=[];const flags={};
+  const dayMs=ms.filter(m=>m.day===UI.day);
+  // double booking
+  dayMs.forEach((a,i)=>dayMs.slice(i+1).forEach(b=>{if(a.state==='Scrubbed'||b.state==='Scrubbed')return;if(!overlap(a,b))return;crew(a).forEach(x=>{if(crew(b).includes(x)){alerts.push({k:'bad',t:`${short(x)} is double-booked: ${a.lane} ${a.start} and ${b.lane} ${b.start}`,mid:a.id});flags[a.id]='bad';flags[b.id]='bad'}})}));
+  // participation rule, projected through the remaining plan in time order (missions in the same block run together)
+  const proj=Object.assign({},c);
+  DAYS.forEach(D=>{const pend=ms.filter(m=>m.day===D.id&&isMission(m)&&(m.state==='Planned'||m.state==='Out'));
+   const starts=[...new Set(pend.map(m=>hhmm(m.start)))].sort();
+   const nonEx=ROSTER.filter(p=>!exempt(p.pid,D.id,ms)&&person(p.pid).role!=='Chaplain').map(p=>p.pid);
+   starts.forEach(st=>{const grp=pend.filter(m=>hhmm(m.start)===st);const f=Math.min(...nonEx.map(x=>proj[x]));const behind=nonEx.filter(x=>proj[x]===f&&!grp.some(m=>crew(m).includes(x))).length;
+    if(D.id===UI.day)grp.forEach(m=>{const over=crew(m).filter(x=>nonEx.includes(x)&&proj[x]>f);
+      if(over.length&&behind){alerts.push({k:'warn',t:`${m.lane} ${m.start}: ${over.map(x=>short(x)+' (#'+(proj[x]+1)+')').join('; ')} would go again while ${behind} member${behind>1?'s are':' is'} still at ${f} (Annex B II.1)`,mid:m.id});flags[m.id]=flags[m.id]||'warn'}});
+    grp.forEach(m=>crew(m).forEach(x=>{if(x in proj)proj[x]++}))});
+   if(D.id!==UI.day&&DAYS.indexOf(D)<DAYS.findIndex(d=>d.id===UI.day)){const endF=Math.min(...nonEx.map(x=>proj[x]));staffOn(D.id,ms).forEach(x=>{if(x in proj&&proj[x]<endF)proj[x]=endF})}});
+  dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>{
+    const unfit=crew(m).filter(x=>['WIAR','WIAB','KIA','MIA'].includes(person(x).status));
+    if(unfit.length){alerts.push({k:'bad',t:`${m.lane} ${m.start}: ${unfit.map(x=>short(x)+' ('+SLBL[person(x).status]+')').join('; ')} not returned to duty`,mid:m.id});flags[m.id]='bad'}
+    const ch=crew(m).filter(x=>person(x).role==='Chaplain');if(ch.length>1){alerts.push({k:'warn',t:`${m.lane} ${m.start}: more than one chaplain (Annex B II.7)`,mid:m.id})}
+  });
+  // >5 casualties CCIR
+  ms.forEach(m=>{const n=casualtiesFor(m.id);if(n>5)alerts.push({k:'bad',t:`CCIR: ${m.lane} ${m.start} (Day ${m.day}) has ${n} casualties. Report to ATF/CC.`,mid:m.id})});
+  // exercises owed
+  ROSTER.forEach(p=>{const x=person(p.pid);if(x.exStatus==='Owed'&&!x.exercise)alerts.push({k:'info',t:`${short(p.pid)} owes an exercise choice`,pid:p.pid});
+    if(x.exercise==='60-min timeout'&&x.exStatus==='In progress'&&x.exStart&&Date.now()-x.exStart>=3600000)alerts.push({k:'ok',t:`${short(p.pid)} timeout complete (60 min elapsed). Confirm RTD.`,pid:p.pid})});
+  // equipment NMC
+  Object.entries(S.equip).forEach(([id,e])=>{if(Number(e.nmc)>0)alerts.push({k:'warn',t:`${e.name}: ${e.nmc} NMC`,eid:id});
+    if(e.cat==='Medical'&&e.chips!=null&&e.chips!==''&&Number(e.chips)<=3)alerts.push({k:'warn',t:`${e.name}: only ${e.chips} poker chips left. Request resupply through CABS/CC.`,eid:id})});
+  return{ms,c,fl,alerts,flags,dayMs};
+}
+
+/* ---------- persistence (Firebase) ---------- */
+let CAN_EDIT=false, unsubs=[];
+function writeDoc(col,id,data){
+  if(!CAN_EDIT){toast('You are signed in as a viewer. Ask an editor to make changes.');return Promise.resolve()}
+  data=Object.assign({},data,{at:Date.now(),by:ME||null});S[col][id]=data;render();
+  return FB.setDoc(FB.doc(FB.db,col,id),JSON.parse(JSON.stringify(data))).catch(e=>toast(errText(e)));
+}
+function deleteDoc(col,id){if(!CAN_EDIT){toast('You are signed in as a viewer.');return}
+  delete S[col][id];render();FB.deleteDoc(FB.doc(FB.db,col,id)).catch(e=>toast(errText(e)))}
+function errText(e){const c=e&&e.code;if(c==='permission-denied')return'Not saved: this login is view-only.';if(c==='unavailable')return'Offline: the change will sync when the connection returns.';return'Not saved ('+(c||'error')+'). Try again.'}
+function logIt(o){const id=uid();writeDoc('log',id,Object.assign({toc:false},o,{ts:Date.now()}))}
+
+/* ---------- render ---------- */
+function renderHeader(){
+  document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}">${esc(d.name)} · ${esc(d.label)}</button>`).join('');
+  const n=nowParts();document.getElementById('clock').textContent=`${n.hm} CST`;
+  const s=document.getElementById('sync');
+  s.innerHTML=(MODE==='live'?'<i class="dot live"></i><span>Live</span>':MODE==='error'?'<i class="dot local"></i><span>Sync stopped</span>':'<i class="dot"></i><span>Connecting…</span>')+(ME?` <span>· ${esc(ME.split('@')[0])} ${CAN_EDIT?'(editor)':'(view only)'}</span> <button type="button" class="btn sm ghost" data-act="signout">Sign out</button>`:'');
+}
+function renderTabs(A){
+  const n=A.alerts.filter(a=>a.k!=='ok').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
+  const toc=Object.values(S.log).filter(l=>!l.toc).length;
+  const T=[['overview','Overview',n],['personnel','Personnel',0],['missions','Missions',0],['equipment','Equipment',0],['resupply','Resupply',pend],['log','Log',toc],['cub','CUB slides',0]];
+  document.getElementById('tabs').innerHTML=T.map(([k,l,c])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${UI.tab===k}">${l}${c?`<span class="ct tnum">${c}</span>`:''}</button>`).join('');
+}
+function statusCounts(){const c={EFF:0,WIAY:0,WIAR:0,WIAB:0,KIA:0,MIA:0};ROSTER.forEach(p=>c[person(p.pid).status]++);return c}
+function kpis(){const s=statusCounts();const owed=ROSTER.filter(p=>{const x=person(p.pid);return x.exStatus==='Owed'||x.exStatus==='In progress'}).length;
+  return `<div class="kpis tnum">
+  <div class="kpi info"><b>${ROSTER.length}</b><span>Assigned</span></div>
+  <div class="kpi ok"><b>${s.EFF}</b><span>Effective</span></div>
+  <div class="kpi warn"><b>${s.WIAY+s.WIAR+s.WIAB}</b><span>WIA · Y${s.WIAY} R${s.WIAR} B${s.WIAB}</span></div>
+  <div class="kpi blk"><b>${s.KIA}</b><span>KIA</span></div>
+  <div class="kpi info"><b>${s.MIA}</b><span>MIA</span></div>
+  <div class="kpi warn"><b>${owed}</b><span>Exercise owed / in progress</span></div></div>`}
+function equipTotals(){const t={FMC:0,PMC:0,NMC:0};Object.values(S.equip).forEach(e=>{t.FMC+=Number(e.fmc||0);t.PMC+=Number(e.pmc||0);t.NMC+=Number(e.nmc||0)});return t}
+function missionCard(m,A,now){
+  const st=m.state||'Planned';const cas=casualtiesFor(m.id);const isNow=now&&hhmm(m.start)<=now&&now<hhmm(m.end);
+  const fl=A.flags[m.id];
+  const chips=crew(m).map(x=>{const p=person(x);return `<button type="button" class="chip ${x===m.mc?'mc':''} ${p.status!=='EFF'?'s-'+p.status:''}" data-person="${x}" title="${esc(nm(x))}">${x===m.mc?'★ ':''}${esc(short(x))}${isMission(m)?` <span class="muted tnum">${A.c[x]}</span>`:''}</button>`}).join('');
+  return `<div class="mission ${isNow?'now':''} ${fl==='bad'?'badc':fl==='warn'?'warnc':''}" id="m-${esc(m.id)}">
+   <div class="mhead"><b>${esc(m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-mission="${esc(m.id)}">Edit</button></div>
+   <div class="small muted">${isMission(m)?'MC':'Lead'}: <b style="color:var(--ink)">${m.mc?esc(nm(m.mc)):'Not assigned'}</b> · ${crew(m).length} pax</div>
+   <div class="chips">${chips||'<span class="muted small">No crew assigned</span>'}</div>
+   ${m.note?`<div class="small">${esc(m.note)}</div>`:''}
+   ${isMission(m)&&st!=='Complete'&&st!=='Scrubbed'?`<div class="tools">${st==='Planned'?`<button type="button" class="btn sm" data-mstate="${esc(m.id)}|Out">Mark out</button>`:''}${st==='Out'?`<button type="button" class="btn sm" data-mstate="${esc(m.id)}|RTB">Mark RTB</button>`:''}<button type="button" class="btn sm okb" data-mstate="${esc(m.id)}|Complete">Complete · count participation</button></div>`:''}
+  </div>`}
+function renderOverview(A){
+  const now=curBlock();const day=dayObj(UI.day);
+  const cur=A.dayMs.filter(m=>now&&hhmm(m.start)<=now&&now<hhmm(m.end)&&isMission(m));
+  const next=A.dayMs.filter(m=>isMission(m)&&(!now||hhmm(m.start)>now)&&m.state==='Planned').slice(0,4);
+  const dist={};ROSTER.forEach(p=>{if(exempt(p.pid,UI.day,A.ms))return;dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
+  const max=Math.max(1,...Object.values(dist));
+  const atFloor=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);
+  const plannedSoon=new Set();A.dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>crew(m).forEach(x=>plannedSoon.add(x)));
+  const notTasked=atFloor.filter(p=>!plannedSoon.has(p.pid));
+  const staff=[...staffOn(UI.day,A.ms)];
+  const prev=DAYS[DAYS.findIndex(d=>d.id===UI.day)-1];
+  const prevStaff=prev?[...staffOn(prev.id,A.ms)].filter(x=>A.c[x]<A.fl):[];
+  const et=equipTotals();const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');
+  return `${kpis()}
+  <div class="grid2">
+   <section class="card" id="alerts"><h2>Needs attention <span class="sub">${esc(day.name)} · Annex B, CCIRs, equipment</span></h2>
+    ${A.alerts.length?`<ul class="alerts">${A.alerts.slice(0,14).map(a=>`<li class="${a.k}" ${a.mid?`data-mission="${esc(a.mid)}"`:a.pid?`data-person="${a.pid}"`:a.eid?`data-equip="${esc(a.eid)}"`:''} style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>${A.alerts.length>14?`<p class="small muted">+${A.alerts.length-14} more</p>`:''}`:'<ul class="alerts"><li class="ok">No conflicts, participation violations or CCIR items.</li></ul>'}
+   </section>
+   <section class="card" id="participation"><h2>Mission participation <span class="sub">Annex B II.1 · non-exempt members</span></h2>
+    <p style="margin:0 0 8px">Floor is <b class="tnum">${A.fl}</b>. Nobody goes on mission ${A.fl+2} until everyone has ${A.fl+1}.</p>
+    <div class="bars tnum">${Object.keys(dist).sort((a,b)=>a-b).map(k=>`<div class="bar ${+k===A.fl?'floor':''}"><span>${k} mission${+k===1?'':'s'}</span><i style="width:${dist[k]/max*100}%"></i><b>${dist[k]}</b></div>`).join('')}</div>
+    <p class="small" style="margin:10px 0 4px"><b>At the floor and not on a planned mission today (${notTasked.length}):</b></p>
+    <div class="chips">${notTasked.map(p=>`<button type="button" class="chip" data-person="${p.pid}">${esc(short(p.pid))}</button>`).join('')||'<span class="muted small">Everyone at the floor is tasked.</span>'}</div>
+    <p class="small muted" style="margin:10px 0 0">Exempt today (WOC/TOC staff, IDO): ${staff.length+ROSTER.filter(p=>person(p.pid).role==='IDO'&&!staff.includes(p.pid)).length}. They return at the lowest count next day.</p>
+    ${prevStaff.length?`<div class="tools" style="margin-top:8px"><button type="button" class="btn sm pri" data-act="equalize">Set ${prevStaff.length} of ${esc(prev.name)}'s WOC/TOC staff to floor (${A.fl})</button></div>`:''}
+   </section>
+  </div>
+  <section class="card" id="now"><h2>${now?'On mission now':'Mission plan'} <span class="sub">${now?`${now} CST`:esc(day.name+' · '+day.label)}</span><span class="right"><button type="button" class="btn sm" data-tab="missions">All missions</button></span></h2>
+   <div class="lanegrid">${(cur.length?cur:next).map(m=>missionCard(m,A,now)).join('')||'<div class="empty">No missions in this block.</div>'}</div>
+  </section>
+  <section class="card" id="a4snap"><h2>A4 snapshot <span class="right"><button type="button" class="btn sm" data-tab="equipment">Equipment</button></span></h2>
+   <div class="kpis tnum"><div class="kpi ok"><b>${et.FMC}</b><span>FMC</span></div><div class="kpi warn"><b>${et.PMC}</b><span>PMC</span></div><div class="kpi bad"><b>${et.NMC}</b><span>NMC</span></div><div class="kpi info"><b>${pend.length}</b><span>Resupply pending</span></div></div>
+  </section>`}
+function renderPersonnel(A){
+  const q=UI.q.trim().toLowerCase();
+  let rows=ROSTER.map(p=>({p,x:person(p.pid)}));
+  if(q)rows=rows.filter(r=>r.p.name.toLowerCase().includes(q)||String(r.p.flt)===q);
+  const f=UI.pf;
+  if(f==='cas')rows=rows.filter(r=>r.x.status!=='EFF');
+  else if(f==='ex')rows=rows.filter(r=>r.x.exStatus==='Owed'||r.x.exStatus==='In progress');
+  else if(f==='floor')rows=rows.filter(r=>!exempt(r.p.pid,UI.day,A.ms)&&A.c[r.p.pid]===A.fl);
+  else if(f==='toc')rows=rows.filter(r=>r.x.status!=='EFF'&&!r.x.tocNotified);
+  else if(/^t\d$/.test(f))rows=rows.filter(r=>'t'+r.p.team===f);
+  const where=pid=>{const w=whereNow(pid,A.ms);if(w.now)return `<span class="pill st-Out">${esc(w.m.lane)} now</span>`;return w.list.map(m=>`<span class="mono small">${esc(m.lane.replace('Tiger ','T'))} ${esc(m.start)}</span>`).join(' ')||'<span class="muted small">Unassigned</span>'};
+  return `<div class="tools"><input type="search" id="q" placeholder="Search name or flight #" value="${esc(UI.q)}" aria-label="Search personnel">
+  <select id="pf" aria-label="Filter"><option value="all">All 68</option><option value="cas">Casualties</option><option value="toc">Casualties not passed to TOC</option><option value="ex">Exercise owed</option><option value="floor">At participation floor</option>${[1,2,3,4].map(t=>`<option value="t${t}">Team ${t}</option>`).join('')}</select>
+  <span class="small muted tnum">${rows.length} shown</span></div>
+  <div class="tablewrap"><table id="roster"><thead><tr><th>Name</th><th>Flt</th><th>Team</th><th>Status</th><th>Missions</th><th>${esc(dayObj(UI.day).name)} tasking</th><th>Exercise</th><th>Updated</th></tr></thead><tbody class="tnum">
+  ${rows.map(({p,x})=>{const ex=exempt(p.pid,UI.day,A.ms);const tl=x.exercise==='60-min timeout'&&x.exStatus==='In progress'&&x.exStart?Math.max(0,60-Math.floor((Date.now()-x.exStart)/60000)):null;
+   return `<tr data-person="${p.pid}" class="${x.status!=='EFF'&&!x.tocNotified?'flag':''}"><td><b>${esc(p.name)}</b>${x.role?` <span class="pill st-Planned">${esc(x.role)}</span>`:''}${p.tl?' <span class="small muted">TL</span>':''}</td><td>${esc(p.flt)}</td><td>${p.team}</td>
+   <td><span class="pill s-${x.status}">${esc(SLBL[x.status])}</span>${x.status!=='EFF'&&!x.tocNotified?' <span class="small" style="color:var(--bad)">TOC?</span>':''}</td>
+   <td>${A.c[p.pid]}${ex?' <span class="small muted">exempt</span>':A.c[p.pid]>A.fl?' <span class="small" style="color:var(--warn)">+'+(A.c[p.pid]-A.fl)+'</span>':''}</td>
+   <td>${where(p.pid)}</td>
+   <td>${x.exercise?`${esc(x.exercise)} <span class="small muted">${esc(x.exStatus||'')}${tl!=null?` · ${tl} min left`:''}</span>`:x.exStatus==='Owed'?'<span class="pill s-WIAY">Choice owed</span>':''}${x.exHist&&x.exHist.length?` <span class="small muted">(${x.exHist.length} total)</span>`:''}</td>
+   <td class="small muted">${fmtT(x.at)}</td></tr>`}).join('')}
+  </tbody></table></div>`}
+function renderMissions(A){
+  const now=curBlock();
+  const groups={};A.dayMs.forEach(m=>{const k=m.start+'–'+m.end+(isMission(m)?'':' staff');(groups[k]=groups[k]||[]).push(m)});
+  const keys=Object.keys(groups).sort((a,b)=>(a.includes('staff')?-1:0)-(b.includes('staff')?-1:0)||a.localeCompare(b));
+  return `<div class="tools"><span class="small muted">${esc(dayObj(UI.day).name)} · ${esc(dayObj(UI.day).label)} · ${dayObj(UI.day).oom?'Order of Merit MCE day':'Non-OoM MCE day'} · ★ = MC/lead, number = completed missions</span><span style="margin-left:auto"></span><button type="button" class="btn pri" data-act="addmission">Add mission</button></div>
+  ${keys.map(k=>{const isNow=now&&groups[k].some(m=>hhmm(m.start)<=now&&now<hhmm(m.end))&&!k.includes('staff');return `<div class="blockh ${isNow?'now':''}">${k.includes('staff')?'WOC / TOC staff · 0700–1530 · exempt from participation':esc(k)+' CST'}${isNow?' · NOW':''}</div><div class="lanegrid">${groups[k].map(m=>missionCard(m,A,now)).join('')}</div>`}).join('')}`}
+function renderEquipment(){
+  const items=Object.entries(S.equip).sort((a,b)=>(a[1].cat||'').localeCompare(b[1].cat||'')||(a[1].name||'').localeCompare(b[1].name||''));
+  const t=equipTotals();
+  return `<div class="tools"><span class="pill e-FMC tnum">FMC ${t.FMC}</span><span class="pill e-PMC tnum">PMC ${t.PMC}</span><span class="pill e-NMC tnum">NMC ${t.NMC}</span><span style="margin-left:auto"></span>${items.length?'':'<button type="button" class="btn" data-act="seedequip">Load OPORD issue list</button>'}<button type="button" class="btn pri" data-act="addequip">Add item</button></div>
+  ${items.length?`<div class="tablewrap"><table id="equip"><thead><tr><th>Item</th><th>Category</th><th>On hand</th><th>FMC</th><th>PMC</th><th>NMC</th><th>Location / holder</th><th>Notes</th></tr></thead><tbody class="tnum">
+  ${items.map(([id,e])=>{const tot=Number(e.fmc||0)+Number(e.pmc||0)+Number(e.nmc||0);return `<tr data-equip="${esc(id)}" class="${Number(e.nmc)>0?'flag':''}"><td><b>${esc(e.name)}</b>${e.cat==='Medical'&&e.chips!=null&&e.chips!==''?`<div class="small muted">${esc(e.chips)} chips · ${Math.ceil(Number(e.chips)/3)} sandbags</div>`:''}</td><td>${esc(e.cat)}</td><td>${tot||'<span class="muted">count at issue</span>'}</td><td>${e.fmc?`<span class="pill e-FMC">${esc(e.fmc)}</span>`:''}</td><td>${e.pmc?`<span class="pill e-PMC">${esc(e.pmc)}</span>`:''}</td><td>${e.nmc?`<span class="pill e-NMC">${esc(e.nmc)}</span>`:''}</td><td>${esc(e.loc||'')}</td><td class="small">${esc(e.note||'')}</td></tr>`}).join('')}
+  </tbody></table></div>`:'<div class="card empty">No equipment on the board yet.</div>'}`}
+function renderResupply(){
+  const rs=Object.entries(S.resupply).sort((a,b)=>(a[1].status==='Pending'?0:1)-(b[1].status==='Pending'?0:1)||(b[1].ts||0)-(a[1].ts||0));
+  return `<div class="tools"><span class="small muted">A1/4 approves resupply requests. Medical chips come from HHQ via CABS/CC (Annex B I.7).</span><span style="margin-left:auto"></span><button type="button" class="btn pri" data-act="addresupply">New request</button></div>
+  ${rs.length?`<div class="tablewrap"><table><thead><tr><th>Requested</th><th>Item</th><th>Qty</th><th>For</th><th>By</th><th>Status</th><th></th></tr></thead><tbody class="tnum">
+  ${rs.map(([id,r])=>`<tr data-resupply="${esc(id)}"><td class="mono small">${fmtDT(r.ts)}</td><td><b>${esc(r.item)}</b>${r.note?`<div class="small muted">${esc(r.note)}</div>`:''}</td><td>${esc(r.qty)}</td><td>${esc(r.forWhat||'')}</td><td>${esc(r.reqBy||'')}</td><td><span class="pill ${r.status==='Approved'||r.status==='Delivered'?'e-FMC':r.status==='Denied'?'e-NMC':'e-PMC'}">${esc(r.status)}</span></td>
+  <td>${r.status==='Pending'?`<button type="button" class="btn sm okb" data-rs="${esc(id)}|Approved">Approve</button> <button type="button" class="btn sm badb" data-rs="${esc(id)}|Denied">Deny</button>`:r.status==='Approved'?`<button type="button" class="btn sm" data-rs="${esc(id)}|Delivered">Delivered</button>`:''}</td></tr>`).join('')}
+  </tbody></table></div>`:'<div class="card empty">No resupply requests.</div>'}`}
+function renderLog(){
+  let ls=Object.entries(S.log).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  if(UI.lf==='toc')ls=ls.filter(([,l])=>!l.toc);if(UI.lf==='ccir')ls=ls.filter(([,l])=>l.ccir);if(UI.lf==='cas')ls=ls.filter(([,l])=>l.type==='cas');
+  return `<div class="tools"><select id="lf" aria-label="Filter log"><option value="all">All entries</option><option value="toc">Not yet passed to TOC</option><option value="cas">Casualties only</option><option value="ccir">CCIR items</option></select><span class="small muted tnum">${ls.length} entries</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copylog">Copy unpassed to clipboard</button></div>
+  <div class="card log">${ls.map(([id,l])=>`<div class="logrow ${l.ccir?'ccir':''}"><span class="t">${fmtT(l.ts)}<br>${esc(fmtDT(l.ts).split(' ')[0])}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by).split('@')[0])}</span>`:''}</div><label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-toc="${esc(id)}" ${l.toc?'checked':''}> TOC</label></div>`).join('')||'<div class="empty">Nothing logged yet. Status changes, exercises, missions, equipment and resupply all land here.</div>'}</div>`}
+function a1Text(A){const s=statusCounts();const cas=ROSTER.filter(p=>person(p.pid).status!=='EFF');
+  const ex=ROSTER.filter(p=>{const x=person(p.pid);return x.exStatus==='Owed'||x.exStatus==='In progress'});
+  return {s,cas,ex}}
+function renderCUB(A){
+  const {s,cas,ex}=a1Text(A);const t=equipTotals();const nmc=Object.values(S.equip).filter(e=>Number(e.nmc)>0||Number(e.pmc)>0);
+  const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');const med=Object.values(S.equip).filter(e=>e.cat==='Medical'&&e.chips!=null&&e.chips!=='');
+  const dist={};ROSTER.forEach(p=>{if(!exempt(p.pid,UI.day,A.ms))dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
+  return `<div class="tools"><span class="small muted">Live as of ${nowParts().hm} CST. Copy either slide as text for the CUB.</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copya1">Copy A1</button><button type="button" class="btn" data-act="copya4">Copy A4</button></div>
+  <div class="grid2">
+  <section class="slide" id="slide-a1"><h3><span>A1 · Personnel</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
+   <div class="big tnum"><div><b>${ROSTER.length}</b>Assigned</div><div><b>${s.EFF}</b>Effective</div><div><b>${s.WIAY+s.WIAR+s.WIAB}</b>WIA</div><div><b>${s.KIA}</b>KIA</div><div><b>${s.MIA}</b>MIA</div></div>
+   <div><b>Casualties</b>${cas.length?`<ul>${cas.map(p=>{const x=person(p.pid);return `<li>${esc(p.name)} · ${esc(SLBL[x.status])}${x.source?` · ${esc(x.source)}`:''}${x.exercise?` · ${esc(x.exercise)} (${esc(x.exStatus||'')})`:''}</li>`}).join('')}</ul>`:' none'}</div>
+   <div><b>Participation (Annex B):</b> floor ${A.fl} · ${Object.keys(dist).sort((a,b)=>a-b).map(k=>`${dist[k]} at ${k}`).join(', ')}</div>
+   <div><b>Exercises owed / in progress:</b> ${ex.length}</div>
+  </section>
+  <section class="slide" id="slide-a4"><h3><span>A4 · Logistics</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
+   <div class="big tnum"><div><b>${t.FMC}</b>FMC</div><div><b>${t.PMC}</b>PMC</div><div><b>${t.NMC}</b>NMC</div><div><b>${pend.length}</b>Resupply pending</div></div>
+   <div><b>PMC / NMC items</b>${nmc.length?`<ul>${nmc.map(e=>`<li>${esc(e.name)}: ${e.pmc?esc(e.pmc)+' PMC ':''}${e.nmc?esc(e.nmc)+' NMC':''}${e.note?` · ${esc(e.note)}`:''}</li>`).join('')}</ul>`:' none'}</div>
+   <div><b>Medic packs</b>${med.length?`<ul>${med.map(e=>`<li>${esc(e.name)}: ${esc(e.chips)} chips / ${Math.ceil(Number(e.chips)/3)} sandbags</li>`).join('')}</ul>`:' not tracked'}</div>
+   <div><b>Resupply pending</b>${pend.length?`<ul>${pend.map(r=>`<li>${esc(r.qty)} × ${esc(r.item)}${r.forWhat?` for ${esc(r.forWhat)}`:''}</li>`).join('')}</ul>`:' none'}</div>
+  </section></div>`}
+function cubText(which,A){
+  if(which==='a1'){const {s,cas,ex}=a1Text(A);return `A1 PERSONNEL (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nAssigned ${ROSTER.length} | Effective ${s.EFF} | WIA ${s.WIAY+s.WIAR+s.WIAB} (Y${s.WIAY}/R${s.WIAR}/B${s.WIAB}) | KIA ${s.KIA} | MIA ${s.MIA}\nCasualties:\n${cas.map(p=>{const x=person(p.pid);return `- ${p.name}: ${SLBL[x.status]}${x.source?' ('+x.source+')':''}${x.exercise?', '+x.exercise+' '+(x.exStatus||''):''}`}).join('\n')||'- None'}\nMission participation floor: ${A.fl}\nExercises owed/in progress: ${ex.length}`}
+  const t=equipTotals();const nmc=Object.values(S.equip).filter(e=>Number(e.nmc)>0||Number(e.pmc)>0);const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');
+  return `A4 LOGISTICS (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nFMC ${t.FMC} | PMC ${t.PMC} | NMC ${t.NMC}\nDegraded items:\n${nmc.map(e=>`- ${e.name}: ${e.pmc?e.pmc+' PMC ':''}${e.nmc?e.nmc+' NMC':''}`).join('\n')||'- None'}\nMedic packs: ${Object.values(S.equip).filter(e=>e.cat==='Medical'&&e.chips!=null&&e.chips!=='').map(e=>`${e.name} ${e.chips} chips`).join('; ')||'n/a'}\nResupply pending: ${pend.map(r=>`${r.qty} x ${r.item}`).join('; ')||'None'}`}
+
+let lastTab=null;
+function render(){
+  const A=analyze();renderHeader();renderTabs(A);
+  const main=document.getElementById('main');
+  const focus=document.activeElement&&document.activeElement.id==='q';const caret=focus?document.activeElement.selectionStart:0;
+  const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet.</div>':MODE==='local'?'<div class="banner">Shared storage is not available in this view, so changes save on this device only. Open the board from its claude.ai link to share it live with the TOC.</div>':'';
+  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
+  main.innerHTML=banner+body;
+  const pf=document.getElementById('pf');if(pf)pf.value=UI.pf;const lf=document.getElementById('lf');if(lf)lf.value=UI.lf;
+  if(focus){const q=document.getElementById('q');if(q){q.focus();q.setSelectionRange(caret,caret)}}
+  if(lastTab!==UI.tab){lastTab=UI.tab}
+}
+
+/* ---------- dialogs ---------- */
+const dlg=document.getElementById('dlg');
+function openDlg(html){dlg.innerHTML=html;if(!dlg.open)dlg.showModal()}
+function closeDlg(){dlg.close()}
+function opt(list,val){return list.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o||'—'];return `<option value="${esc(v)}" ${String(v)===String(val??'')?'selected':''}>${esc(l)}</option>`}).join('')}
+
+function personDlg(pid){
+  const x=person(pid);const A=analyze();const ms=A.ms.filter(m=>m.day===UI.day&&isMission(m));
+  const w=whereNow(pid,A.ms);const defM=w.now?w.m.id:(x.mid||'');
+  const tl=x.exercise==='60-min timeout'&&x.exStart?Math.max(0,60-Math.floor((Date.now()-x.exStart)/60000)):null;
+  const his=(x.exHist||[]).slice().reverse();
+  const mine=A.ms.filter(m=>crew(m).includes(pid));
+  openDlg(`<form class="dlg" id="pform" data-pid="${pid}">
+   <h3>${esc(x.name)} <span class="pill s-${x.status}">${esc(SLBL[x.status])}</span><span class="small muted">Flt ${esc(x.flt)} · Team ${x.team} · ${A.c[pid]} missions${exempt(pid,UI.day,A.ms)?' · exempt today':''}</span></h3>
+   <div class="tools">${STATUS.map(([v,l])=>`<button type="button" class="btn sm ${x.status===v?'pri':''}" data-setstatus="${v}">${esc(l)}</button>`).join('')}</div>
+   <div class="fields">
+    <label>Status<select name="status">${opt(STATUS,x.status)}</select></label>
+    <label>Source<select name="source">${opt(['',...SOURCES],x.source)}</select></label>
+    <label>Mission (casualty from)<select name="mid">${opt([['','None / on base'],...ms.map(m=>[m.id,`${m.lane} ${m.start}`])],defM)}</select></label>
+    <label>Exercise chosen<select name="exercise">${opt(['',...EXERCISES],x.exercise)}</select></label>
+    <label>Exercise status<select name="exStatus">${opt(['','Owed','In progress','Complete'],x.exStatus)}</select></label>
+    <label>Role (manual)<select name="role">${opt(ROLES,x.role)}</select></label>
+    <label>Mission count adjust<input name="adj" type="number" step="1" value="${Number(x.adj||0)}"></label>
+    <label style="align-self:end;flex-direction:row;display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" name="tocNotified" ${x.tocNotified?'checked':''}> Passed to TOC</label>
+    <label class="wide">Note<textarea name="note" rows="2">${esc(x.note||'')}</textarea></label>
+   </div>
+   ${tl!=null&&x.exStatus==='In progress'?`<div class="banner">Timeout started ${fmtT(x.exStart)} · ${tl} min left (ends ${fmtT(x.exStart+3600000)})</div>`:''}
+   <div class="small muted">Assigned: ${mine.map(m=>`Day ${m.day} ${esc(m.lane)} ${esc(m.start)} (${esc(m.state||'Planned')})`).join(' · ')||'none'}</div>
+   ${his.length?`<div><b class="small">Exercise history</b><ul class="hist">${his.map(h=>`<li>${fmtDT(h.ts)} · ${esc(h.ex)}${h.mission?` · ${esc(h.mission)}`:''}</li>`).join('')}</ul></div>`:''}
+   </form>
+   <div class="dfoot"><div class="left"><button type="button" class="btn okb" data-act="rtd">Return to duty</button><button type="button" class="btn sm ghost" data-act="tofloor">Set count to floor (${A.fl})</button></div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveperson">Save</button></div>`);
+}
+function savePerson(extra){
+  const f=document.getElementById('pform');const pid=f.dataset.pid;const old=person(pid);const fd=new FormData(f);
+  const n={status:fd.get('status'),source:fd.get('source'),mid:fd.get('mid'),exercise:fd.get('exercise'),exStatus:fd.get('exStatus'),role:fd.get('role'),adj:Number(fd.get('adj')||0),tocNotified:fd.get('tocNotified')==='on',note:fd.get('note')};
+  Object.assign(n,extra||{});
+  const ms=allMissions();const mm=ms.find(m=>m.id===n.mid);const mlabel=mm?`Day ${mm.day} ${mm.lane} ${mm.start}`:'';
+  if(n.status!==old.status){n.tocNotified=false;if(n.status!=='EFF'&&old.status==='EFF'&&(!n.exStatus||n.exStatus==='Complete')&&n.exercise===(old.exercise||'')){n.exStatus='Owed';n.exercise=''}}
+  if(n.exercise==='60-min timeout'&&n.exStatus==='In progress'&&!(old.exercise==='60-min timeout'&&old.exStatus==='In progress'))n.exStart=Date.now();
+  else n.exStart=(n.exercise==='60-min timeout'?old.exStart:null)||null;
+  let hist=(old.exHist||[]).slice();
+  if(n.exercise&&n.exercise!==old.exercise){hist.push({ts:Date.now(),ex:n.exercise,mission:mlabel||(old.mid?'':'')});if(hist.length>40)hist=hist.slice(-40)}
+  n.exHist=hist;delete n._rtd;
+  writeDoc('people',pid,n);
+  const who=nm(pid);
+  if(n.status!==old.status){const ccirSoon=mm&&casualtiesFor(mm.id)>=5&&n.status!=='EFF';logIt({type:'cas',pid,mid:n.mid||'',to:n.status,text:`${who}: ${SLBL[old.status]} → ${SLBL[n.status]}${n.source?` (${n.source})`:''}${mlabel?` · ${mlabel}`:''}`,ccir:!!ccirSoon})}
+  if(n.exercise&&n.exercise!==old.exercise)logIt({type:'ex',pid,text:`${who} chose ${n.exercise}${mlabel?` after ${mlabel}`:''}`});
+  if(n.exStatus!==old.exStatus&&n.exStatus&&n.exStatus!=='Owed')logIt({type:'ex',pid,text:`${who}: exercise ${n.exStatus.toLowerCase()}${n.exercise?` (${n.exercise})`:''}`});
+  if(n.adj!==Number(old.adj||0))logIt({type:'adm',pid,text:`${who}: mission count adjusted ${Number(old.adj||0)} → ${n.adj}`});
+  if(n.role!==(old.role||''))logIt({type:'adm',pid,text:`${who}: role set to ${n.role||'none'}`});
+  closeDlg();
+}
+function missionDlg(mid,isNew){
+  const A=analyze();const m=isNew?{id:'',day:UI.day,lane:'Tiger 1',start:nowParts().hm,end:'',mc:'',members:[],state:'Planned',note:''}:A.ms.find(x=>x.id===mid);if(!m)return;
+  const others=A.ms.filter(o=>o.id!==m.id&&o.day===m.day&&o.state!=='Scrubbed');
+  const busy=pid=>{const o=others.find(o=>overlap(o,m)&&crew(o).includes(pid));return o?`${o.lane} ${o.start}`:''};
+  const sel=new Set(crew(m));
+  const lanes=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4','CYOA','Base defense','Other'];
+  openDlg(`<form class="dlg" id="mform" data-mid="${esc(m.id)}" data-new="${isNew?1:''}">
+   <h3>${isNew?'Add mission':esc(m.lane)+' · '+esc(m.start)+'–'+esc(m.end)} <span class="small muted">Day ${esc(m.day)}${m.base?' · from Team Assignments v3':''}</span></h3>
+   <div class="fields">
+    <label>Lane<select name="lane">${opt(lanes.includes(m.lane)?lanes:[m.lane,...lanes],m.lane)}</select></label>
+    <label>Start (CST)<input name="start" inputmode="numeric" pattern="[0-9]{4}" value="${esc(m.start)}" required></label>
+    <label>End (CST)<input name="end" inputmode="numeric" pattern="[0-9]{4}" value="${esc(m.end)}" required></label>
+    <label>State<select name="state">${opt(MSTATES,m.state)}</select></label>
+    <label class="wide">MC / lead<select name="mc">${opt([['','Not assigned'],...ROSTER.map(p=>[p.pid,`${p.name} (${A.c[p.pid]})`])],m.mc)}</select></label>
+    <label class="wide">Note (MTO, route, ISR, etc.)<input name="note" value="${esc(m.note||'')}"></label>
+   </div>
+   <div class="fl">Crew <span class="muted" id="crewct">${sel.size} selected</span> · number = completed missions, floor ${A.fl}</div>
+   <input type="search" id="crewq" placeholder="Filter names" aria-label="Filter names" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--soft)">
+   <div class="picker" id="picker">${ROSTER.map(p=>{const b=busy(p.pid);const x=person(p.pid);const over=!exempt(p.pid,m.day,A.ms)&&A.c[p.pid]>A.fl;
+     return `<label class="${b?'busy':''}" data-n="${esc(p.name.toLowerCase())}"><input type="checkbox" name="crew" value="${p.pid}" ${sel.has(p.pid)?'checked':''}><span>${esc(p.name)} ${x.status!=='EFF'?`<span class="pill s-${x.status}">${esc(SLBL[x.status])}</span>`:''}${b?` <span class="small muted">on ${esc(b)}</span>`:''}</span><span class="tnum small ${over?'':'muted'}" style="${over?'color:var(--warn);font-weight:700':''}">${A.c[p.pid]}</span></label>`}).join('')}</div>
+  </form>
+  <div class="dfoot"><div class="left">${!isNew?(m.base?`<button type="button" class="btn sm ghost" data-act="resetmission">Reset to plan</button>`:`<button type="button" class="btn sm badb" data-act="delmission">Delete</button>`):''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savemission">Save</button></div>`);
+}
+function saveMission(){
+  const f=document.getElementById('mform');if(!f.reportValidity())return;const fd=new FormData(f);
+  const isNew=!!f.dataset.new;const id=isNew?('x'+uid()):f.dataset.mid;const old=isNew?null:allMissions().find(m=>m.id===id);
+  const mc=fd.get('mc');const crewSel=fd.getAll('crew');
+  const n={day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note')};
+  writeDoc('missions',id,n);
+  const lbl=`Day ${n.day} ${n.lane} ${n.start}`;
+  if(isNew)logIt({type:'msn',mid:id,text:`Mission added: ${lbl}, MC ${mc?nm(mc):'TBD'}, ${crew(n).length} pax`});
+  else{const added=crew(n).filter(x=>!crew(old).includes(x)),removed=crew(old).filter(x=>!crew(n).includes(x));
+    if(added.length||removed.length)logIt({type:'msn',mid:id,text:`${lbl} crew change:${added.length?' +'+added.map(short).join(', +'):''}${removed.length?' −'+removed.map(short).join(', −'):''}`});
+    if(old.mc!==mc)logIt({type:'msn',mid:id,text:`${lbl} MC: ${old.mc?nm(old.mc):'none'} → ${mc?nm(mc):'none'}`});
+    if(old.state!==n.state)logIt({type:'msn',mid:id,text:`${lbl}: ${old.state} → ${n.state}${n.state==='Complete'?` · participation counted for ${crew(n).length}`:''}`})}
+  closeDlg();
+}
+function setMissionState(id,state){const m=allMissions().find(x=>x.id===id);if(!m)return;
+  const n={day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state,note:m.note||''};
+  writeDoc('missions',id,n);logIt({type:'msn',mid:id,text:`Day ${m.day} ${m.lane} ${m.start}: ${m.state||'Planned'} → ${state}${state==='Complete'?` · participation counted for ${crew(m).length}`:''}`})}
+function equipDlg(id){const e=id?S.equip[id]:{name:'',cat:'Other',fmc:'',pmc:'',nmc:'',loc:'',note:''};
+  openDlg(`<form class="dlg" id="eform" data-eid="${esc(id||'')}"><h3>${id?esc(e.name):'Add equipment'}</h3>
+  <div class="fields"><label class="wide">Item<input name="name" value="${esc(e.name)}" required></label>
+  <label>Category<select name="cat">${opt(ECATS,e.cat)}</select></label>
+  <label>Location / holder<input name="loc" value="${esc(e.loc||'')}"></label>
+  <label>FMC qty<input name="fmc" type="number" min="0" value="${esc(e.fmc??'')}"></label>
+  <label>PMC qty<input name="pmc" type="number" min="0" value="${esc(e.pmc??'')}"></label>
+  <label>NMC qty<input name="nmc" type="number" min="0" value="${esc(e.nmc??'')}"></label>
+  <label>Poker chips (medic pack, max 15)<input name="chips" type="number" min="0" max="15" value="${esc(e.chips??'')}"></label>
+  <label class="wide">Notes<input name="note" value="${esc(e.note||'')}"></label></div>
+  <p class="small muted" style="margin:0">Any change in equipment status is an exercise CCIR (OPORD 3.j.2.d). It is logged and flagged for the ATF/CC.</p></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delequip">Remove</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveequip">Save</button></div>`)}
+function saveEquip(){const f=document.getElementById('eform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.eid;const old=id?S.equip[id]:null;id=id||('e'+uid());
+  const num=k=>{const v=fd.get(k);return v===''?'':Number(v)};
+  const n={name:fd.get('name'),cat:fd.get('cat'),loc:fd.get('loc'),fmc:num('fmc'),pmc:num('pmc'),nmc:num('nmc'),chips:num('chips'),note:fd.get('note')};
+  if(n.chips!==''&&n.chips>15){toast('A medic pack holds at most 15 chips (Annex B I.1.e).');return}
+  writeDoc('equip',id,n);
+  if(!old)logIt({type:'equip',text:`Equipment added: ${n.name} (FMC ${n.fmc||0} / PMC ${n.pmc||0} / NMC ${n.nmc||0})`});
+  else{const ch=['fmc','pmc','nmc'].filter(k=>String(old[k]??'')!==String(n[k]??''));
+   if(ch.length)logIt({type:'equip',ccir:true,text:`CCIR equipment status: ${n.name} now FMC ${n.fmc||0} / PMC ${n.pmc||0} / NMC ${n.nmc||0} (was ${old.fmc||0}/${old.pmc||0}/${old.nmc||0})${n.note?' · '+n.note:''}`});
+   if(String(old.chips??'')!==String(n.chips??''))logIt({type:'equip',text:`${n.name}: poker chips ${old.chips??'?'} → ${n.chips}`});
+   if((old.loc||'')!==(n.loc||''))logIt({type:'equip',text:`${n.name} moved to ${n.loc||'unspecified'}`})}
+  closeDlg()}
+function resupplyDlg(id){const r=id?S.resupply[id]:{item:'',qty:1,forWhat:'',reqBy:'',status:'Pending',note:''};
+  openDlg(`<form class="dlg" id="rform" data-rid="${esc(id||'')}"><h3>${id?'Resupply request':'New resupply request'}</h3>
+  <div class="fields"><label class="wide">Item<input name="item" list="rsitems" value="${esc(r.item)}" required><datalist id="rsitems"><option value="Poker chips (medical)"><option value="Airsoft pellets"><option value="Green gas"><option value="M4 magazines"><option value="LMR batteries"><option value="Water"><option value="MREs"></datalist></label>
+  <label>Qty<input name="qty" value="${esc(r.qty)}"></label>
+  <label>Status<select name="status">${opt(['Pending','Approved','Denied','Delivered'],r.status)}</select></label>
+  <label>For (mission / TOC)<input name="forWhat" value="${esc(r.forWhat||'')}"></label>
+  <label>Requested by<input name="reqBy" value="${esc(r.reqBy||'')}"></label>
+  <label class="wide">Notes<input name="note" value="${esc(r.note||'')}"></label></div></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delresupply">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveresupply">Save</button></div>`)}
+function saveResupply(){const f=document.getElementById('rform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.rid;const old=id?S.resupply[id]:null;id=id||('r'+uid());
+  const n={item:fd.get('item'),qty:fd.get('qty'),status:fd.get('status'),forWhat:fd.get('forWhat'),reqBy:fd.get('reqBy'),note:fd.get('note'),ts:old?old.ts:Date.now()};
+  writeDoc('resupply',id,n);
+  if(!old)logIt({type:'rs',text:`Resupply requested: ${n.qty} × ${n.item}${n.forWhat?' for '+n.forWhat:''}${n.reqBy?' by '+n.reqBy:''}`});
+  else if(old.status!==n.status)logIt({type:'rs',text:`Resupply ${n.status.toLowerCase()}: ${n.qty} × ${n.item}`});
+  closeDlg()}
+function setResupply(id,st){const r=S.resupply[id];if(!r)return;writeDoc('resupply',id,Object.assign({},r,{status:st}));logIt({type:'rs',text:`Resupply ${st.toLowerCase()} by A1/4: ${r.qty} × ${r.item}`})}
+
+const SEED=[
+ {name:'Airsoft M4 carbine (individual issue)',cat:'Weapons',loc:'Individual / armory',note:'Verify count at initial issue'},
+ {name:'M4 magazines',cat:'Ammunition',loc:'Individual issue'},
+ {name:'Airsoft pellets',cat:'Ammunition',loc:'Armory'},{name:'Green gas',cat:'Ammunition',loc:'Armory'},
+ {name:'Plastic clearing rods',cat:'Ammunition',loc:'Armory'},{name:'Speed loaders',cat:'Ammunition',loc:'Armory'},
+ {name:'Joint First Aid Kit (JFAK)',cat:'Medical'},{name:'Litters with straps',cat:'Medical',fmc:4,note:'OPORD 4.a.4'},
+ {name:'Field medic pack 1',cat:'Medical',fmc:1,chips:12,note:'Ruck + 4 × 10 lb sandbags + 12 chips at STARTEX'},
+ {name:'Field medic pack 2',cat:'Medical',fmc:1,chips:12,note:'Ruck + 4 × 10 lb sandbags + 12 chips at STARTEX'},
+ {name:'Field medic pack 3',cat:'Medical',fmc:1,chips:12,note:'Ruck + 4 × 10 lb sandbags + 12 chips at STARTEX'},
+ {name:'Toolbox',cat:'Mission gear',fmc:1,note:'Required to set up or destroy field equipment (Annex B III.1)'},
+ {name:'LMR radios',cat:'Comms',loc:'Charging dock',note:'A2/6 issues at STARTEX and collects at ENDEX'},
+ {name:'Two-way walkie-talkies',cat:'Comms',note:'On-base use only'},{name:'Maps',cat:'Mission gear',note:'Instructor provided'}];
+function seedEquip(){SEED.forEach(e=>{const id='e'+uid();writeDoc('equip',id,Object.assign({fmc:'',pmc:'',nmc:'',loc:'',note:'',chips:''},e))});logIt({type:'equip',text:'Loaded OPORD / Annex B equipment issue list'})}
+
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
+async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied')}catch(e){openDlg(`<div class="dlg"><h3>Copy this text</h3><textarea rows="12" style="width:100%" readonly>${esc(t)}</textarea></div><div class="dfoot"><button type="button" class="btn" data-act="close">Close</button></div>`)}}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.day){UI.day=t.dataset.day;render();return}
+  if(t.dataset.tab){UI.tab=t.dataset.tab;render();window.scrollTo(0,0);return}
+  if(t.dataset.setstatus){const s=dlg.querySelector('select[name=status]');if(s){s.value=t.dataset.setstatus;dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b===t))}return}
+  if(t.dataset.mstate){const [id,st]=t.dataset.mstate.split('|');setMissionState(id,st);return}
+  if(t.dataset.rs){const [id,st]=t.dataset.rs.split('|');setResupply(id,st);return}
+  if(t.dataset.mission){missionDlg(t.dataset.mission);return}
+  if(t.dataset.person){personDlg(t.dataset.person);return}
+  if(t.dataset.equip){equipDlg(t.dataset.equip);return}
+  if(t.dataset.resupply){resupplyDlg(t.dataset.resupply);return}
+  const a=t.dataset.act;const A=()=>analyze();
+  if(a==='close')closeDlg();
+  else if(a==='saveperson')savePerson();
+  else if(a==='signout'){FB&&FB.auth&&FB.signOut(FB.auth)}
+  else if(a==='rtd'){dlg.querySelector('select[name=status]').value='EFF';const es=dlg.querySelector('select[name=exStatus]');if(es.value&&es.value!=='Complete')es.value='Complete';dlg.querySelector('input[name=tocNotified]').checked=false;savePerson({_rtd:true})}
+  else if(a==='tofloor'){const f=document.getElementById('pform');const pid=f.dataset.pid;const an=A();const base=an.c[pid]-Number(person(pid).adj||0);f.querySelector('input[name=adj]').value=an.fl-base}
+  else if(a==='addmission')missionDlg(null,true);
+  else if(a==='savemission')saveMission();
+  else if(a==='resetmission'){const id=document.getElementById('mform').dataset.mid;deleteDoc('missions',id);logIt({type:'msn',mid:id,text:`${id} reset to the Team Assignments plan`});closeDlg()}
+  else if(a==='delmission'){const id=document.getElementById('mform').dataset.mid;const m=allMissions().find(x=>x.id===id);writeDoc('missions',id,Object.assign({},S.missions[id],{deleted:true}));logIt({type:'msn',text:`Mission removed: Day ${m.day} ${m.lane} ${m.start}`});closeDlg()}
+  else if(a==='addequip')equipDlg(null);
+  else if(a==='saveequip')saveEquip();
+  else if(a==='delequip'){const id=document.getElementById('eform').dataset.eid;const n=S.equip[id]?.name;deleteDoc('equip',id);logIt({type:'equip',ccir:true,text:`Equipment removed from board: ${n}`});closeDlg()}
+  else if(a==='seedequip')seedEquip();
+  else if(a==='addresupply')resupplyDlg(null);
+  else if(a==='saveresupply')saveResupply();
+  else if(a==='delresupply'){const id=document.getElementById('rform').dataset.rid;deleteDoc('resupply',id);closeDlg()}
+  else if(a==='equalize'){const an=A();const prev=DAYS[DAYS.findIndex(d=>d.id===UI.day)-1];[...staffOn(prev.id,an.ms)].filter(x=>an.c[x]<an.fl).forEach(x=>{const p=person(x);const base=an.c[x]-Number(p.adj||0);const n=Object.assign({},S.people[x]||{},{adj:an.fl-base});writeDoc('people',x,n)});logIt({type:'adm',text:`${prev.name} WOC/TOC staff set to participation floor ${an.fl} (Annex B II.3)`})}
+  else if(a==='copya1')copy(cubText('a1',A()));
+  else if(a==='copya4')copy(cubText('a4',A()));
+  else if(a==='copylog'){const ls=Object.values(S.log).filter(l=>!l.toc).sort((a,b)=>a.ts-b.ts);copy(ls.map(l=>`${fmtT(l.ts)} ${l.text}`).join('\n')||'Nothing pending')}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){UI.q=e.target.value;render()}
+  if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='pf'){UI.pf=e.target.value;render()}
+  if(e.target.id==='lf'){UI.lf=e.target.value;render()}
+  if(e.target.name==='crew'){const c=document.querySelectorAll('#picker input:checked').length;const s=document.getElementById('crewct');if(s)s.textContent=c+' selected'}
+  if(e.target.dataset.toc){const id=e.target.dataset.toc;const l=S.log[id];if(l){writeDoc('log',id,Object.assign({},l,{toc:e.target.checked}));
+    if(l.type==='cas'&&l.pid&&e.target.checked){const latest=Object.values(S.log).filter(x=>x.type==='cas'&&x.pid===l.pid).sort((a,b)=>b.ts-a.ts)[0];if(latest===S.log[id]||latest.ts===l.ts){writeDoc('people',l.pid,Object.assign({},S.people[l.pid]||{},{tocNotified:true}))}}}}
+  if(e.target.name==='status'&&e.target.form&&e.target.form.id==='pform'){dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b.dataset.setstatus===e.target.value))}
+});
+dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
+setInterval(render,30000);
+
+/* ---------- boot (Firebase) ---------- */
+render();
+function subscribe(){unsubs.forEach(u=>u());unsubs=[];
+  ['people','missions','equip','resupply'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;MODE='live';render()},err=>{MODE='error';toast('Live sync stopped: '+(err.code||'error')+'. Reload the page.');render()})));
+  unsubs.push(FB.onSnapshot(FB.query(FB.collection(FB.db,'log'),FB.orderBy('ts','desc'),FB.limit(600)),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.log=o;render()},()=>{}));
+}
+function showLogin(msg){const L=document.getElementById('login');L.hidden=false;const m=document.getElementById('loginmsg');m.textContent=msg||''}
+function hideLogin(){document.getElementById('login').hidden=true}
+window.bootFirebase=function(){
+  const C=window.FIREBASE_CONFIG;
+  if(!C||!C.apiKey||String(C.apiKey).startsWith('PASTE')){MODE='setup';render();showLogin('This board is not connected to Firebase yet. Add the project keys to config.js.');return}
+  const app=FB.initializeApp(C);FB.auth=FB.getAuth(app);FB.db=FB.getFirestore(app);
+  FB.onAuthStateChanged(FB.auth,u=>{
+    if(u){ME=u.email||null;const eds=(window.EDITORS||[]).map(x=>String(x).toLowerCase());CAN_EDIT=eds.includes(String(u.email||'').toLowerCase());
+      document.body.classList.toggle('ro',!CAN_EDIT);hideLogin();MODE='connecting';subscribe()}
+    else{unsubs.forEach(f=>f());unsubs=[];for(const k in S)S[k]={};CAN_EDIT=false;ME=null;MODE='connecting';showLogin()}
+    render()});
+};
+document.getElementById('loginform').addEventListener('submit',async e=>{e.preventDefault();if(!FB||!FB.auth)return;
+  const ed=document.getElementById('edmode').checked;const pw=document.getElementById('lpw').value;
+  const em=ed?document.getElementById('lem').value.trim():(window.VIEWER_EMAIL||'');
+  const btn=document.getElementById('lgo');btn.disabled=true;document.getElementById('loginmsg').textContent='Signing in…';
+  try{await FB.signInWithEmailAndPassword(FB.auth,em,pw);document.getElementById('lpw').value=''}
+  catch(err){const c=err&&err.code||'';document.getElementById('loginmsg').textContent=(c.includes('invalid')||c.includes('wrong-password')||c.includes('user-not-found'))?(ed?'That email and password did not match.':'Wrong passcode.'):c.includes('too-many')?'Too many tries. Wait a minute and try again.':'Could not sign in ('+c+').'}
+  btn.disabled=false});
+document.getElementById('edmode').addEventListener('change',e=>{document.getElementById('emrow').hidden=!e.target.checked;document.getElementById('lpwl').firstChild.textContent=e.target.checked?'Password':'Class passcode'});
+</script>
+</body>
+</html>
