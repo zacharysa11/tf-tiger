@@ -7,150 +7,235 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Ops-board layout: status strip on top, tabbed work areas below; semantic triage + FMC colors kept apart from the Tiger-red accent. */
+/* WOC console: slim status bar on top, icon rail (laptop) or bottom bar (phone), dense cards; Tiger red is the only accent, triage/FMC colors are semantic. */
 :root{
-  --bg:#eef0f2; --panel:#ffffff; --ink:#1b2127; --muted:#5c6670; --line:#d5dade; --soft:#f4f5f7;
-  --accent:#b3261e; --accent-ink:#ffffff;
-  --ok:#1f7a3f; --okbg:#e3f3e8; --warn:#9a6a00; --warnbg:#fbf1d6; --bad:#b3261e; --badbg:#fae3e1;
-  --blk:#1b1b1b; --blkbg:#d9d9d9; --info:#22578f; --infobg:#e2ecf7;
+  --bg:#0a0e13; --panel:#111821; --panel2:#16202b; --soft:#1a2531; --line:#233142; --line2:#2d3e52;
+  --ink:#e4ebf2; --muted:#8597a8; --dim:#5d6f81;
+  --accent:#ef4b4b; --accent-ink:#ffffff; --accentbg:rgba(239,75,75,.14);
+  --ok:#34c77b; --okbg:rgba(52,199,123,.14); --warn:#f2b632; --warnbg:rgba(242,182,50,.14);
+  --bad:#ff5f5f; --badbg:rgba(255,95,95,.15); --info:#4ba3ff; --infobg:rgba(75,163,255,.14);
+  --blk:#d7dee6; --blkbg:rgba(215,222,230,.12);
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.35);
   --display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  color-scheme:light;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#12161a; --panel:#1b2026; --ink:#e7eaed; --muted:#9aa4ad; --line:#2e353d; --soft:#222830;
-  --accent:#e0574d; --accent-ink:#1a0b0a;
-  --ok:#5cc785; --okbg:#173323; --warn:#e5b543; --warnbg:#3a2f12; --bad:#f07a70; --badbg:#3d1d1b;
-  --blk:#f2f2f2; --blkbg:#3a3a3a; --info:#7fb2ea; --infobg:#18293d; color-scheme:dark;}}
-:root[data-theme="dark"]{
-  --bg:#12161a; --panel:#1b2026; --ink:#e7eaed; --muted:#9aa4ad; --line:#2e353d; --soft:#222830;
-  --accent:#e0574d; --accent-ink:#1a0b0a;
-  --ok:#5cc785; --okbg:#173323; --warn:#e5b543; --warnbg:#3a2f12; --bad:#f07a70; --badbg:#3d1d1b;
-  --blk:#f2f2f2; --blkbg:#3a3a3a; --info:#7fb2ea; --infobg:#18293d; color-scheme:dark;}
+:root[data-mode="light"]{
+  --bg:#eef1f4; --panel:#ffffff; --panel2:#f6f8fa; --soft:#eef2f6; --line:#d6dde4; --line2:#c3ccd6;
+  --ink:#141b22; --muted:#5a6876; --dim:#8794a1;
+  --accent:#c62828; --accent-ink:#ffffff; --accentbg:rgba(198,40,40,.09);
+  --ok:#1b7f45; --okbg:#e2f4ea; --warn:#946200; --warnbg:#fbf0d3; --bad:#c62828; --badbg:#fbe4e2; --info:#1f5fa8; --infobg:#e3eefa;
+  --blk:#1b1b1b; --blkbg:#e2e2e2; --shadow:0 1px 2px rgba(20,27,34,.06),0 6px 18px rgba(20,27,34,.06); color-scheme:light;
+}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--body)}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--body);-webkit-text-size-adjust:100%}
 button,input,select,textarea{font:inherit;color:inherit}
-.tnum{font-variant-numeric:tabular-nums}
-.mono{font-family:var(--mono)}
-header.top{background:var(--panel);border-bottom:3px solid var(--accent);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;position:sticky;top:0;z-index:5}
-.brand{display:flex;align-items:center;gap:10px}
-.patch{width:30px;height:30px;border-radius:6px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 13px var(--display)}
-.brand h1{font:700 18px/1.1 var(--display);margin:0;letter-spacing:.02em}
-.brand small{display:block;color:var(--muted);font-size:12px}
-.days{display:flex;gap:4px;flex-wrap:wrap}
-.days button,.tabs button{border:1px solid var(--line);background:var(--soft);border-radius:6px;padding:5px 10px;cursor:pointer}
-.days button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
-.clock{margin-left:auto;display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:13px}
-.sync{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--body);color:var(--muted)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-.dot.live{background:var(--ok)} .dot.local{background:var(--warn)}
-nav.tabs{display:flex;gap:6px;padding:10px 16px 0;overflow-x:auto}
-.tabs button{white-space:nowrap;font-weight:600}
-.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.tabs .ct{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--badbg);color:var(--bad);font-size:11px}
-.tabs button[aria-selected="true"] .ct{background:var(--accent-ink);color:var(--accent)}
-main{padding:12px 16px 40px;display:grid;gap:14px}
-.banner{padding:8px 12px;border-radius:8px;background:var(--warnbg);color:var(--warn);font-weight:500}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:8px;padding:8px 10px}
-.kpi b{display:block;font:700 26px/1.1 var(--display)}
-.kpi span{color:var(--muted);font-size:12px}
-.kpi.ok{border-left-color:var(--ok)} .kpi.warn{border-left-color:var(--warn)} .kpi.bad{border-left-color:var(--bad)} .kpi.blk{border-left-color:var(--blk)} .kpi.info{border-left-color:var(--info)}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
-.card h2{font:700 15px var(--display);letter-spacing:.03em;text-transform:uppercase;margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;text-wrap:balance}
-.card h2 .sub{font:400 12px var(--body);text-transform:none;letter-spacing:0;color:var(--muted)}
-.card h2 .right{margin-left:auto}
-.alerts{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.alerts li{padding:6px 10px;border-radius:6px;border-left:4px solid}
-.alerts .bad{background:var(--badbg);border-color:var(--bad)} .alerts .warn{background:var(--warnbg);border-color:var(--warn)} .alerts .ok{background:var(--okbg);border-color:var(--ok)} .alerts .info{background:var(--infobg);border-color:var(--info)}
-.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid transparent}
-.s-EFF{background:var(--okbg);color:var(--ok)} .s-WIAY{background:var(--warnbg);color:var(--warn)} .s-WIAR{background:var(--badbg);color:var(--bad)}
-.s-WIAB{background:var(--blkbg);color:var(--blk)} .s-KIA{background:var(--blk);color:var(--panel)} .s-MIA{background:var(--infobg);color:var(--info);border-color:var(--info)}
-.e-FMC{background:var(--okbg);color:var(--ok)} .e-PMC{background:var(--warnbg);color:var(--warn)} .e-NMC{background:var(--badbg);color:var(--bad)}
-.st-Planned{background:var(--soft);color:var(--muted);border-color:var(--line)} .st-Out{background:var(--infobg);color:var(--info)} .st-RTB{background:var(--warnbg);color:var(--warn)} .st-Complete{background:var(--okbg);color:var(--ok)} .st-Scrubbed{background:var(--blkbg);color:var(--muted)}
-.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tools input[type=search]{flex:1 1 200px;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
-.tools select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 11px;cursor:pointer;font-weight:600}
-.btn:hover{border-color:var(--ink)}
-.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.sm{padding:3px 8px;font-size:12px}
-.btn.ghost{background:transparent}
-.btn.okb{background:var(--okbg);color:var(--ok);border-color:transparent} .btn.badb{background:var(--badbg);color:var(--bad);border-color:transparent}
+.tnum{font-variant-numeric:tabular-nums}.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}.small{font-size:12px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:8px 14px;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--accent),transparent 60%)}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
+.patch{width:30px;height:30px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 12px var(--display);letter-spacing:.04em;box-shadow:0 0 0 3px var(--accentbg)}
+.bt b{display:block;font:700 15px/1.05 var(--display);letter-spacing:.08em}
+.bt small{display:block;font:500 10.5px/1.2 var(--mono);letter-spacing:.06em;color:var(--muted)}
+.seg{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:4px 10px;cursor:pointer;color:var(--muted);font:600 12px var(--body);white-space:nowrap}
+.seg button b{font:700 13px var(--display);color:var(--ink);margin-right:4px}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line2)}
+.seg button[aria-pressed="true"] b{color:var(--accent)}
+.ticker{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+.tick{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:2px 9px;font:600 12px var(--body);white-space:nowrap;cursor:pointer}
+.tick .mono{font-weight:600}
+.tick.bad{border-color:color-mix(in srgb,var(--bad) 55%,transparent);background:var(--badbg);color:var(--bad)}
+.tick.warn{border-color:color-mix(in srgb,var(--warn) 55%,transparent);background:var(--warnbg);color:var(--warn)}
+.tick.ok{color:var(--ok)}
+.clock{display:flex;flex-direction:column;align-items:flex-end;font:600 15px/1.1 var(--mono)}
+.clock small{font:500 10.5px var(--mono);color:var(--muted)}
+.hbtns{display:flex;gap:6px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.dot.live{background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:pulse 2.4s infinite}
+.dot.local{background:var(--warn)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.iconbtn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;height:30px;min-width:30px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font:600 12px var(--body)}
+.iconbtn svg{width:16px;height:16px}
+/* layout */
+.app{display:grid;grid-template-columns:76px 1fr;min-height:calc(100% - 50px)}
+.rail{position:sticky;top:50px;align-self:start;height:calc(100vh - 50px);display:flex;flex-direction:column;gap:4px;padding:10px 8px;border-right:1px solid var(--line);background:var(--panel)}
+.rail button,.bnav button{position:relative;border:0;background:transparent;color:var(--muted);border-radius:10px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font:600 10.5px var(--body);letter-spacing:.02em}
+.rail button svg,.bnav button svg{width:21px;height:21px}
+.rail button:hover{background:var(--soft);color:var(--ink)}
+.rail button[aria-current="page"],.bnav button[aria-current="page"]{background:var(--accentbg);color:var(--accent)}
+.rail button[aria-current="page"]::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--accent)}
+.badge{position:absolute;top:2px;right:8px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font:700 10px/17px var(--body);text-align:center}
+.bnav{display:none}
+main{padding:14px 18px 60px;display:grid;gap:14px;align-content:start;min-width:0}
+.pagehead{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.pagehead h1{margin:0;font:700 22px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase}
+.pagehead .sub{color:var(--muted);font-size:12px}
+.pagehead .right{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}.rail{display:none}
+  .bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:4px 6px calc(4px + env(safe-area-inset-bottom))}
+  main{padding:12px 12px 96px}
+  .topbar{padding:7px 12px;gap:8px}
+  .bt small{display:none}
+  .ticker{order:5;flex-basis:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .clock{font-size:14px}
+}
+.banner{padding:9px 12px;border-radius:9px;background:var(--warnbg);color:var(--warn);font-weight:500;border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
+/* cards & kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+.kpi{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 12px 8px;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line2)}
+.kpi b{display:block;font:700 26px/1.1 var(--display);letter-spacing:.01em}
+.kpi span{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.kpi.ok::before{background:var(--ok)}.kpi.warn::before{background:var(--warn)}.kpi.bad::before{background:var(--bad)}.kpi.blk::before{background:var(--blk)}.kpi.info::before{background:var(--info)}
+.kpi.bad b{color:var(--bad)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0;box-shadow:var(--shadow)}
+.card h2{font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--ink)}
+.card h2::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--accent)}
+.card h2 .sub{font:500 12px var(--body);text-transform:none;letter-spacing:0;color:var(--muted)}
+.card h2 .right{margin-left:auto;display:flex;gap:6px}
+.alerts{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.alerts li{padding:7px 10px;border-radius:8px;border:1px solid transparent;border-left:3px solid;font-size:13px}
+.alerts .bad{background:var(--badbg);border-left-color:var(--bad)}.alerts .warn{background:var(--warnbg);border-left-color:var(--warn)}.alerts .ok{background:var(--okbg);border-left-color:var(--ok)}.alerts .info{background:var(--infobg);border-left-color:var(--info)}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font:700 11px/18px var(--body);letter-spacing:.03em;white-space:nowrap;border:1px solid transparent;text-transform:uppercase}
+.s-EFF{background:var(--okbg);color:var(--ok)}.s-WIAY{background:var(--warnbg);color:var(--warn)}.s-WIAR{background:var(--badbg);color:var(--bad)}
+.s-WIAB{background:var(--blkbg);color:var(--blk)}.s-KIA{background:var(--blk);color:var(--bg)}.s-MIA{background:var(--infobg);color:var(--info);border-color:var(--info)}
+.e-FMC{background:var(--okbg);color:var(--ok)}.e-PMC{background:var(--warnbg);color:var(--warn)}.e-NMC{background:var(--badbg);color:var(--bad)}
+.st-Planned{background:var(--soft);color:var(--muted);border-color:var(--line)}.st-Out{background:var(--infobg);color:var(--info)}.st-RTB{background:var(--warnbg);color:var(--warn)}.st-Complete{background:var(--okbg);color:var(--ok)}.st-Scrubbed{background:var(--blkbg);color:var(--dim)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools input[type=search],.inp{flex:1 1 200px;min-width:0;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+.tools select,.sel{padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+.btn{border:1px solid var(--line2);background:var(--panel2);border-radius:9px;padding:7px 12px;cursor:pointer;font-weight:600;transition:background .15s,border-color .15s,transform .05s}
+.btn:hover{border-color:var(--muted)}.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{padding:4px 9px;font-size:12px;border-radius:7px}
+.btn.lg{padding:10px 16px;font-size:15px}
+.btn.ghost{background:transparent}
+.btn.okb{background:var(--okbg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.btn.badb{background:var(--badbg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.btn.warnb{background:var(--warnbg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.btn.infob{background:var(--infobg);color:var(--info);border-color:color-mix(in srgb,var(--info) 40%,transparent)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 table{border-collapse:collapse;width:100%;min-width:640px}
-th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font:600 12px var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--soft);position:sticky;top:0}
-tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
-tr.flag td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
-.muted{color:var(--muted)} .small{font-size:12px}
-.lanegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
-.mission{border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:10px;display:grid;gap:6px;align-content:start}
-.mission.now{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
-.mission.warnc{border-left:4px solid var(--warn)} .mission.badc{border-left:4px solid var(--bad)}
+th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:700 11px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--panel2);position:sticky;top:0}
+tbody tr{cursor:pointer;transition:background .12s}tbody tr:hover{background:var(--soft)}
+tr.flag td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+.lanegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:10px}
+.mission{border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:10px;display:grid;gap:6px;align-content:start}
+.mission.now{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 18px var(--accentbg)}
+.mission.warnc{box-shadow:inset 3px 0 0 var(--warn)}.mission.badc{box-shadow:inset 3px 0 0 var(--bad)}
 .mhead{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.mhead b{font:700 15px var(--display)}
+.mhead b{font:700 15px var(--display);letter-spacing:.03em}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
-.chip{border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;cursor:pointer;background:var(--soft)}
-.chip.mc{font-weight:700;border-color:var(--ink)}
+.chip{border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:12px;cursor:pointer;background:var(--soft)}
+.chip.mc{font-weight:700;border-color:var(--muted)}
 .chip.s-WIAY,.chip.s-WIAR,.chip.s-WIAB,.chip.s-KIA,.chip.s-MIA{border-color:transparent}
-.blockh{font:700 13px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 -4px;display:flex;gap:8px;align-items:center}
+.blockh{font:700 12px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:6px 0 -4px;display:flex;gap:8px;align-items:center}
 .blockh.now{color:var(--accent)}
-.bars{display:grid;gap:4px}
+.bars{display:grid;gap:5px}
 .bar{display:grid;grid-template-columns:90px 1fr 34px;gap:8px;align-items:center;font-size:12px}
-.bar i{display:block;height:14px;border-radius:3px;background:var(--info);min-width:2px}
+.bar i{display:block;height:12px;border-radius:3px;background:var(--info);min-width:2px}
 .bar.floor i{background:var(--accent)}
-.slide{border:2px solid var(--ink);border-radius:6px;padding:14px 16px;background:var(--panel);display:grid;gap:10px;aspect-ratio:auto}
-.slide h3{margin:0;font:700 20px var(--display);display:flex;justify-content:space-between;gap:8px;border-bottom:3px solid var(--accent);padding-bottom:6px}
+.slide{border:1px solid var(--line2);border-radius:12px;padding:14px 16px;background:var(--panel);display:grid;gap:10px;box-shadow:var(--shadow)}
+.slide h3{margin:0;font:700 19px var(--display);letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px;border-bottom:2px solid var(--accent);padding-bottom:6px}
 .slide .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
-.slide .big div{border:1px solid var(--line);border-radius:6px;padding:6px 8px}
-.slide .big b{display:block;font:700 24px var(--display)}
+.slide .big div{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--panel2);font-size:12px;color:var(--muted)}
+.slide .big b{display:block;font:700 24px var(--display);color:var(--ink)}
 .slide ul{margin:0;padding-left:18px}
-.log{display:grid;gap:0}
-.logrow{display:grid;grid-template-columns:64px 1fr auto;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);align-items:start}
+.log{display:grid}
+.logrow{display:grid;grid-template-columns:58px 1fr auto;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);align-items:start}
 .logrow .t{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.logrow.ccir{background:var(--badbg)}
-dialog{border:none;border-radius:12px;padding:0;background:var(--panel);color:var(--ink);width:min(560px,calc(100% - 24px));max-height:calc(100% - 24px)}
-dialog::backdrop{background:rgba(0,0,0,.45)}
+.logrow.ccir{background:var(--badbg);border-radius:6px}
+dialog{border:1px solid var(--line2);border-radius:14px;padding:0;background:var(--panel);color:var(--ink);width:min(580px,calc(100% - 20px));max-height:calc(100% - 20px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(3,6,10,.6);backdrop-filter:blur(2px)}
 .dlg{display:grid;gap:10px;padding:14px 16px}
-.dlg h3{margin:0;font:700 18px var(--display);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dlg h3{margin:0;font:700 18px var(--display);letter-spacing:.03em;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.fields label,.fl{display:grid;gap:3px;font-size:12px;color:var(--muted);font-weight:600}
-.fields input,.fields select,.fields textarea{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--soft);color:var(--ink);font-weight:400;font-size:14px}
+.fields label,.fl{display:grid;gap:4px;font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fields input,.fields select,.fields textarea{padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font-weight:400;font-size:14px;text-transform:none;letter-spacing:0}
 .fields .wide{grid-column:1/-1}
-.picker{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px}
-.picker label{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink);font-weight:400}
+.picker{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.picker label{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:center;padding:6px 9px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink);font-weight:400;cursor:pointer}
+.picker label:hover{background:var(--soft)}
 .picker label.busy{opacity:.55}
 .dfoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
 .dfoot .left{margin-right:auto;display:flex;gap:8px;flex-wrap:wrap}
 .hist{font-size:12px;color:var(--muted);margin:0;padding-left:16px}
-.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;z-index:50;font-weight:500;max-width:90%}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 15px;border-radius:10px;z-index:60;font-weight:600;max-width:90%;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .empty{padding:18px;text-align:center;color:var(--muted)}
-.ro [data-mstate],.ro [data-rs],.ro [data-act=addmission],.ro [data-act=addequip],.ro [data-act=addresupply],.ro [data-act=seedequip],.ro [data-act=equalize],.ro [data-act=rtd],.ro [data-act=tofloor],.ro [data-act=saveperson],.ro [data-act=savemission],.ro [data-act=saveequip],.ro [data-act=saveresupply],.ro [data-act=delmission],.ro [data-act=resetmission],.ro [data-act=delequip],.ro [data-act=delresupply],.ro [data-setstatus],.ro input[data-toc]{display:none!important}
-.ro .mission [data-mission]::after{content:""}
-#login{position:fixed;inset:0;background:var(--bg);z-index:40;display:grid;place-items:center;padding:16px}
-#login[hidden]{display:none}
-#login form{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:20px;width:min(380px,100%);display:grid;gap:12px}
-#login h2{margin:0;font:700 20px var(--display)}
-#login label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
-#login input[type=password],#login input[type=email]{padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--soft);font-size:15px}
-#login .chk{display:flex;gap:6px;align-items:center;font-weight:500;color:var(--ink)}
-#loginmsg{min-height:1.2em;color:var(--bad);font-size:13px;margin:0}
-@media (max-width:520px){.clock{margin-left:0;width:100%;justify-content:space-between}.bar{grid-template-columns:70px 1fr 28px}}
+/* A3 */
+.queue{display:grid;gap:6px}
+.qi{display:grid;grid-template-columns:62px 1fr auto;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--line2)}
+.qi.bad{border-left-color:var(--bad);background:linear-gradient(90deg,var(--badbg),var(--panel2) 55%)}
+.qi.warn{border-left-color:var(--warn);background:linear-gradient(90deg,var(--warnbg),var(--panel2) 55%)}
+.qi.info{border-left-color:var(--info)}
+.qi .due{font:700 14px/1.1 var(--mono);text-align:center}
+.qi .due small{display:block;font:600 10.5px var(--body);color:var(--muted);margin-top:2px}
+.qi.bad .due{color:var(--bad)}.qi.warn .due{color:var(--warn)}
+.qi .tt{font-weight:600;line-height:1.25}.qi .ss{font-size:12px;color:var(--muted)}
+.qi .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){.qi{grid-template-columns:52px 1fr}.qi .act{grid-column:1/-1;justify-content:stretch}.qi .act .btn{flex:1}}
+.allclear{display:flex;gap:10px;align-items:center;padding:12px;border-radius:10px;background:var(--okbg);color:var(--ok);font-weight:600}
+.tl{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
+.tlin{position:relative;min-width:760px;padding:22px 10px 8px 70px}
+.tlhr{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line);font:500 10.5px var(--mono);color:var(--dim)}
+.tlhr span{position:absolute;top:4px;left:4px}
+.tlrow{position:relative;height:30px;margin:4px 0}
+.tlrow .ln{position:absolute;left:-62px;top:6px;width:56px;font:700 11px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right}
+.tlbar{position:absolute;top:2px;height:26px;border-radius:7px;padding:0 8px;display:flex;align-items:center;gap:6px;font:600 11.5px var(--body);white-space:nowrap;overflow:hidden;cursor:pointer;border:1px solid var(--line2);background:var(--soft);color:var(--ink)}
+.tlbar.Out{background:var(--info);border-color:var(--info);color:#04121f}
+.tlbar.RTB{background:var(--warnbg);border-color:var(--warn);color:var(--warn)}
+.tlbar.Complete{background:var(--okbg);border-color:color-mix(in srgb,var(--ok) 50%,transparent);color:var(--ok)}
+.tlbar.Scrubbed{opacity:.45;text-decoration:line-through}
+.tlbar.nogo{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.tlbar.go::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.tlnow{position:absolute;top:16px;bottom:0;width:2px;background:var(--accent);box-shadow:0 0 8px var(--accent);z-index:2}
+.tlnow span{position:absolute;top:-16px;left:-18px;background:var(--accent);color:#fff;font:700 10px var(--mono);padding:1px 5px;border-radius:4px}
+.mrows{display:grid;gap:8px}
+.mrow{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
+.mrow.live{border-color:var(--info);box-shadow:0 0 0 1px var(--info)}
+.mrow .tm{font:700 14px/1.15 var(--mono)}.mrow .tm small{display:block;font:500 11px var(--mono);color:var(--muted)}
+.mrow .nm{font:700 15px var(--display);letter-spacing:.03em}
+.steps{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.steps i{font:700 9.5px/16px var(--body);letter-spacing:.06em;padding:0 6px;border-radius:4px;background:var(--soft);color:var(--dim);font-style:normal}
+.steps i.done{background:var(--okbg);color:var(--ok)}.steps i.cur{background:var(--infobg);color:var(--info);box-shadow:0 0 0 1px var(--info) inset}.steps i.no{background:var(--badbg);color:var(--bad)}
+.mrow .acts{display:flex;gap:6px;align-items:center}
+@media (max-width:560px){.mrow{grid-template-columns:62px minmax(0,1fr)}.mrow .acts{grid-column:1/-1}.mrow .acts .btn.pri{flex:1}}
+.quickbar{position:sticky;bottom:0;z-index:15;display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line2);border-radius:13px;background:color-mix(in srgb,var(--panel) 95%,transparent);backdrop-filter:blur(10px);box-shadow:0 -8px 30px rgba(0,0,0,.35)}
+@media (max-width:860px){.quickbar{bottom:66px;padding:8px;gap:6px}.quickbar .qrow:first-child{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.quickbar .qrow:first-child>*{flex:none}.quickbar .sel{max-width:140px}.quickbar .btn.sm{padding:5px 8px}}
+.qrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.qrow .inp{flex:1 1 180px}
+.kbd{font:600 10.5px var(--mono);border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+.cystep{display:grid;grid-template-columns:22px 70px 1fr auto;gap:6px;align-items:center;font-size:12.5px;padding:3px 0}
+.cystep.late{color:var(--bad);font-weight:600}.cystep.soon{color:var(--warn);font-weight:600}.cystep.done{color:var(--muted);text-decoration:line-through}
+.sheetbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.segpick{display:flex;gap:6px;flex-wrap:wrap}
+.segpick label{flex:1;min-width:90px}
+.segpick input{position:absolute;opacity:0;pointer-events:none}
+.segpick span{display:block;text-align:center;padding:8px;border:1px solid var(--line2);border-radius:9px;cursor:pointer;font-weight:700;text-transform:none;letter-spacing:0;color:var(--ink);font-size:13px}
+.segpick input:checked+span{background:var(--accent);border-color:var(--accent);color:#fff}
+.segpick input:focus-visible+span{outline:2px solid var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="brand"><div class="patch" aria-hidden="true">A1</div><div><h1>TF TIGER · A1/4 BOARD</h1><small>OP PACIFIC SWORD · Personnel &amp; Logistics</small></div></div>
-  <div class="days" id="days" role="group" aria-label="Exercise day"></div>
-  <div class="clock"><span id="clock" class="tnum">--:--</span><span class="sync" id="sync"><i class="dot"></i><span>Connecting…</span></span></div>
+<header class="topbar">
+  <div class="brand"><div class="patch" aria-hidden="true">TF</div><div class="bt"><b>TF TIGER</b><small>OP PACIFIC SWORD · WOC</small></div></div>
+  <div class="seg" id="days" role="group" aria-label="Exercise day"></div>
+  <div class="ticker" id="ticker"></div>
+  <div class="hbtns" id="sync"></div>
+  <div class="clock tnum" id="clock">--</div>
 </header>
-<nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
-<main id="main"></main>
+<div class="app"><nav class="rail" id="tabs" aria-label="Sections"></nav><main id="main"></main></div>
+<nav class="bnav" id="bnav" aria-label="Sections"></nav>
 <dialog id="dlg"></dialog>
 
 <script src="config.js"></script>
@@ -262,19 +347,6 @@ function issuedOf(eid){let n=0,q=0;ROSTER.forEach(p=>{const g=gearOf(p.pid)[eid]
 function setGear(pid,gear){return writeDoc('people',pid,Object.assign({},S.people[pid]||{},{gear}))}
 function logIt(o){const id=uid();writeDoc('log',id,Object.assign({toc:false},o,{ts:Date.now()}))}
 
-/* ---------- render ---------- */
-function renderHeader(){
-  document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}">${esc(d.name)} · ${esc(d.label)}</button>`).join('');
-  const n=nowParts();document.getElementById('clock').textContent=`${n.hm} CST`;
-  const s=document.getElementById('sync');
-  s.innerHTML=(MODE==='live'?'<i class="dot live"></i><span>Live</span>':MODE==='error'?'<i class="dot local"></i><span>Sync stopped</span>':'<i class="dot"></i><span>Connecting…</span>')+` <button type="button" class="btn sm ghost" data-act="who" title="Name shown in the log">${ME?esc(ME):'Set your name'}</button>`;
-}
-function renderTabs(A){
-  const n=A.alerts.filter(a=>a.k!=='ok').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
-  const toc=Object.values(S.log).filter(l=>!l.toc).length;
-  const T=[['overview','Overview',n],['personnel','Personnel',0],['missions','Missions',0],['a3','A3 Ops',a3Alerts(A).filter(x=>x.k==='bad').length],['equipment','Equipment',0],['resupply','Resupply',pend],['log','Log',toc],['cub','CUB slides',0]];
-  document.getElementById('tabs').innerHTML=T.map(([k,l,c])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${UI.tab===k}">${l}${c?`<span class="ct tnum">${c}</span>`:''}</button>`).join('');
-}
 function statusCounts(){const c={EFF:0,WIAY:0,WIAR:0,WIAB:0,KIA:0,MIA:0};ROSTER.forEach(p=>c[person(p.pid).status]++);return c}
 function kpis(){const s=statusCounts();const owed=ROSTER.filter(p=>{const x=person(p.pid);return x.exStatus==='Owed'||x.exStatus==='In progress'}).length;
   return `<div class="kpis tnum">
@@ -413,17 +485,59 @@ function cubText(which,A){
   const t=equipTotals();const nmc=Object.values(S.equip).filter(e=>Number(e.nmc)>0||Number(e.pmc)>0);const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');
   return `A4 LOGISTICS (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nFMC ${t.FMC} | PMC ${t.PMC} | NMC ${t.NMC}\nDegraded items:\n${nmc.map(e=>`- ${e.name}: ${e.pmc?e.pmc+' PMC ':''}${e.nmc?e.nmc+' NMC':''}`).join('\n')||'- None'}\nMedic packs: ${Object.values(S.equip).filter(e=>e.cat==='Medical'&&e.chips!=null&&e.chips!=='').map(e=>`${e.name} ${e.chips} chips`).join('; ')||'n/a'}\nResupply pending: ${pend.map(r=>`${r.qty} x ${r.item}`).join('; ')||'None'}`}
 
+/* ---------- render ---------- */
+const ICONS={overview:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',personnel:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.4c3 0 5.4 2.2 5.4 5.6"/>',missions:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',a3:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',equipment:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',resupply:'<path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',log:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',cub:'<path d="M3 4h18v12H3zM12 16v4M8 20h8"/>',more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
+function ic(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`}
+const TABS=[['overview','Overview'],['personnel','People'],['missions','Missions'],['a3','A3 Ops'],['equipment','Equip'],['resupply','Resupply'],['log','Log'],['cub','CUB']];
+const TITLES={overview:['Overview','Task force status at a glance'],personnel:['Personnel','A1 · accountability, casualties, exercises, gear'],missions:['Missions','MCE schedule and crews'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['Equipment','A4 · status, issue and serials'],resupply:['Resupply','A1/4 approves'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A4 and A3 slides']};
+function utcHM(){const d=new Date();return String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
+function renderHeader(A){
+  document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}" title="${esc(d.name+' · '+d.label)}"><b>D${d.id}</b>${esc(d.label.split(' ').slice(0,2).join(' '))}</button>`).join('');
+  const n=nowParts();document.getElementById('clock').innerHTML=`${n.hm}<small>CST · ${utcHM()}</small>`;
+  const q=actionQueue(A);const nx=q.find(x=>x.dueM!=null);const out=A.dayMs.filter(m=>isMission(m)&&m.state==='Out').length;
+  const ccir=Object.values(S.log).filter(l=>l.ccir&&!l.rep).length;const s=statusCounts();
+  const late=q.filter(x=>x.k==='bad').length;
+  document.getElementById('ticker').innerHTML=
+    `<span class="tick ${late?'bad':nx&&nx.k==='warn'?'warn':''}" data-tab="a3" title="Next A3 action">${late?`${late} overdue`:nx?`Next <span class="mono">${esc(nx.due)}</span> ${esc(nx.short||nx.title).slice(0,34)}`:'A3 queue clear'}</span>`+
+    `<span class="tick ${out?'':'ok'}" data-tab="a3">Out <span class="mono">${out}</span></span>`+
+    `<span class="tick ${ccir?'bad':''}" data-tab="a3">CCIR <span class="mono">${ccir}</span></span>`+
+    `<span class="tick" data-tab="personnel">PAX <span class="mono">${s.EFF}/${ROSTER.length}</span></span>`;
+  document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Name shown in the log">${ME?esc(ME):'Set name'}</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
+}
+function renderTabs(A){
+  const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
+  const a3=actionQueue(A).filter(x=>x.k==='bad').length;
+  const B={overview:n,a3,resupply:pend};
+  const btn=(k,l)=>`<button type="button" data-tab="${k}" ${UI.tab===k?'aria-current="page"':''}>${ic(k)}<span>${l}</span>${B[k]?`<span class="badge">${B[k]}</span>`:''}</button>`;
+  document.getElementById('tabs').innerHTML=TABS.map(([k,l])=>btn(k,l)).join('');
+  const prim=['overview','personnel','missions','a3'];const moreOn=!prim.includes(UI.tab);
+  document.getElementById('bnav').innerHTML=prim.map(k=>btn(k,TABS.find(t=>t[0]===k)[1])).join('')+`<button type="button" data-act="more" ${moreOn?'aria-current="page"':''}>${ic('more')}<span>${moreOn?esc(TABS.find(t=>t[0]===UI.tab)[1]):'More'}</span>${pend?`<span class="badge">${pend}</span>`:''}</button>`;
+}
+function moreSheet(){openDlg(`<div class="dlg"><h3>More</h3><div class="sheetbtns">${TABS.filter(([k])=>!['overview','personnel','missions','a3'].includes(k)).map(([k,l])=>`<button type="button" class="btn lg" data-tab="${k}" style="display:flex;gap:8px;align-items:center;justify-content:center">${ic(k).replace('<svg','<svg width="18" height="18"')}${l}</button>`).join('')}</div></div><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
+let THEME='dark';try{THEME=localStorage.getItem('tftiger-mode')||'dark'}catch(e){}
+document.documentElement.dataset.mode=THEME;
+function setTab(k){if(!TITLES[k])return;UI.tab=k;try{history.replaceState(null,'','#'+k);localStorage.setItem('tftiger-tab',k)}catch(e){}if(dlg.open)closeDlg();render();window.scrollTo(0,0)}
+(function(){const h=(location.hash||'').slice(1);let k=TITLES[h]?h:null;if(!k){try{k=localStorage.getItem('tftiger-tab')}catch(e){}}if(k&&TITLES[k])UI.tab=k})();
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TITLES[h]&&h!==UI.tab){UI.tab=h;render()}});
+document.addEventListener('keydown',e=>{const tg=e.target;const typing=tg&&(/INPUT|TEXTAREA|SELECT/.test(tg.tagName)||tg.isContentEditable);
+  if(e.key==='Enter'&&tg&&tg.id==='opstxt'){e.preventDefault();quickLog();return}
+  if(typing||dlg.open||e.metaKey||e.ctrlKey||e.altKey)return;
+  const i=Number(e.key);if(i>=1&&i<=TABS.length){setTab(TABS[i-1][0]);e.preventDefault();return}
+  if(e.key==='/'){const el=document.getElementById('opstxt')||document.getElementById('q');if(el){el.focus();e.preventDefault()}}
+  if(e.key==='n'&&UI.tab!=='a3'){setTab('a3');setTimeout(()=>{const el=document.getElementById('opstxt');if(el)el.focus()},50);e.preventDefault()}});
 let lastTab=null;
 function render(){
-  const A=analyze();renderHeader();renderTabs(A);
+  const A=analyze();renderHeader(A);renderTabs(A);
   const main=document.getElementById('main');
-  const focus=document.activeElement&&document.activeElement.id==='q';const caret=focus?document.activeElement.selectionStart:0;
-  const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet. Add the project keys to config.js.</div>':MODE==='error'?'<div class="banner">Live sync stopped. If this is a new setup, publish the Firestore rules, then reload.</div>':MODE==='local'?'<div class="banner">Shared storage is not available in this view, so changes save on this device only. Open the board from its claude.ai link to share it live with the TOC.</div>':'';
+  const ae=document.activeElement;const keep=ae&&ae.id&&main.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
+  const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet. Add the project keys to config.js.</div>':MODE==='error'?'<div class="banner">Live sync stopped. Check your connection, then reload the page.</div>':'';
+  const [t,sub]=TITLES[UI.tab];const d=dayObj(UI.day);
+  const head=UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`;
   const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
-  main.innerHTML=banner+body;
+  main.innerHTML=banner+head+body;
   const pf=document.getElementById('pf');if(pf)pf.value=UI.pf;const lf=document.getElementById('lf');if(lf)lf.value=UI.lf;
-  if(focus){const q=document.getElementById('q');if(q){q.focus();q.setSelectionRange(caret,caret)}}
-  if(lastTab!==UI.tab){lastTab=UI.tab}
+  if(keep){const el=document.getElementById(keep.id);if(el){if(typeof keep.v==='string'&&el.value!==keep.v)el.value=keep.v;el.focus();try{el.setSelectionRange(keep.s,keep.e)}catch(e){}}}
+  lastTab=UI.tab;
 }
 
 /* ---------- A3 operations ---------- */
@@ -444,33 +558,103 @@ function a3Alerts(A){const out=[];const nowM=nowMinFor(UI.day);
   A.dayMs.filter(aarOwed).forEach(m=>out.push({k:'warn',t:`AAR owed: ${mLabel(m)}${m.mc?' (MC '+short(m.mc)+')':''}`,mid:m.id}));
   A.dayMs.filter(m=>isMission(m)&&m.state==='Out'&&!(m.go&&m.go.d==='GO')).forEach(m=>out.push({k:'bad',t:`${mLabel(m)} is out without a recorded GO`,mid:m.id}));
   return out}
+function mName(m){return m.lane==='CYOA'?(m.note||'CYOA'):m.lane}
+function rel(left){if(left==null)return'';if(left<0)return `${-left}m late`;if(left===0)return'now';return left<60?`in ${left}m`:`in ${Math.floor(left/60)}h${String(left%60).padStart(2,'0')}`}
+function nextStep(m){const id=esc(m.id);const st=m.state||'Planned';const g=m.go&&m.go.d;
+  if(st==='Scrubbed')return null;
+  if(st==='Planned'&&!g)return{l:'Go / No-Go',a:`data-go="${id}"`};
+  if(st==='Planned'&&g==='NOGO')return{l:'Re-check',a:`data-go="${id}"`,c:'badb'};
+  if(st==='Planned')return{l:'Launch',a:`data-ops="${id}|Out"`};
+  if(st==='Out')return{l:'RTB',a:`data-ops="${id}|RTB"`};
+  if(!m.aar)return{l:'Enter AAR',a:`data-aar="${id}"`};
+  if(st==='RTB')return{l:'Complete',a:`data-ops="${id}|Complete"`,c:'okb'};
+  return null}
+function stepsHtml(m){const st=m.state||'Planned';const g=m.go&&m.go.d;
+  const order=['Planned','Out','RTB','Complete'];const i=order.indexOf(st);
+  const cls=(done,cur)=>done?'done':cur?'cur':'';
+  const goC=g==='GO'?'done':g==='NOGO'?'no':(st==='Planned'?'cur':'');
+  return `<span class="steps"><i class="${goC}">${g==='NOGO'?'NO-GO':'GO'}</i><i class="${cls(i>=1&&st!=='Scrubbed',st==='Planned'&&g==='GO')}">OUT</i><i class="${cls(i>=2,st==='Out')}">RTB</i><i class="${cls(!!m.aar,(st==='RTB'||st==='Complete')&&!m.aar)}">AAR</i><i class="${cls(st==='Complete'&&!!m.aar,st==='RTB'&&!!m.aar)}">DONE</i></span>`}
+function actionQueue(A){const nowM=nowMinFor(UI.day);const out=[];
+  const push=(o)=>{o.left=o.dueM!=null&&nowM!=null?o.dueM-nowM:null;if(!o.k)o.k=o.left!=null&&o.left<0?'bad':o.left!=null&&o.left<=10?'warn':'info';o.due=o.dueM!=null?fromMin(o.dueM):'';out.push(o)};
+  A.dayMs.filter(m=>m.cyoa&&m.cyoa.toc&&m.state!=='Scrubbed').forEach(m=>{(cyoaSteps(m,nowM)||[]).filter(s=>!s.done).forEach(s=>push({dueM:toMin(m.cyoa.toc)-s.off,title:s.l,short:`CYOA ${s.k==='decided'?'decision':s.k==='cabs'?'to TOC':'handoff'}`,sub:`CYOA · ${mName(m)} ${m.start}${m.cyoa.resupply?' · resupply: '+m.cyoa.resupply:''}`,btns:`<button type="button" class="btn sm pri" data-cydone="${esc(m.id)}|${s.k}">Done</button>`}))});
+  A.dayMs.filter(isMission).forEach(m=>{const st=m.state||'Planned';const g=m.go&&m.go.d;const id=esc(m.id);const S0=toMin(m.start),E0=toMin(m.end);
+    if(st==='Planned'&&!g&&(nowM==null||S0-nowM<=75))push({dueM:S0-15,title:`Go / No-Go: ${mName(m)} ${m.start}`,short:`Go/No-Go ${mName(m)}`,sub:`MC ${m.mc?short(m.mc):'not assigned'} · ${crew(m).length} pax · launches ${m.start}`,btns:`<button type="button" class="btn sm" data-go="${id}">Checklist</button><button type="button" class="btn sm okb" data-quickgo="${id}">GO</button>`});
+    else if(st==='Planned'&&g==='GO'&&(nowM==null||S0-nowM<=10))push({dueM:S0,title:`Launch ${mName(m)}`,short:`Launch ${mName(m)}`,sub:`GO given ${fmtT(m.go.at)} · ${crew(m).length} pax`,btns:`<button type="button" class="btn sm pri" data-ops="${id}|Out">Mark out</button>`});
+    if(st==='Out'&&(nowM==null||E0-nowM<=10))push({dueM:E0,title:`RTB due: ${mName(m)}`,short:`RTB ${mName(m)}`,sub:`Out since ${m.start} · window ends ${m.end}`,btns:`<button type="button" class="btn sm badb" data-ops="${id}|TIC">TIC</button><button type="button" class="btn sm pri" data-ops="${id}|RTB">RTB</button>`});
+    if((st==='RTB'||st==='Complete')&&!m.aar)push({dueM:E0+20,k:'warn',title:`Collect AAR: ${mName(m)} ${m.start}`,short:`AAR ${mName(m)}`,sub:`From CABS/CC${m.mc?' · MC '+short(m.mc):''}`,btns:`<button type="button" class="btn sm pri" data-aar="${id}">Enter AAR</button>`});
+    if(st==='RTB'&&m.aar)push({dueM:null,k:'info',title:`Close out ${mName(m)} ${m.start}`,short:`Close ${mName(m)}`,sub:'AAR in · marking complete counts participation',btns:`<button type="button" class="btn sm okb" data-ops="${id}|Complete">Complete</button>`});
+  });
+  Object.entries(S.log).filter(([,l])=>l.ccir&&!l.rep).forEach(([lid,l])=>push({dueM:null,k:'bad',title:`Report to ATF/CC: ${l.text.replace(/^CCIR:?\s*/,'')}`,short:'Report CCIR',sub:`Logged ${fmtT(l.ts)}${l.by?' by '+l.by:''}`,btns:`<button type="button" class="btn sm okb" data-rep="${esc(lid)}">Reported</button>`}));
+  const rank=o=>o.k==='bad'?0:o.k==='warn'?1:2;
+  return out.sort((a,b)=>rank(a)-rank(b)||((a.dueM??9999)-(b.dueM??9999)))}
+function timelineHtml(A){const ms=A.dayMs.filter(isMission);if(!ms.length)return'<div class="empty">No missions on this day.</div>';
+  let lo=Math.min(420,...ms.map(m=>toMin(m.start))),hi=Math.max(930,...ms.map(m=>toMin(m.end)));lo=Math.floor(lo/60)*60;hi=Math.ceil(hi/60)*60;const span=hi-lo;
+  const pct=v=>((v-lo)/span*100).toFixed(2)+'%';const nowM=nowMinFor(UI.day);
+  const order=['Tiger 1','Tiger 2','Tiger 3','Tiger 4','CYOA'];const lanes=[...new Set(ms.map(m=>m.lane))].sort((a,b)=>(order.indexOf(a)<0?9:order.indexOf(a))-(order.indexOf(b)<0?9:order.indexOf(b))||a.localeCompare(b));
+  let hrs='';for(let h=lo;h<=hi;h+=60)hrs+=`<div class="tlhr" style="left:calc(70px + (100% - 80px) * ${(h-lo)/span})"><span>${fromMin(h).slice(0,2)}</span></div>`;
+  const rows=lanes.map(l=>`<div class="tlrow"><span class="ln">${esc(l.replace('Tiger ','T'))}</span>${ms.filter(m=>m.lane===l).map(m=>{const g=m.go&&m.go.d;return `<button type="button" class="tlbar ${esc(m.state||'Planned')} ${g==='GO'?'go':g==='NOGO'?'nogo':''}" data-msheet="${esc(m.id)}" style="left:${pct(toMin(m.start))};width:calc(${pct(toMin(m.end))} - ${pct(toMin(m.start))} - 2px)" title="${esc(mName(m)+' '+m.start+'–'+m.end+' · '+(m.state||'Planned'))}">${esc(m.lane==='CYOA'?mName(m):(m.mc?short(m.mc):m.start))}</button>`}).join('')}</div>`).join('');
+  const now=nowM!=null&&nowM>=lo&&nowM<=hi?`<div class="tlnow" style="left:calc(70px + (100% - 80px) * ${(nowM-lo)/span})"><span>${fromMin(nowM)}</span></div>`:'';
+  return `<div class="tl"><div class="tlin">${hrs}${now}<div style="position:relative">${rows}</div></div></div>`}
 function renderA3(A){
-  const nowM=nowMinFor(UI.day);const ms=A.dayMs.filter(isMission).filter(m=>m.state!=='Scrubbed'||true);
-  const c=k=>ms.filter(m=>(m.state||'Planned')===k).length;
-  const goPend=ms.filter(m=>(m.state==='Planned')&&!(m.go&&m.go.d)).length;const owed=ms.filter(aarOwed).length;
+  const nowM=nowMinFor(UI.day);const ms=A.dayMs.filter(isMission);const d=dayObj(UI.day);
+  const c=k=>ms.filter(m=>(m.state||'Planned')===k).length;const owed=ms.filter(aarOwed).length;
+  const q=actionQueue(A);const shown=q.slice(0,8);
+  const upcoming=ms.filter(m=>m.state==='Planned'&&(nowM==null||toMin(m.start)>nowM)).sort((a,b)=>toMin(a.start)-toMin(b.start))[0];
   const cy=A.dayMs.filter(m=>m.lane==='CYOA'||m.cyoa);
-  const al=a3Alerts(A);
-  const opsLog=Object.entries(S.log).filter(([,l])=>l.type==='ops'||l.type==='go'||l.type==='aar'||l.type==='cyoa'||l.ccir).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).slice(0,12);
-  return `<div class="kpis tnum">
-   <div class="kpi info"><b>${c('Planned')}</b><span>Planned</span></div><div class="kpi warn"><b>${c('Out')}</b><span>Out</span></div>
-   <div class="kpi warn"><b>${c('RTB')}</b><span>RTB</span></div><div class="kpi ok"><b>${c('Complete')}</b><span>Complete</span></div>
-   <div class="kpi ${goPend?'warn':'ok'}"><b>${goPend}</b><span>Go/No-Go pending</span></div><div class="kpi ${owed?'bad':'ok'}"><b>${owed}</b><span>AARs owed</span></div></div>
-  ${al.length?`<ul class="alerts">${al.map(a=>`<li class="${a.k}" data-mission="${esc(a.mid)}" style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>`:''}
-  <section class="card" id="cyoa"><h2>CYOA missions <span class="sub">Decide NLT T-20 · pass to TOC NLT T-10 (T = TOC mission planning start)</span><span class="right"><button type="button" class="btn sm pri" data-act="addcyoa">Add CYOA mission</button></span></h2>
-   <div class="lanegrid">${cy.map(m=>{const st=cyoaSteps(m,nowM);return `<div class="mission ${st&&st.some(s=>s.late)?'badc':st&&st.some(s=>s.soon)?'warnc':''}">
-    <div class="mhead"><b>${esc(m.note||'CYOA')}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(m.state||'Planned')}">${esc(m.state||'Planned')}</span>${goPill(m)}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-cyedit="${esc(m.id)}">Edit</button></div>
+  const missOpts=[['','General'],...ms.filter(m=>m.state!=='Scrubbed').map(m=>[m.id,`${mName(m)} ${m.start}${m.state==='Out'?' · OUT':''}`])];
+  const defMid=UI.opsMid!=null?UI.opsMid:(ms.find(m=>m.state==='Out')||{}).id||'';
+  const feed=Object.entries(S.log).filter(([,l])=>['ops','go','aar','cyoa','msn'].includes(l.type)||l.ccir).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).slice(0,15);
+  return `<div class="pagehead"><h1>A3 Operations</h1><span class="sub">${esc(d.name)} ${esc(d.label)}${nowM==null?' · not today: times shown without countdowns':''} · keys <span class="kbd">/</span> log <span class="kbd">1-8</span> tabs</span>
+   <span class="right"><button type="button" class="btn sm pri" data-act="addcyoa">+ CYOA mission</button><button type="button" class="btn sm" data-act="copya3">Copy A3 slide</button><button type="button" class="btn sm" data-act="turnover">Turnover</button></span></div>
+  <div class="kpis tnum"><div class="kpi ${q.some(x=>x.k==='bad')?'bad':'ok'}"><b>${q.filter(x=>x.k==='bad').length}</b><span>Overdue</span></div><div class="kpi info"><b>${c('Planned')}</b><span>Planned</span></div><div class="kpi info"><b>${c('Out')}</b><span>Out now</span></div><div class="kpi warn"><b>${c('RTB')}</b><span>RTB</span></div><div class="kpi ok"><b>${c('Complete')}</b><span>Complete</span></div><div class="kpi ${owed?'bad':'ok'}"><b>${owed}</b><span>AARs owed</span></div></div>
+  <section class="card" id="queue"><h2>Action queue <span class="sub">What needs you next, most urgent first</span></h2>
+   ${shown.length?`<div class="queue">${shown.map(x=>`<div class="qi ${x.k}"><div class="due">${x.due?esc(x.due):'—'}<small>${x.left!=null?rel(x.left):x.due?'due':'now'}</small></div><div><div class="tt">${esc(x.title)}</div><div class="ss">${esc(x.sub)}</div></div><div class="act">${x.btns}</div></div>`).join('')}</div>${q.length>shown.length?`<p class="small muted" style="margin:8px 0 0">+${q.length-shown.length} more after these</p>`:''}`
+   :`<div class="allclear">✓ All caught up.${upcoming?` Next: ${esc(mName(upcoming))} launches ${esc(upcoming.start)}${nowM!=null?' ('+rel(toMin(upcoming.start)-nowM)+')':''}.`:''}</div>`}
+  </section>
+  <section class="card" id="timeline"><h2>Timeline <span class="sub">Tap a bar to work that mission · ● = GO</span></h2>${timelineHtml(A)}</section>
+  ${cy.length?`<section class="card" id="cyoa"><h2>CYOA missions <span class="sub">T = TOC planning start · decide T-20 · pass to TOC T-10</span></h2><div class="lanegrid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))">${cy.map(m=>{const st=cyoaSteps(m,nowM);return `<div class="mission ${st&&st.some(s=>s.late)?'badc':st&&st.some(s=>s.soon)?'warnc':''}">
+    <div class="mhead"><b>${esc(mName(m))}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(m.state||'Planned')}">${esc(m.state||'Planned')}</span><span style="margin-left:auto"></span><button type="button" class="btn sm" data-cyedit="${esc(m.id)}">Edit</button></div>
     <div class="small muted">TOC planning ${m.cyoa&&m.cyoa.toc?`<b class="mono" style="color:var(--ink)">${esc(m.cyoa.toc)}</b>`:'<b style="color:var(--bad)">time not set</b>'}${m.cyoa&&m.cyoa.offbase?' · leaves perimeter':''}${m.cyoa&&m.cyoa.resupply?` · resupply: ${esc(m.cyoa.resupply)}`:''}</div>
-    ${st?`<div style="display:grid;gap:4px">${st.map(s=>`<label class="small" style="display:flex;gap:6px;align-items:center;${s.late?'color:var(--bad);font-weight:600':s.soon?'color:var(--warn);font-weight:600':''}"><input type="checkbox" data-cy="${esc(m.id)}|${s.k}" ${s.done?'checked':''}> <span class="mono">T-${s.off} ${s.due}</span> ${esc(s.l)}${s.done?` <span class="muted">✓ ${fmtT(s.done)}</span>`:s.left!=null?` <span>${s.left<0?'OVERDUE':s.left+' min'}</span>`:''}</label>`).join('')}</div>`:''}
-    <div class="tools"><button type="button" class="btn sm" data-mission="${esc(m.id)}">Crew</button><button type="button" class="btn sm" data-go="${esc(m.id)}">Go/No-Go</button></div></div>`}).join('')||'<div class="empty">No CYOA missions yet. Add one when the window is announced.</div>'}</div></section>
-  <section class="card" id="ops"><h2>Mission tracker <span class="sub">${esc(dayObj(UI.day).name)} · offense & defense</span></h2>
-   <div class="lanegrid">${ms.map(m=>{const cas=casualtiesFor(m.id);const st=m.state||'Planned';return `<div class="mission ${m.state==='Out'?'now':''}" id="a3-${esc(m.id)}">
-    <div class="mhead"><b>${esc(m.lane==='CYOA'?(m.note||'CYOA'):m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${goPill(m)}${aarPill(m)}${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}</div>
-    <div class="small muted">MC <b style="color:var(--ink)">${m.mc?esc(nm(m.mc)):'not assigned'}</b> · ${crew(m).length} pax${m.go&&m.go.offbase?' · off-perimeter':''}${m.go&&m.go.d?` · ${m.go.d==='GO'?'GO':'NO-GO'} ${fmtT(m.go.at)}${m.go.reason?' ('+esc(m.go.reason)+')':''}`:''}</div>
-    <div class="tools"><button type="button" class="btn sm" data-go="${esc(m.id)}">Go/No-Go</button>${st==='Planned'?`<button type="button" class="btn sm" data-ops="${esc(m.id)}|Out">Out</button>`:''}${st==='Out'?`<button type="button" class="btn sm badb" data-ops="${esc(m.id)}|TIC">Troops in contact</button><button type="button" class="btn sm" data-ops="${esc(m.id)}|RTB">RTB</button>`:''}<button type="button" class="btn sm ${aarOwed(m)?'pri':''}" data-aar="${esc(m.id)}">${m.aar?'View AAR':'AAR'}</button></div></div>`}).join('')||'<div class="empty">No missions on this day.</div>'}</div></section>
-  <section class="card" id="opslog"><h2>Ops log <span class="sub">CCIRs: ROE violation · troops in contact · >5 casualties · equipment status</span></h2>
-   <form id="opsform" class="tools" style="margin-bottom:8px"><input type="search" name="txt" id="opstxt" placeholder="Log an ops event (e.g. Raider patrol sighted N of base)" style="flex:1 1 220px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><label class="small" style="display:flex;gap:4px;align-items:center"><input type="checkbox" name="ccir"> CCIR</label><button type="button" class="btn sm pri" data-act="logops">Log</button><button type="button" class="btn sm badb" data-act="logroe">ROE violation</button></form>
-   <div class="log">${opsLog.map(([id,l])=>`<div class="logrow ${l.ccir?'ccir':''}"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div><span></span></div>`).join('')||'<div class="empty">No ops entries yet.</div>'}</div></section>
-  <div class="tools"><button type="button" class="btn" data-act="copya3">Copy A3 CUB text</button><button type="button" class="btn" data-act="turnover">Turnover sheet</button></div>`}
+    ${st?st.map(s=>`<label class="cystep ${s.done?'done':s.late?'late':s.soon?'soon':''}"><input type="checkbox" data-cy="${esc(m.id)}|${s.k}" ${s.done?'checked':''}><span class="mono">T-${s.off} ${s.due}</span><span>${esc(s.l)}</span><span class="mono small">${s.done?fmtT(s.done):s.left!=null?rel(s.left):''}</span></label>`).join(''):''}
+    <div class="tools"><button type="button" class="btn sm" data-msheet="${esc(m.id)}">Work mission</button></div></div>`}).join('')}</div></section>`:''}
+  <section class="card" id="board"><h2>Missions <span class="sub">One tap moves each mission to its next step</span></h2>
+   <div class="mrows">${ms.map(m=>{const ns=nextStep(m);const cas=casualtiesFor(m.id);return `<div class="mrow ${m.state==='Out'?'live':''}" id="a3-${esc(m.id)}">
+    <div class="tm">${esc(m.start)}<small>–${esc(m.end)}</small></div>
+    <div style="min-width:0"><div class="nm">${esc(mName(m))} ${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}${m.go&&m.go.offbase?' <span class="pill st-Planned">off-base</span>':''}</div><div class="small muted">MC ${m.mc?esc(short(m.mc)):'—'} · ${crew(m).length} pax${m.go&&m.go.d==='NOGO'&&m.go.reason?' · NO-GO: '+esc(m.go.reason):''}</div>${stepsHtml(m)}</div>
+    <div class="acts">${ns?`<button type="button" class="btn ${(nowM!=null&&m.state==='Planned'&&toMin(m.start)-nowM>75)||(nowM==null&&m.state==='Planned'&&m!==ms.find(x=>x.state==='Planned'))?'':'pri'} ${ns.c||''}" ${ns.a}>${esc(ns.l)}</button>`:`<span class="pill ${m.state==='Scrubbed'?'st-Scrubbed':'st-Complete'}">${m.state==='Scrubbed'?'Scrubbed':'Done'}</span>`}<button type="button" class="btn" data-msheet="${esc(m.id)}" aria-label="More actions">⋯</button></div></div>`}).join('')||'<div class="empty">No missions on this day.</div>'}</div></section>
+  <section class="card" id="feed"><h2>Ops feed <span class="sub">Missions, decisions, AARs and CCIRs</span></h2>
+   <div class="log">${feed.map(([id,l])=>`<div class="logrow ${l.ccir&&!l.rep?'ccir':''}"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div>${l.ccir?`<label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-rep="${esc(id)}" ${l.rep?'checked':''}> Reported</label>`:'<span></span>'}</div>`).join('')||'<div class="empty">Nothing logged yet today.</div>'}</div></section>
+  <div class="quickbar" id="quickbar">
+   <div class="qrow"><select class="sel" id="opsmid" aria-label="Mission for this entry">${opt(missOpts,defMid)}</select>
+    <button type="button" class="btn sm badb" data-quick="TIC">Troops in contact</button><button type="button" class="btn sm badb" data-quick="ROE">ROE violation</button><button type="button" class="btn sm warnb" data-quick="SIGHT">Raider sighted</button><button type="button" class="btn sm warnb" data-quick="COMMS">Comms lost</button></div>
+   <div class="qrow"><input class="inp" id="opstxt" placeholder="Type what happened, press Enter to log" autocomplete="off" value="${esc(UI.opsDraft||'')}"><label class="small" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="opsccir"> CCIR</label><button type="button" class="btn pri" data-act="logops">Log</button></div>
+  </div>`}
+function missionSheet(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)return;const ns=nextStep(m);const st=m.state||'Planned';const cas=casualtiesFor(id);
+  const flags=A.alerts.filter(a=>a.mid===id);const i=esc(id);
+  openDlg(`<div class="dlg"><h3>${esc(mName(m))} <span class="mono small muted">${esc(m.start)}–${esc(m.end)}</span> <span class="pill st-${esc(st)}">${esc(st)}</span></h3>
+  <div>${stepsHtml(m)}</div>
+  <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax${cas?` · ${cas} casualties`:''}${m.go&&m.go.d?` · ${m.go.d==='GO'?'GO':'NO-GO'} at ${fmtT(m.go.at)}`:''}</div>
+  ${flags.length?`<ul class="alerts">${flags.map(a=>`<li class="${a.k}">${esc(a.t)}</li>`).join('')}</ul>`:''}
+  ${ns?`<button type="button" class="btn pri lg ${ns.c||''}" ${ns.a}>Next: ${esc(ns.l)}</button>`:''}
+  <div class="sheetbtns">
+   <button type="button" class="btn" data-go="${i}">Go/No-Go checklist</button>
+   <button type="button" class="btn" data-aar="${i}">${m.aar?'View / edit AAR':'Enter AAR'}</button>
+   <button type="button" class="btn" data-mission="${i}">Crew &amp; times</button>
+   ${st==='Out'?`<button type="button" class="btn badb" data-ops="${i}|TIC">Troops in contact</button>`:''}
+   ${st==='Planned'?`<button type="button" class="btn" data-ops="${i}|Out">Mark out</button>`:''}
+   ${st==='Out'?`<button type="button" class="btn" data-ops="${i}|RTB">Mark RTB</button>`:''}
+   ${st!=='Complete'&&st!=='Scrubbed'?`<button type="button" class="btn okb" data-ops="${i}|Complete">Mark complete</button>`:''}
+   ${st==='Planned'?`<button type="button" class="btn badb" data-ops="${i}|Scrub">Scrub</button>`:''}
+   ${m.cyoa?`<button type="button" class="btn" data-cyedit="${i}">Edit CYOA</button>`:''}
+  </div>
+  ${m.aar?`<div class="small"><b>AAR:</b> ${esc(m.aar.result)}${m.aar.summary?' · '+esc(m.aar.summary):''}${m.aar.improve?'<br><b>Improve:</b> '+esc(m.aar.improve):''}</div>`:''}
+  </div><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
+function quickLog(kind){const sel=document.getElementById('opsmid');const mid=sel?sel.value:'';const m=mid?allMissions().find(x=>x.id===mid):null;const where=m?` · ${mName(m)} ${m.start}`:'';
+  const inp=document.getElementById('opstxt');const txt=inp?inp.value.trim():'';const cc=document.getElementById('opsccir');
+  const K={TIC:['CCIR troops in contact',true],ROE:['CCIR ROE violation',true],SIGHT:['Raider forces sighted',false],COMMS:['Comms lost',false]};
+  let text,ccir;if(kind){[text,ccir]=K[kind];text+=where+(txt?': '+txt:'')}else{if(!txt){toast('Type what happened first.');inp&&inp.focus();return}ccir=!!(cc&&cc.checked);text=(ccir?'CCIR: ':'')+txt+where}
+  logIt({type:'ops',mid:mid||'',ccir,text});UI.opsDraft='';if(inp)inp.value='';if(cc)cc.checked=false;toast(ccir?'Logged as CCIR. Report it to the ATF/CC.':'Logged')}
+
 function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:'',end:'',cyoa:{toc:'',resupply:'',offbase:false}};const cy=m.cyoa||{};
   openDlg(`<form class="dlg" id="cyform" data-mid="${esc(id||'')}"><h3>${id?'Edit CYOA mission':'Add CYOA mission'} <span class="small muted">${esc(dayObj(id?m.day:UI.day).name)}</span></h3>
   <div class="fields"><label class="wide">Mission chosen (short name)<input name="note" value="${esc(m.note||'')}" required placeholder="e.g. Recon of runway site"></label>
@@ -495,7 +679,7 @@ function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)retur
   <label class="small" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" name="offbase" ${(g.offbase||(m.cyoa&&m.cyoa.offbase))?'checked':''}> Mission leaves the base perimeter</label>
   <div class="picker" style="max-height:none">${GOCHK.map(([k,l])=>`<label style="grid-template-columns:22px 1fr"><input type="checkbox" name="ck_${k}" ${ck[k]?'checked':''}><span>${esc(l)}</span></label>`).join('')}</div>
   <div class="fields"><label class="wide">Reason / conditions (required for NO-GO)<input name="reason" value="${esc(g.reason||'')}"></label></div></form>
-  <div class="dfoot"><div class="left"><button type="button" class="btn ghost sm" data-act="close">Cancel</button></div><button type="button" class="btn badb" data-act="nogo">NO-GO</button><button type="button" class="btn okb" data-act="go">GO</button></div>`)}
+  <div class="dfoot"><div class="left"><button type="button" class="btn ghost sm" data-act="close">Cancel</button><button type="button" class="btn sm" data-act="checkall">Check all</button></div><button type="button" class="btn badb" data-act="nogo">NO-GO</button><button type="button" class="btn okb" data-act="go">GO</button></div>`)}
 function saveGo(d){const f=document.getElementById('goform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);
   const checks={};GOCHK.forEach(([k])=>checks[k]=fd.get('ck_'+k)==='on');const reason=String(fd.get('reason')||'').trim();
   if(d==='NOGO'&&!reason){toast('Add the reason for the NO-GO.');return}
@@ -505,14 +689,16 @@ function saveGo(d){const f=document.getElementById('goform');const fd=new FormDa
 function aarDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;const a=m.aar||{};const cas=casualtiesFor(id);
   openDlg(`<form class="dlg" id="aarform" data-mid="${esc(id)}"><h3>AAR · ${esc(m.lane==='CYOA'?(m.note||'CYOA'):m.lane)} ${esc(m.start)}</h3>
   <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax · ${cas} casualties logged by A1</div>
-  <div class="fields"><label>Result<select name="result">${opt(['Success','Partial','Failed','Scrubbed'],a.result||'Success')}</select></label>
+  <div class="segpick" role="radiogroup" aria-label="Result">${['Success','Partial','Failed','Scrubbed'].map(r=>`<label><input type="radio" name="result" value="${r}" ${(a.result||'Success')===r?'checked':''}><span>${r}</span></label>`).join('')}</div>
+  <div class="fields">
   <label>Received from<input name="from" value="${esc(a.from||'CABS/CC')}"></label>
   <label class="wide">What happened (objective, route, timeline)<textarea name="summary" rows="3">${esc(a.summary||'')}</textarea></label>
   <label class="wide">Enemy contact / intel (for A2)<textarea name="contact" rows="2">${esc(a.contact||'')}</textarea></label>
   <label class="wide">Equipment issues (for A4)<input name="equip" value="${esc(a.equip||'')}"></label>
-  <label>Sustain<textarea name="sustain" rows="2">${esc(a.sustain||'')}</textarea></label>
-  <label>Improve<textarea name="improve" rows="2">${esc(a.improve||'')}</textarea></label>
-  <label class="wide">Follow-up / requests to ATF/CC<input name="follow" value="${esc(a.follow||'')}"></label></div></form>
+  <label class="wide">Improve<textarea name="improve" rows="2">${esc(a.improve||'')}</textarea></label></div>
+  <details ${a.sustain||a.follow?'open':''}><summary class="small" style="cursor:pointer;font-weight:600">More: sustain, follow-up</summary><div class="fields" style="margin-top:8px">
+  <label class="wide">Sustain<textarea name="sustain" rows="2">${esc(a.sustain||'')}</textarea></label>
+  <label class="wide">Follow-up / requests to ATF/CC<input name="follow" value="${esc(a.follow||'')}"></label></div></details></form>
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveaar">Save AAR</button></div>`)}
 function saveAar(){const f=document.getElementById('aarform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);const had=!!m.aar;
   const a={};['result','from','summary','contact','equip','sustain','improve','follow'].forEach(k=>a[k]=String(fd.get(k)||'').trim());a.at=(m.aar&&m.aar.at)||Date.now();a.by=ME||null;
@@ -520,6 +706,8 @@ function saveAar(){const f=document.getElementById('aarform');const fd=new FormD
 function opsEvent(id,ev){const m=allMissions().find(x=>x.id===id);if(!m)return;
   if(ev==='Out'){if(!(m.go&&m.go.d==='GO')&&!window.__goWarned){window.__goWarned=1;toast('No GO recorded yet. Tap Out again to send it anyway.');setTimeout(()=>window.__goWarned=0,4000);return}setMissionState(id,'Out')}
   else if(ev==='RTB')setMissionState(id,'RTB');
+  else if(ev==='Complete')setMissionState(id,'Complete');
+  else if(ev==='Scrub')setMissionState(id,'Scrubbed');
   else if(ev==='TIC')logIt({type:'ops',mid:id,ccir:true,text:`CCIR troops in contact: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start}`})}
 function a3Text(A){const ms=A.dayMs.filter(isMission);const by=k=>ms.filter(m=>(m.state||'Planned')===k);
   const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
@@ -744,16 +932,21 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.cydone){const [id,k]=t.dataset.cydone.split('|');toggleCy(id,k,true);return}
+  if(t.dataset.quickgo){const id=t.dataset.quickgo;const m=allMissions().find(x=>x.id===id);patchMission(id,{go:{d:'GO',at:Date.now(),by:ME||null,checks:{},quick:true,offbase:!!(m.cyoa&&m.cyoa.offbase),reason:''}});logIt({type:'go',mid:id,text:`GO: ${mName(m)} ${m.start} (quick, checklist not recorded)`});return}
+  if(t.dataset.rep){const id=t.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:true,repAt:Date.now()}));return}
+  if(t.dataset.msheet){missionSheet(t.dataset.msheet);return}
+  if(t.dataset.quick){quickLog(t.dataset.quick);return}
   if(t.dataset.cyedit){cyoaDlg(t.dataset.cyedit);return}
   if(t.dataset.go){goDlg(t.dataset.go);return}
   if(t.dataset.aar){aarDlg(t.dataset.aar);return}
-  if(t.dataset.ops){const [id,ev]=t.dataset.ops.split('|');opsEvent(id,ev);return}
+  if(t.dataset.ops){const [id,ev]=t.dataset.ops.split('|');if(dlg.open&&!document.getElementById('goform'))closeDlg();opsEvent(id,ev);return}
   if(t.dataset.serials){serialsDlg(t.dataset.serials);return}
   if(t.dataset.gear){gearDlg(t.dataset.gear);return}
   if(t.dataset.ret){const [pid,eid]=t.dataset.ret.split('|');returnGear(pid,eid);return}
   if(t.dataset.day){UI.day=t.dataset.day;render();return}
-  if(t.dataset.tab){UI.tab=t.dataset.tab;render();window.scrollTo(0,0);return}
+  if(t.dataset.tab){setTab(t.dataset.tab);return}
   if(t.dataset.setstatus){const s=dlg.querySelector('select[name=status]');if(s){s.value=t.dataset.setstatus;dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b===t))}return}
   if(t.dataset.mstate){const [id,st]=t.dataset.mstate.split('|');setMissionState(id,st);return}
   if(t.dataset.rs){const [id,st]=t.dataset.rs.split('|');setResupply(id,st);return}
@@ -771,8 +964,10 @@ document.addEventListener('click',e=>{
   else if(a==='go')saveGo('GO');
   else if(a==='nogo')saveGo('NOGO');
   else if(a==='saveaar')saveAar();
-  else if(a==='logops'||a==='logroe'){const f=document.getElementById('opsform');const txt=f.txt.value.trim();if(a==='logops'&&!txt){toast('Type what happened first.');return}
-    logIt({type:'ops',ccir:a==='logroe'||f.ccir.checked,text:a==='logroe'?`CCIR ROE violation${txt?': '+txt:''}`:(f.ccir.checked?'CCIR: ':'')+txt});f.txt.value='';f.ccir.checked=false}
+  else if(a==='logops')quickLog();
+  else if(a==='more')moreSheet();
+  else if(a==='mode'){THEME=THEME==='light'?'dark':'light';document.documentElement.dataset.mode=THEME;try{localStorage.setItem('tftiger-mode',THEME)}catch(e){}render()}
+  else if(a==='checkall'){document.querySelectorAll('#goform input[name^=ck_]').forEach(c=>c.checked=true)}
   else if(a==='copya3')copy(a3Text(A()));
   else if(a==='turnover')copy(turnoverText(A()));
   else if(a==='fillpaste')fillPaste();
@@ -801,9 +996,12 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   if(e.target.id==='q'){UI.q=e.target.value;render()}
+  if(e.target.id==='opstxt'){UI.opsDraft=e.target.value}
   if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
 });
 document.addEventListener('change',e=>{
+  if(e.target.dataset.rep&&e.target.type==='checkbox'){const id=e.target.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:e.target.checked,repAt:Date.now()}));return}
+  if(e.target.id==='opsmid'){UI.opsMid=e.target.value;return}
   if(e.target.dataset.cy){const [id,k]=e.target.dataset.cy.split('|');toggleCy(id,k,e.target.checked);return}
   if(e.target.id==='pf'){UI.pf=e.target.value;render()}
   if(e.target.id==='lf'){UI.lf=e.target.value;render()}
@@ -813,7 +1011,7 @@ document.addEventListener('change',e=>{
   if(e.target.name==='status'&&e.target.form&&e.target.form.id==='pform'){dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b.dataset.setstatus===e.target.value))}
 });
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
-setInterval(render,30000);
+setInterval(()=>{if(!dlg.open||true)render()},20000);
 
 /* ---------- boot (Firebase) ---------- */
 render();
