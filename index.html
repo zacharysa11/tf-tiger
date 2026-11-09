@@ -523,7 +523,9 @@ function saveEquip(){const f=document.getElementById('eform');if(!f.reportValidi
   writeDoc('equip',id,n);
   if(!old)logIt({type:'equip',text:`Equipment added: ${n.name} (FMC ${n.fmc||0} / PMC ${n.pmc||0} / NMC ${n.nmc||0})`});
   else{const ch=['fmc','pmc','nmc'].filter(k=>String(old[k]??'')!==String(n[k]??''));
-   if(ch.length)logIt({type:'equip',ccir:true,text:`CCIR equipment status: ${n.name} now FMC ${n.fmc||0} / PMC ${n.pmc||0} / NMC ${n.nmc||0} (was ${old.fmc||0}/${old.pmc||0}/${old.nmc||0})${n.note?' · '+n.note:''}`});
+   const blank=['fmc','pmc','nmc'].every(k=>old[k]===''||old[k]==null);
+   if(ch.length&&blank)logIt({type:'equip',text:`Initial count: ${n.name} FMC ${n.fmc||0} / PMC ${n.pmc||0} / NMC ${n.nmc||0}${n.loc?' · '+n.loc:''}`});
+   else if(ch.length)logIt({type:'equip',ccir:true,text:`CCIR equipment status: ${n.name} now FMC ${n.fmc||0} / PMC ${n.pmc||0} / NMC ${n.nmc||0} (was ${old.fmc||0}/${old.pmc||0}/${old.nmc||0})${n.note?' · '+n.note:''}`});
    if(String(old.chips??'')!==String(n.chips??''))logIt({type:'equip',text:`${n.name}: poker chips ${old.chips??'?'} → ${n.chips}`});
    if((old.loc||'')!==(n.loc||''))logIt({type:'equip',text:`${n.name} moved to ${n.loc||'unspecified'}`})}
   closeDlg()}
