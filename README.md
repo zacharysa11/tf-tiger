@@ -6,4 +6,6 @@ Live personnel and equipment board for ATF A1/4, OP PACIFIC SWORD.
 - `config.js`: Firebase project keys
 - `firestore.rules`: paste into Firebase console > Firestore > Rules, then Publish
 
+Sections: Overview, A1/4 (People, Equipment, Resupply), A2/6 (Intel, Comms), A3 (Ops, Schedule & crews), Log, CUB.
+
 Open board: anyone with the link can view and edit. Tap "Set your name" so your changes are tagged in the log.

@@ -231,6 +231,9 @@ dialog::backdrop{background:rgba(3,6,10,.6);backdrop-filter:blur(2px)}
 #tourtip p{margin:0;font-size:13.5px;line-height:1.45}
 .welcome{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:11px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accentbg)}
 .welcome b{font:700 14px var(--display);letter-spacing:.04em}
+.subtabs{display:flex;gap:4px;padding:3px;border:1px solid var(--line);border-radius:11px;background:var(--panel);width:max-content;max-width:100%;overflow-x:auto}
+.subtabs button{border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font:700 12.5px var(--display);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.subtabs button[aria-selected="true"]{background:var(--accentbg);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -267,7 +270,7 @@ const P={}; BASE.roster.forEach(p=>P[p.pid]=p);
 const ROSTER=BASE.roster.slice().sort((a,b)=>a.name.localeCompare(b.name));
 const DAYS=BASE.days;
 const FB=window.FB;
-const S={people:{},missions:{},equip:{},resupply:{},log:{}};
+const S={people:{},missions:{},equip:{},resupply:{},log:{},intel:{},pirs:{},comms:{}};
 let ME=null, MODE='connecting';
 const UI={tab:'overview',day:autoDay(),q:'',pf:'all',lf:'all'};
 
@@ -348,7 +351,7 @@ function writeDoc(col,id,data){
 }
 function deleteDoc(col,id){
   delete S[col][id];render();FB.deleteDoc(FB.doc(FB.db,col,id)).catch(e=>toast(errText(e)))}
-function errText(e){const c=e&&e.code;if(c==='permission-denied')return'Not saved: the Firestore rules are not published yet.';if(c==='unavailable')return'Offline: the change will sync when the connection returns.';return'Not saved ('+(c||'error')+'). Try again.'}
+function errText(e){const c=e&&e.code;if(c==='permission-denied'){RULES_OLD=true;setTimeout(render,0)}if(c==='permission-denied')return'Not saved: the Firestore rules are not published yet.';if(c==='unavailable')return'Offline: the change will sync when the connection returns.';return'Not saved ('+(c||'error')+'). Try again.'}
 function gearOf(pid){return (S.people[pid]&&S.people[pid].gear)||{}}
 function issuedOf(eid){let n=0,q=0;ROSTER.forEach(p=>{const g=gearOf(p.pid)[eid];if(g){n++;q+=Number(g.qty||1)}});return{n,q}}
 function setGear(pid,gear){return writeDoc('people',pid,Object.assign({},S.people[pid]||{},{gear}))}
@@ -463,7 +466,7 @@ function renderCUB(A){
   const {s,cas,ex}=a1Text(A);const t=equipTotals();const nmc=Object.values(S.equip).filter(e=>Number(e.nmc)>0||Number(e.pmc)>0);
   const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');const med=Object.values(S.equip).filter(e=>e.cat==='Medical'&&e.chips!=null&&e.chips!=='');
   const dist={};ROSTER.forEach(p=>{if(!exempt(p.pid,UI.day,A.ms))dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
-  return `<div class="tools"><span class="small muted">Live as of ${nowParts().hm} CST. Copy either slide as text for the CUB.</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copya1">Copy A1</button><button type="button" class="btn" data-act="copya4">Copy A4</button><button type="button" class="btn" data-act="copya3">Copy A3</button></div>
+  return `<div class="tools"><span class="small muted">Live as of ${nowParts().hm} CST. Copy either slide as text for the CUB.</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copya1">Copy A1</button><button type="button" class="btn" data-act="copya4">Copy A4</button><button type="button" class="btn" data-act="copya3">Copy A3</button><button type="button" class="btn" data-act="copya2">Copy A2</button><button type="button" class="btn" data-act="copya6">Copy A6</button></div>
   <div class="grid2">
   <section class="slide" id="slide-a1"><h3><span>A1 · Personnel</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
    <div class="big tnum"><div><b>${ROSTER.length}</b>Assigned</div><div><b>${s.EFF}</b>Effective</div><div><b>${s.WIAY+s.WIAR+s.WIAB}</b>WIA</div><div><b>${s.KIA}</b>KIA</div><div><b>${s.MIA}</b>MIA</div></div>
@@ -478,6 +481,7 @@ function renderCUB(A){
    <div><b>Issued to personnel</b>${(()=>{const l=Object.entries(S.equip).map(([id,e])=>[e,issuedOf(id)]).filter(([,i])=>i.n);return l.length?`<ul>${l.map(([e,i])=>`<li>${esc(e.name)}: ${i.q} to ${i.n} of ${ROSTER.length}</li>`).join('')}</ul>`:' none recorded'})()}</div>
    <div><b>Resupply pending</b>${pend.length?`<ul>${pend.map(r=>`<li>${esc(r.qty)} × ${esc(r.item)}${r.forWhat?` for ${esc(r.forWhat)}`:''}</li>`).join('')}</ul>`:' none'}</div>
   </section>
+  ${a2Slide()}${a6Slide()}
   <section class="slide" id="slide-a3"><h3><span>A3 · Operations</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
    ${(()=>{const ms=A.dayMs.filter(isMission);const k=s=>ms.filter(m=>(m.state||'Planned')===s).length;const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
    const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
@@ -493,10 +497,14 @@ function cubText(which,A){
   return `A4 LOGISTICS (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nFMC ${t.FMC} | PMC ${t.PMC} | NMC ${t.NMC}\nDegraded items:\n${nmc.map(e=>`- ${e.name}: ${e.pmc?e.pmc+' PMC ':''}${e.nmc?e.nmc+' NMC':''}`).join('\n')||'- None'}\nMedic packs: ${Object.values(S.equip).filter(e=>e.cat==='Medical'&&e.chips!=null&&e.chips!=='').map(e=>`${e.name} ${e.chips} chips`).join('; ')||'n/a'}\nResupply pending: ${pend.map(r=>`${r.qty} x ${r.item}`).join('; ')||'None'}`}
 
 /* ---------- render ---------- */
-const ICONS={overview:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',personnel:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.4c3 0 5.4 2.2 5.4 5.6"/>',missions:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',a3:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',equipment:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',resupply:'<path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',log:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',cub:'<path d="M3 4h18v12H3zM12 16v4M8 20h8"/>',more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
+const ICONS={a26:'<path d="M12 12v9M8 21h8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 5.8a6 6 0 0 0 0 8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 3a10 10 0 0 0 0 14M19 3a10 10 0 0 1 0 14"/>',a14:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 11l3-2 3 2v5l-3 2-3-2z"/>',overview:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',personnel:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.4c3 0 5.4 2.2 5.4 5.6"/>',missions:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',a3:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',equipment:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',resupply:'<path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',log:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',cub:'<path d="M3 4h18v12H3zM12 16v4M8 20h8"/>',more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 function ic(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`}
-const TABS=[['overview','Overview'],['personnel','People'],['missions','Missions'],['a3','A3 Ops'],['equipment','Equip'],['resupply','Resupply'],['log','Log'],['cub','CUB']];
-const TITLES={overview:['Overview','Task force status at a glance'],personnel:['Personnel','A1 · accountability, casualties, exercises, gear'],missions:['Missions','MCE schedule and crews'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['Equipment','A4 · status, issue and serials'],resupply:['Resupply','A1/4 approves'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A4 and A3 slides']};
+const SECTIONS=[['overview','Overview','overview',['overview']],['a14','A1/4','personnel',['personnel','equipment','resupply']],['a26','A2/6','intel',['intel','comms']],['a3','A3','a3',['a3','missions']],['log','Log','log',['log']],['cub','CUB','cub',['cub']]];
+const SUBL={personnel:'People',equipment:'Equipment',resupply:'Resupply',intel:'A2 · Intel',comms:'A6 · Comms',a3:'Ops',missions:'Schedule & crews'};
+const TABS=SECTIONS.map(s=>[s[2],s[1]]);
+function secOf(v){return SECTIONS.find(s=>s[3].includes(v))||SECTIONS[0]}
+const LASTV={};
+const TITLES={overview:['Overview','Task force status at a glance'],personnel:['A1/4 · People','Accountability, casualties, exercises, gear'],missions:['A3 · Schedule & crews','MCE schedule and crew assignments'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['A1/4 · Equipment','Status, issue and serials'],resupply:['A1/4 · Resupply','A1/4 approves'],intel:['A2/6 · Intel','PIRs, reports, ISR, assessment'],comms:['A2/6 · Comms','Comms plan, callsigns, LMRs, comm checks'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A2, A3, A4 and A6 slides']};
 function utcHM(){const d=new Date();return String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
 function renderHeader(A){
   document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}" title="${esc(d.name+' · '+d.label)}"><b>D${d.id}</b>${esc(d.label.split(' ').slice(0,2).join(' '))}</button>`).join('');
@@ -513,23 +521,24 @@ function renderHeader(A){
 }
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
-  const a3=actionQueue(A).filter(x=>x.k==='bad').length;
-  const B={overview:n,a3,resupply:pend};
-  const btn=(k,l)=>`<button type="button" data-tab="${k}" ${UI.tab===k?'aria-current="page"':''}>${ic(k)}<span>${l}</span>${B[k]?`<span class="badge">${B[k]}</span>`:''}</button>`;
-  document.getElementById('tabs').innerHTML=TABS.map(([k,l])=>btn(k,l)).join('');
-  const prim=['overview','personnel','missions','a3'];const moreOn=!prim.includes(UI.tab);
-  document.getElementById('bnav').innerHTML=prim.map(k=>btn(k,TABS.find(t=>t[0]===k)[1])).join('')+`<button type="button" data-act="more" ${moreOn?'aria-current="page"':''}>${ic('more')}<span>${moreOn?esc(TABS.find(t=>t[0]===UI.tab)[1]):'More'}</span>${pend?`<span class="badge">${pend}</span>`:''}</button>`;
+  const a3=actionQueue(A).filter(x=>x.k==='bad').length;const intelNew=Object.values(S.intel).filter(x=>x.kind==='report'&&!x.assessed&&(!x.day||x.day===UI.day)).length;
+  const B={overview:n,a14:pend,a26:intelNew,a3};const cur=secOf(UI.tab)[0];
+  const btn=(s)=>`<button type="button" data-sec="${s[0]}" ${cur===s[0]?'aria-current="page"':''}>${ic(s[0])}<span>${s[1]}</span>${B[s[0]]?`<span class="badge">${B[s[0]]}</span>`:''}</button>`;
+  document.getElementById('tabs').innerHTML=SECTIONS.map(btn).join('');
+  const prim=SECTIONS.slice(0,4);const moreOn=!prim.some(s=>s[0]===cur);
+  document.getElementById('bnav').innerHTML=prim.map(btn).join('')+`<button type="button" data-act="more" ${moreOn?'aria-current="page"':''}>${ic('more')}<span>${moreOn?esc(secOf(UI.tab)[1]):'More'}</span></button>`;
 }
-function moreSheet(){openDlg(`<div class="dlg"><h3>More</h3><div class="sheetbtns">${TABS.filter(([k])=>!['overview','personnel','missions','a3'].includes(k)).map(([k,l])=>`<button type="button" class="btn lg" data-tab="${k}" style="display:flex;gap:8px;align-items:center;justify-content:center">${ic(k).replace('<svg','<svg width="18" height="18"')}${l}</button>`).join('')}</div></div><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
+function moreSheet(){openDlg(`<div class="dlg"><h3>More</h3><div class="sheetbtns">${SECTIONS.slice(4).map(s=>`<button type="button" class="btn lg" data-sec="${s[0]}" style="display:flex;gap:8px;align-items:center;justify-content:center">${ic(s[0]).replace('<svg','<svg width="18" height="18"')}${s[1]}</button>`).join('')}</div></div><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
+function goSec(id){const s=SECTIONS.find(x=>x[0]===id);if(!s)return;setTab(LASTV[id]&&s[3].includes(LASTV[id])?LASTV[id]:s[2])}
 let THEME='dark';try{THEME=localStorage.getItem('tftiger-mode')||'dark'}catch(e){}
 document.documentElement.dataset.mode=THEME;
-function setTab(k){if(!TITLES[k])return;UI.tab=k;try{history.replaceState(null,'','#'+k);localStorage.setItem('tftiger-tab',k)}catch(e){}if(dlg.open)closeDlg();render();window.scrollTo(0,0)}
+function setTab(k){if(!TITLES[k])return;UI.tab=k;LASTV[secOf(k)[0]]=k;try{history.replaceState(null,'','#'+k);localStorage.setItem('tftiger-tab',k)}catch(e){}if(dlg.open)closeDlg();render();window.scrollTo(0,0)}
 (function(){const h=(location.hash||'').slice(1);let k=TITLES[h]?h:null;if(!k){try{k=localStorage.getItem('tftiger-tab')}catch(e){}}if(k&&TITLES[k])UI.tab=k})();
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TITLES[h]&&h!==UI.tab){UI.tab=h;render()}});
 document.addEventListener('keydown',e=>{const tg=e.target;const typing=tg&&(/INPUT|TEXTAREA|SELECT/.test(tg.tagName)||tg.isContentEditable);
   if(e.key==='Enter'&&tg&&tg.id==='opstxt'){e.preventDefault();quickLog();return}
   if(typing||dlg.open||e.metaKey||e.ctrlKey||e.altKey)return;
-  const i=Number(e.key);if(i>=1&&i<=TABS.length){setTab(TABS[i-1][0]);e.preventDefault();return}
+  const i=Number(e.key);if(i>=1&&i<=SECTIONS.length){goSec(SECTIONS[i-1][0]);e.preventDefault();return}
   if(e.key==='?'){helpDlg();e.preventDefault();return}
   if(e.key==='/'){const el=document.getElementById('opstxt')||document.getElementById('q');if(el){el.focus();e.preventDefault()}}
   if(e.key==='n'&&UI.tab!=='a3'){setTab('a3');setTimeout(()=>{const el=document.getElementById('opstxt');if(el)el.focus()},50);e.preventDefault()}});
@@ -540,8 +549,9 @@ function render(){
   const ae=document.activeElement;const keep=ae&&ae.id&&main.contains(ae)?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
   const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet. Add the project keys to config.js.</div>':MODE==='error'?'<div class="banner">Live sync stopped. Check your connection, then reload the page.</div>':'';
   const [t,sub]=TITLES[UI.tab];const d=dayObj(UI.day);
-  const head=UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`;
-  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
+  const sec=secOf(UI.tab);const subs=sec[3].length>1?`<div class="subtabs" role="tablist">${sec[3].map(v=>`<button type="button" role="tab" data-tab="${v}" aria-selected="${UI.tab===v}">${esc(SUBL[v])}</button>`).join('')}</div>`:'';
+  const head=subs+(UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`);
+  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,intel:renderIntel,comms:renderComms,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
   let seen='1';try{seen=localStorage.getItem('tftiger-toured')}catch(e){}
   const welcome=!seen&&!TOUR?'<div class="welcome"><b>New to the board?</b><span class="small">A 2-minute guided tour shows you where everything is.</span><span style="margin-left:auto"></span><button type="button" class="btn sm ghost" data-act="welcomeno">No thanks</button><button type="button" class="btn sm pri" data-act="welcomego">Start tour</button></div>':'';
   main.innerHTML=banner+welcome+head+body;
@@ -664,7 +674,7 @@ function quickLog(kind){const sel=document.getElementById('opsmid');const mid=se
   const inp=document.getElementById('opstxt');const txt=inp?inp.value.trim():'';const cc=document.getElementById('opsccir');
   const K={TIC:['CCIR troops in contact',true],ROE:['CCIR ROE violation',true],SIGHT:['Raider forces sighted',false],COMMS:['Comms lost',false]};
   let text,ccir;if(kind){[text,ccir]=K[kind];text+=where+(txt?': '+txt:'')}else{if(!txt){toast('Type what happened first.');inp&&inp.focus();return}ccir=!!(cc&&cc.checked);text=(ccir?'CCIR: ':'')+txt+where}
-  logIt({type:'ops',mid:mid||'',ccir,text});UI.opsDraft='';if(inp)inp.value='';if(cc)cc.checked=false;toast(ccir?'Logged as CCIR. Report it to the ATF/CC.':'Logged')}
+  logIt({type:'ops',mid:mid||'',ccir,text});if(kind==='SIGHT'||kind==='TIC')addIntel({mid:mid||'',activity:kind==='TIC'?'Contact with friendly forces':'Enemy sighted',text:txt,time:nowParts().hm,source:'A3 quick log',unit:'Raider'});UI.opsDraft='';if(inp)inp.value='';if(cc)cc.checked=false;toast(ccir?'Logged as CCIR. Report it to the ATF/CC.':'Logged')}
 
 function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:'',end:'',cyoa:{toc:'',resupply:'',offbase:false}};const cy=m.cyoa||{};
   openDlg(`<form class="dlg" id="cyform" data-mid="${esc(id||'')}"><h3>${id?'Edit CYOA mission':'Add CYOA mission'} <span class="small muted">${esc(dayObj(id?m.day:UI.day).name)}</span></h3>
@@ -713,7 +723,7 @@ function aarDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;const 
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveaar">Save AAR</button></div>`)}
 function saveAar(){const f=document.getElementById('aarform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);const had=!!m.aar;
   const a={};['result','from','summary','contact','equip','sustain','improve','follow'].forEach(k=>a[k]=String(fd.get(k)||'').trim());a.at=(m.aar&&m.aar.at)||Date.now();a.by=ME||null;
-  patchMission(id,{aar:a});logIt({type:'aar',mid:id,text:`AAR ${had?'updated':'received'}: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start} · ${a.result}${a.contact?' · contact reported':''}${a.equip?' · equipment issue':''}`});closeDlg()}
+  patchMission(id,{aar:a});if(a.contact&&(!m.aar||m.aar.contact!==a.contact))addIntel({mid:id,activity:'Contact reported in AAR',text:a.contact,time:m.end,source:'AAR',unit:'Raider'});logIt({type:'aar',mid:id,text:`AAR ${had?'updated':'received'}: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start} · ${a.result}${a.contact?' · contact reported':''}${a.equip?' · equipment issue':''}`});closeDlg()}
 function opsEvent(id,ev){const m=allMissions().find(x=>x.id===id);if(!m)return;
   if(ev==='Out'){if(!(m.go&&m.go.d==='GO')&&!window.__goWarned){window.__goWarned=1;toast('No GO recorded yet. Tap Out again to send it anyway.');setTimeout(()=>window.__goWarned=0,4000);return}setMissionState(id,'Out')}
   else if(ev==='RTB')setMissionState(id,'RTB');
@@ -748,6 +758,127 @@ ${ms.map(m=>`- ${nm2(m)} ${m.start}-${m.end}: ${m.state||'Planned'}${m.go&&m.go.
 7. Items to confirm with incoming A3: CUB times, CYOA windows, TOC planning start times, Go/No-Go authority from ATF/CC.`}
 function dayOfTs(ts){if(!ts)return null;const d=new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ts));const m=DAYS.find(x=>x.date===d);return m?m.id:null}
 
+/* ---------- A2/6 intel & comms ---------- */
+let RULES_OLD=false;
+function intelList(kind){return Object.entries(S.intel).filter(([,x])=>x.kind===kind).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0))}
+function pirList(){return Object.entries(S.pirs).filter(([id])=>!id.startsWith('_')).sort((a,b)=>(Number(a[1].pri)||99)-(Number(b[1].pri)||99))}
+function pirName(id){const p=S.pirs[id];return p?`PIR ${p.pri||'?'}`:''}
+function missionOpts(day){return [['','None / general'],...allMissions().filter(m=>m.day===(day||UI.day)&&isMission(m)).map(m=>[m.id,`${mName(m)} ${m.start}`])]}
+function rulesBanner(){return RULES_OLD?'<div class="banner">A2/6 data can\'t be saved yet. In Firebase → Firestore → Rules, paste the updated rules from firestore.rules in your GitHub repo and tap Publish, then reload.</div>':''}
+function addIntel(o){const id='i'+uid();return writeDoc('intel',id,Object.assign({kind:'report',ts:Date.now(),day:UI.day,assessed:false},o))}
+function salute(x){return [x.size&&`S: ${x.size}`,x.activity&&`A: ${x.activity}`,x.location&&`L: ${x.location}`,x.unit&&`U: ${x.unit}`,x.time&&`T: ${x.time}`,x.equipment&&`E: ${x.equipment}`].filter(Boolean).join(' · ')}
+function renderIntel(A){
+  const pirs=pirList();const reps=intelList('report').filter(([,x])=>!x.day||x.day===UI.day);const isr=intelList('isr').filter(([,x])=>!x.day||x.day===UI.day);
+  const un=reps.filter(([,x])=>!x.assessed).length;const open=pirs.filter(([,p])=>p.status!=='Answered').length;const pend=isr.filter(([,x])=>x.status==='Requested').length;
+  const assess=(S.pirs._assess&&S.pirs._assess.text)||'';
+  return `${rulesBanner()}<div class="tools"><button type="button" class="btn pri" data-act="addreport">+ Intel report</button><button type="button" class="btn" data-act="addpir">+ PIR</button><button type="button" class="btn" data-act="addisr">+ ISR request</button><span style="margin-left:auto"></span><button type="button" class="btn sm" data-act="copybsu">Copy battlespace update</button><button type="button" class="btn sm" data-act="copya2">Copy A2 slide</button></div>
+  <div class="kpis tnum"><div class="kpi info"><b>${open}</b><span>Open PIRs</span></div><div class="kpi info"><b>${reps.length}</b><span>Reports today</span></div><div class="kpi ${un?'warn':'ok'}"><b>${un}</b><span>Not assessed</span></div><div class="kpi ${pend?'warn':'ok'}"><b>${pend}</b><span>ISR pending</span></div></div>
+  <div class="grid2">
+  <section class="card" id="pirs"><h2>PIRs <span class="sub">Priority intelligence requirements · recommend to ATF/CC</span></h2>
+   ${pirs.length?`<div class="mrows">${pirs.map(([id,p])=>{const n=reps.filter(([,x])=>x.pir===id).length;return `<div class="mrow" data-pir="${esc(id)}" style="cursor:pointer;grid-template-columns:52px minmax(0,1fr) auto"><div class="tm">P${esc(p.pri||'?')}</div><div style="min-width:0"><div style="font-weight:600">${esc(p.q)}</div>${p.answer?`<div class="small muted">Answer: ${esc(p.answer)}</div>`:''}<div class="small muted">${n} report${n===1?'':'s'} linked today</div></div><span class="pill ${p.status==='Answered'?'e-FMC':'st-Out'}">${esc(p.status||'Open')}</span></div>`}).join('')}</div>`:'<div class="empty">No PIRs yet. Add the ATF/CC\'s questions (for example: Where is Raider\'s base? Is the runway site occupied?).</div>'}
+  </section>
+  <section class="card" id="assess"><h2>Current assessment <span class="sub">Likely enemy course of action, for the ATF/CC</span></h2>
+   <textarea id="assesstxt" rows="5" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)" placeholder="e.g. Raider is likely patrolling the north trail between 1000-1200 to locate our runway site.">${esc(assess)}</textarea>
+   <div class="tools" style="margin-top:6px"><button type="button" class="btn sm pri" data-act="saveassess">Save assessment</button>${S.pirs._assess&&S.pirs._assess.at?`<span class="small muted">Updated ${fmtT(S.pirs._assess.at)}${S.pirs._assess.by?' by '+esc(S.pirs._assess.by):''}</span>`:''}</div>
+  </section></div>
+  <section class="card" id="reports"><h2>Intel reports <span class="sub">SALUTE · sightings from A3's quick log and AAR contacts land here automatically</span></h2>
+   ${reps.length?`<div class="log">${reps.map(([id,x])=>{const m=x.mid?allMissions().find(mm=>mm.id===x.mid):null;return `<div class="logrow" style="grid-template-columns:58px 1fr auto;cursor:pointer" data-intel="${esc(id)}"><span class="t">${x.time?esc(x.time):fmtT(x.ts)}</span><div><div>${x.sig?'<span class="pill e-NMC">Significant</span> ':''}${x.pir?`<span class="pill st-Out">${esc(pirName(x.pir))}</span> `:''}<b>${esc(x.activity||'Report')}</b>${x.text?' · '+esc(x.text):''}</div><div class="small muted">${esc(salute(x))}${m?` · ${esc(mName(m))} ${esc(m.start)}`:''} · ${esc(x.source||'A2')}</div></div>${x.assessed?'<span class="pill e-FMC">Assessed</span>':'<span class="pill e-PMC">New</span>'}</div>`}).join('')}</div>`:'<div class="empty">No reports today.</div>'}
+  </section>
+  <section class="card" id="isr"><h2>ISR requests <span class="sub">Each must tie to a PIR (Annex A)</span></h2>
+   ${isr.length?`<div class="mrows">${isr.map(([id,x])=>{const m=x.mid?allMissions().find(mm=>mm.id===x.mid):null;return `<div class="mrow" data-isr="${esc(id)}" style="cursor:pointer;grid-template-columns:70px minmax(0,1fr) auto"><div class="tm">${fmtT(x.ts)}</div><div style="min-width:0"><div style="font-weight:600">${esc(x.what||'ISR request')}</div><div class="small muted">${m?esc(mName(m)+' '+m.start):'No mission'} · ${x.pir?esc(pirName(x.pir)):'<span style="color:var(--bad)">no PIR linked</span>'}</div></div><span class="pill ${x.status==='Approved'||x.status==='Complete'?'e-FMC':x.status==='Denied'?'e-NMC':'e-PMC'}">${esc(x.status||'Requested')}</span></div>`}).join('')}</div>`:'<div class="empty">No ISR requests today.</div>'}
+  </section>`}
+function reportDlg(id){const x=id?S.intel[id]:{};const pirs=pirList();
+  openDlg(`<form class="dlg" id="repform" data-id="${esc(id||'')}"><h3>${id?'Intel report':'New intel report'}</h3>
+  <div class="fields"><label>Size<input name="size" value="${esc(x.size||'')}" placeholder="e.g. 3 pax"></label><label>Activity<input name="activity" value="${esc(x.activity||'')}" placeholder="Patrolling, digging in…"></label>
+  <label>Location<input name="location" value="${esc(x.location||'')}" placeholder="Grid / landmark"></label><label>Unit<input name="unit" value="${esc(x.unit||'')}" placeholder="Raider (green patches)"></label>
+  <label>Time seen<input name="time" inputmode="numeric" value="${esc(x.time||nowParts().hm)}"></label><label>Equipment<input name="equipment" value="${esc(x.equipment||'')}"></label>
+  <label>Mission<select name="mid">${opt(missionOpts(x.day),x.mid||'')}</select></label><label>Answers PIR<select name="pir">${opt([['','None'],...pirs.map(([pid,p])=>[pid,`P${p.pri||'?'}: ${String(p.q||'').slice(0,40)}`])],x.pir||'')}</select></label>
+  <label class="wide">Notes<textarea name="text" rows="2">${esc(x.text||'')}</textarea></label>
+  <label style="display:flex;gap:6px;align-items:center;text-transform:none;color:var(--ink)"><input type="checkbox" name="sig" ${x.sig?'checked':''}> Significant (brief ATF/CC)</label><label style="display:flex;gap:6px;align-items:center;text-transform:none;color:var(--ink)"><input type="checkbox" name="assessed" ${x.assessed?'checked':''}> Assessed</label></div></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delreport">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savereport">Save</button></div>`)}
+function saveReport(){const f=document.getElementById('repform');const fd=new FormData(f);let id=f.dataset.id;const old=id?S.intel[id]:null;id=id||('i'+uid());
+  const n=Object.assign({},old||{kind:'report',ts:Date.now(),day:UI.day,source:'A2'},{size:fd.get('size'),activity:fd.get('activity'),location:fd.get('location'),unit:fd.get('unit'),time:fd.get('time'),equipment:fd.get('equipment'),mid:fd.get('mid'),pir:fd.get('pir'),text:fd.get('text'),sig:fd.get('sig')==='on',assessed:fd.get('assessed')==='on'});
+  writeDoc('intel',id,n);if(!old||(!old.sig&&n.sig))logIt({type:'intel',text:`${n.sig?'Significant intel':'Intel report'}: ${n.activity||''} ${n.location?'at '+n.location:''}${n.pir?' ('+pirName(n.pir)+')':''}`.trim()});closeDlg()}
+function pirDlg(id){const p=id?S.pirs[id]:{pri:pirList().length+1,status:'Open'};
+  openDlg(`<form class="dlg" id="pirform" data-id="${esc(id||'')}"><h3>${id?'PIR '+esc(p.pri):'New PIR'}</h3><div class="fields">
+  <label>Priority<input name="pri" type="number" min="1" value="${esc(p.pri||1)}"></label><label>Status<select name="status">${opt(['Open','Answered'],p.status||'Open')}</select></label>
+  <label class="wide">Question<input name="q" value="${esc(p.q||'')}" required placeholder="Where is Raider's base located?"></label>
+  <label class="wide">Answer (when known)<input name="answer" value="${esc(p.answer||'')}"></label></div></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delpir">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savepir">Save</button></div>`)}
+function savePir(){const f=document.getElementById('pirform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.id;const old=id?S.pirs[id]:null;id=id||('p'+uid());
+  const n={pri:Number(fd.get('pri'))||1,status:fd.get('status'),q:fd.get('q'),answer:fd.get('answer')};writeDoc('pirs',id,n);
+  if(!old)logIt({type:'intel',text:`PIR ${n.pri} added: ${n.q}`});else if(old.status!==n.status&&n.status==='Answered')logIt({type:'intel',text:`PIR ${n.pri} answered: ${n.answer||n.q}`});closeDlg()}
+function isrDlg(id){const x=id?S.intel[id]:{};const pirs=pirList();
+  openDlg(`<form class="dlg" id="isrform" data-id="${esc(id||'')}"><h3>${id?'ISR request':'New ISR request'}</h3><div class="fields">
+  <label class="wide">What to observe / where<input name="what" value="${esc(x.what||'')}" required></label>
+  <label>Mission<select name="mid">${opt(missionOpts(x.day),x.mid||'')}</select></label><label>Supports PIR<select name="pir">${opt([['','None'],...pirs.map(([pid,p])=>[pid,`P${p.pri||'?'}: ${String(p.q||'').slice(0,40)}`])],x.pir||'')}</select></label>
+  <label>Status<select name="status">${opt(['Requested','Approved','Denied','Complete'],x.status||'Requested')}</select></label></div>
+  <p class="small muted" style="margin:0">Annex A: ISR requests during missions must align with PIRs.</p></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delisr">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveisr">Save</button></div>`)}
+function saveIsr(){const f=document.getElementById('isrform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.id;const old=id?S.intel[id]:null;id=id||('r'+uid());
+  if(!fd.get('pir')&&!confirmOnce('isrpir','No PIR linked. Annex A says ISR must align with a PIR. Tap Save again to keep it anyway.'))return;
+  const n=Object.assign({},old||{kind:'isr',ts:Date.now(),day:UI.day},{what:fd.get('what'),mid:fd.get('mid'),pir:fd.get('pir'),status:fd.get('status')});writeDoc('intel',id,n);
+  if(!old||old.status!==n.status)logIt({type:'intel',text:`ISR ${n.status.toLowerCase()}: ${n.what}${n.pir?' ('+pirName(n.pir)+')':''}`});closeDlg()}
+let __once={};function confirmOnce(k,msg){if(__once[k]&&Date.now()-__once[k]<6000){__once[k]=0;return true}__once[k]=Date.now();toast(msg);return false}
+function bsuText(){const pirs=pirList();const reps=intelList('report').filter(([,x])=>!x.day||x.day===UI.day).slice(0,8);
+  return `A2 BATTLESPACE UPDATE (${dayObj(UI.day).name}, ${nowParts().hm} CST)
+PIRs:
+${pirs.map(([,p])=>`- P${p.pri}: ${p.q} [${p.status||'Open'}]${p.answer?' → '+p.answer:''}`).join('\n')||'- None set'}
+Recent enemy activity:
+${reps.map(([,x])=>`- ${x.time||fmtT(x.ts)} ${x.activity||'Report'}${x.location?' at '+x.location:''}${x.size?', '+x.size:''}${x.text?' ('+x.text+')':''}${x.sig?' [SIGNIFICANT]':''}`).join('\n')||'- None reported'}
+Assessment: ${(S.pirs._assess&&S.pirs._assess.text)||'—'}`}
+function a2Slide(){const pirs=pirList();const reps=intelList('report').filter(([,x])=>!x.day||x.day===UI.day);const sig=reps.filter(([,x])=>x.sig);
+  return `<section class="slide" id="slide-a2"><h3><span>A2 · Intelligence</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
+  <div class="big tnum"><div><b>${pirs.filter(([,p])=>p.status!=='Answered').length}</b>Open PIRs</div><div><b>${reps.length}</b>Reports</div><div><b>${sig.length}</b>Significant</div></div>
+  <div><b>PIRs</b>${pirs.length?`<ul>${pirs.map(([,p])=>`<li>P${esc(p.pri)}: ${esc(p.q)} · ${esc(p.status||'Open')}${p.answer?' → '+esc(p.answer):''}</li>`).join('')}</ul>`:' none set'}</div>
+  <div><b>Significant activity</b>${sig.length?`<ul>${sig.map(([,x])=>`<li>${esc(x.time||fmtT(x.ts))} ${esc(x.activity||'')}${x.location?' at '+esc(x.location):''}</li>`).join('')}</ul>`:' none'}</div>
+  <div><b>Assessment:</b> ${esc((S.pirs._assess&&S.pirs._assess.text)||'—')}</div></section>`}
+/* A6 */
+function lmrItem(){return Object.entries(S.equip).find(([,e])=>/lmr/i.test(e.name||''))}
+function renderComms(A){
+  const nets=Object.entries(S.comms).filter(([,x])=>x.kind==='net').sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
+  const cs=Object.entries(S.comms).filter(([,x])=>x.kind==='callsign').sort((a,b)=>(a[1].who||'').localeCompare(b[1].who||''));
+  const L=lmrItem();const iss=L?ROSTER.filter(p=>gearOf(p.pid)[L[0]]):[];
+  const checks=Object.values(S.log).filter(l=>l.type==='comms').sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10);
+  return `${rulesBanner()}<div class="tools"><button type="button" class="btn pri" data-act="addnet">+ Net / frequency</button><button type="button" class="btn" data-act="addcs">+ Callsign</button><span style="margin-left:auto"></span><button type="button" class="btn sm" data-act="copya6">Copy A6 slide</button></div>
+  <div class="kpis tnum"><div class="kpi info"><b>${nets.length}</b><span>Nets</span></div><div class="kpi ${nets.some(([,n])=>!n.approved)?'warn':'ok'}"><b>${nets.filter(([,n])=>n.approved).length}/${nets.length}</b><span>Plans approved</span></div><div class="kpi info"><b>${iss.length}</b><span>LMRs issued</span></div><div class="kpi ${checks[0]&&/No contact/.test(checks[0].text)?'bad':'ok'}"><b>${checks.length?fmtT(checks[0].ts):'—'}</b><span>Last comm check</span></div></div>
+  <div class="grid2">
+  <section class="card" id="nets"><h2>Comms plan <span class="sub">A2/6 approves all comms plans</span></h2>
+   ${nets.length?`<div class="mrows">${nets.map(([id,n])=>`<div class="mrow" data-net="${esc(id)}" style="cursor:pointer;grid-template-columns:minmax(0,1fr) auto"><div style="min-width:0"><div class="nm">${esc(n.name)} <span class="mono small muted">${esc(n.freq||'')}</span></div><div class="small muted">${esc(n.users||'')}${n.notes?' · '+esc(n.notes):''}</div></div><span class="pill ${n.approved?'e-FMC':'e-PMC'}">${n.approved?'Approved':'Pending'}</span></div>`).join('')}</div>`:'<div class="empty">No nets yet. Add the LMR channels and walkie-talkie channels with who uses each.</div>'}
+  </section>
+  <section class="card" id="callsigns"><h2>Callsigns</h2>
+   ${cs.length?`<div class="log">${cs.map(([id,c])=>`<div class="logrow" data-cs="${esc(id)}" style="grid-template-columns:1fr auto auto;cursor:pointer"><span>${esc(c.who)}</span><b class="mono">${esc(c.cs)}</b><span></span></div>`).join('')}</div>`:'<div class="empty">No callsigns yet (for example WOC = TIGER MAIN, TOC = TIGER FORWARD).</div>'}
+  </section></div>
+  <section class="card" id="lmr"><h2>LMR accountability <span class="sub">Issue before STARTEX/RESUMEX · collect after PAUSEX/ENDEX into the charging dock</span></h2>
+   ${L?`<div class="tools"><button type="button" class="btn pri" data-serials="${esc(L[0])}">Issue LMRs (start of day)</button><button type="button" class="btn badb" data-act="collectlmr">Collect all (end of day)</button><span class="small muted">${iss.length} issued · ${esc(L[1].fmc||0)} FMC on hand</span></div>
+   ${iss.length?`<div class="chips" style="margin-top:8px">${iss.map(p=>{const g=gearOf(p.pid)[L[0]];return `<button type="button" class="chip" data-gear="${p.pid}">${esc(short(p.pid))}${g.serial?' · '+esc(g.serial):''}</button>`}).join('')}</div>`:''}`
+   :'<div class="tools"><span class="muted small">No LMR item on the equipment list yet.</span><button type="button" class="btn sm" data-act="addlmr">Add LMR radios</button></div>'}
+  </section>
+  <section class="card" id="checks"><h2>Comm checks</h2>
+   <div class="tools"><select class="sel" id="chknet">${opt([['','Net…'],...nets.map(([id,n])=>[n.name,n.name])],UI.chknet||'')}</select><input class="inp" id="chkwho" placeholder="Station (e.g. TOC, Tiger 2)" value="${esc(UI.chkwho||'')}"><button type="button" class="btn sm okb" data-chk="Loud and clear">Loud &amp; clear</button><button type="button" class="btn sm warnb" data-chk="Weak">Weak</button><button type="button" class="btn sm badb" data-chk="No contact">No contact</button></div>
+   <div class="log" style="margin-top:8px">${checks.map(l=>`<div class="logrow"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}</div><span></span></div>`).join('')||'<div class="empty">No comm checks logged.</div>'}</div>
+  </section>`}
+function netDlg(id){const n=id?S.comms[id]:{};
+  openDlg(`<form class="dlg" id="netform" data-id="${esc(id||'')}"><h3>${id?esc(n.name):'New net'}</h3><div class="fields">
+  <label>Net name<input name="name" value="${esc(n.name||'')}" required placeholder="Command net"></label><label>Channel / frequency<input name="freq" value="${esc(n.freq||'')}" placeholder="LMR Ch 3"></label>
+  <label class="wide">Who uses it<input name="users" value="${esc(n.users||'')}" placeholder="WOC, TOC, MCs"></label><label class="wide">Notes<input name="notes" value="${esc(n.notes||'')}" placeholder="Walkies on-base only; LMR limited off base"></label>
+  <label style="display:flex;gap:6px;align-items:center;text-transform:none;color:var(--ink)"><input type="checkbox" name="approved" ${n.approved?'checked':''}> Approved by A2/6</label></div></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delnet">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savenet">Save</button></div>`)}
+function saveNet(){const f=document.getElementById('netform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.id;const old=id?S.comms[id]:null;id=id||('n'+uid());
+  const n={kind:'net',name:fd.get('name'),freq:fd.get('freq'),users:fd.get('users'),notes:fd.get('notes'),approved:fd.get('approved')==='on'};writeDoc('comms',id,n);
+  if(!old)logIt({type:'comms',text:`Net added: ${n.name} ${n.freq}`});if(n.approved&&!(old&&old.approved))logIt({type:'comms',text:`Comms plan approved: ${n.name}`});closeDlg()}
+function csDlg(id){const c=id?S.comms[id]:{};
+  openDlg(`<form class="dlg" id="csform" data-id="${esc(id||'')}"><h3>Callsign</h3><div class="fields"><label>Station / role<input name="who" value="${esc(c.who||'')}" required placeholder="WOC"></label><label>Callsign<input name="cs" value="${esc(c.cs||'')}" required placeholder="TIGER MAIN"></label></div></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delcs">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savecs">Save</button></div>`)}
+function a6Slide(){const nets=Object.values(S.comms).filter(x=>x.kind==='net');const L=lmrItem();const iss=L?ROSTER.filter(p=>gearOf(p.pid)[L[0]]).length:0;
+  const last=Object.values(S.log).filter(l=>l.type==='comms'&&/check/i.test(l.text)).sort((a,b)=>(b.ts||0)-(a.ts||0))[0];
+  return `<section class="slide" id="slide-a6"><h3><span>A6 · Communications</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
+  <div class="big tnum"><div><b>${nets.length}</b>Nets</div><div><b>${nets.filter(n=>n.approved).length}</b>Approved</div><div><b>${iss}</b>LMRs out</div></div>
+  <div><b>Nets</b>${nets.length?`<ul>${nets.map(n=>`<li>${esc(n.name)} · ${esc(n.freq||'')}${n.approved?'':' (pending)'}</li>`).join('')}</ul>`:' none'}</div>
+  <div><b>Last comm check:</b> ${last?esc(fmtT(last.ts)+' '+last.text):'none logged'}</div></section>`}
+function a6Text(){const nets=Object.values(S.comms).filter(x=>x.kind==='net');const L=lmrItem();const iss=L?ROSTER.filter(p=>gearOf(p.pid)[L[0]]).length:0;
+  return `A6 COMMUNICATIONS (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nNets:\n${nets.map(n=>`- ${n.name}: ${n.freq||''}${n.approved?'':' (pending approval)'}`).join('\n')||'- None'}\nLMRs issued: ${iss}\nCallsigns: ${Object.values(S.comms).filter(x=>x.kind==='callsign').map(c=>`${c.who}=${c.cs}`).join(', ')||'none'}`}
+
 /* ---------- guided tour + help ---------- */
 const TOURS={
  intro:[
@@ -755,7 +886,7 @@ const TOURS={
   {sel:'#ticker',title:'Live status strip',text:'Always on top: overdue A3 items (or what is next), missions out, CCIRs not yet reported, and effective PAX. Tap any chip to jump to it.'},
   {sel:'#days',title:'Pick the day',text:'Switch between Day 1, 2 and 3. Missions, exemptions and deadlines follow the day you pick. It opens on today automatically.'},
   {sel:'[data-act="who"]',title:'Set your name first',text:'Your name tags every change in the log, so the WOC knows who did what. It is saved on this device only.'},
-  {sel:'#tabs,#bnav',title:'Sections',text:'Overview, People, Missions, A3 Ops, Equipment, Resupply, Log and CUB slides. On a phone the last four are under More. On a laptop, keys 1–8 jump between them.'},
+  {sel:'#tabs,#bnav',title:'Sections',text:'One section per staff role: A1/4, A2/6 and A3, plus Overview, Log and CUB. Each staff section has sub-tabs at the top of the page. On a phone, Log and CUB are under More. On a laptop, keys 1–6 jump between sections.'},
   {sel:'[data-act="help"]',title:'Help is always here',text:'Tap ? on any page for quick how-tos, color meanings, shortcuts, and a tour of just that page.'}],
  overview:[
   {sel:'.kpis',title:'Personnel at a glance',text:'Assigned, effective, WIA by triage color, KIA, MIA, and exercises still owed.'},
@@ -784,6 +915,8 @@ const TOURS={
   {sel:'.tools .pill',title:'Status totals',text:'FMC, PMC and NMC across all equipment.'},
   {sel:'#equip tbody tr,[data-act="seedequip"]',title:'Tap an item',text:'Enter counts by status, location, notes and medic-pack chips. Any status change after the first count is logged as a CCIR.'},
   {sel:'[data-act="addequip"]',title:'Add items',text:'Anything not on the OPORD list.'}],
+ intel:[{sel:'#pirs',title:'PIRs',text:'The ATF/CC priority intelligence questions. Add them, link reports to them, and mark them answered.'},{sel:'#reports',title:'Intel reports',text:'SALUTE reports. Sightings and contacts from the A3 quick log and AARs land here automatically, marked New until you assess them.'},{sel:'#isr',title:'ISR requests',text:'Requests for observation during missions. Each should tie to a PIR; the board flags any that do not.'},{sel:'[data-act="copybsu"]',title:'Battlespace update',text:'One tap builds the update for the ATF/CC: PIR status, recent enemy activity and your assessment.'}],
+ comms:[{sel:'#nets',title:'Comms plan',text:'Each net with its channel, who uses it, and whether you approved it. A2/6 approves all comms plans.'},{sel:'#lmr',title:'LMR accountability',text:'Issue LMRs with serials at the start of the day and collect them all at the end. Each one is tracked to a person.'},{sel:'#checks',title:'Comm checks',text:'Pick the net and station, then one tap: Loud and clear, Weak, or No contact. Each check is time-stamped.'}],
  resupply:[{sel:'[data-act="addresupply"]',title:'Resupply requests',text:'Log a request, then Approve, Deny or mark Delivered. A1/4 holds approval authority.'}],
  log:[{sel:'#lf',title:'Filter the log',text:'Everything, items not yet passed to the TOC, casualties only, or CCIRs. Tick TOC once an item is passed.'}],
  cub:[{sel:'#slide-a1',title:'Live CUB slides',text:'A1, A4 and A3 slides built from current data.'},{sel:'[data-act="copya3"]',title:'Copy for the brief',text:'Copy any slide as text to read from or paste into the CUB deck.'}]
@@ -795,6 +928,8 @@ const HELP={
  a3:['Start of block: work the queue top to bottom.','CYOA: + CYOA mission → enter TOC planning time → tick each handoff by T-20 and T-10.','Go/No-Go: Checklist → Check all or tick items → GO or NO-GO (a reason is required).','During a mission: pick it in the quick log → one-tap TIC or ROE → report to the ATF/CC → tick Reported.','After: RTB → Enter AAR (result + a line or two) → Complete.'],
  equipment:['First time: Load OPORD issue list (once).','At issue: tap an item → enter FMC count → Save.','Serials: tap the weapon → Enter serials → type or paste from the hand receipt → Save.'],
  resupply:['New request → fill item, qty, for → Save.','Approve or Deny right from the list.'],
+ intel:['Add the ATF/CC PIRs first (+ PIR).','New sightings arrive from A3 automatically: open each, fill in what you know, link a PIR, mark Assessed.','Before a brief: update the assessment, then Copy battlespace update.'],
+ comms:['Build the plan: + Net for each LMR and walkie channel, then tick Approved.','Start of day: Issue LMRs and type each serial.','Through the day: log comm checks. End of day: Collect all.'],
  log:['Tick TOC when an item has been passed.','Copy unpassed gives you a list to read to the TOC.'],
  cub:['Before the CUB: open this tab, pick the day, Copy each slide.']
 };
@@ -1031,7 +1166,15 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.sec){goSec(t.dataset.sec);return}
+  if(t.dataset.pir){pirDlg(t.dataset.pir);return}
+  if(t.dataset.intel){reportDlg(t.dataset.intel);return}
+  if(t.dataset.isr){isrDlg(t.dataset.isr);return}
+  if(t.dataset.net){netDlg(t.dataset.net);return}
+  if(t.dataset.cs){csDlg(t.dataset.cs);return}
+  if(t.dataset.chk){const net=(document.getElementById('chknet')||{}).value||'';const who=((document.getElementById('chkwho')||{}).value||'').trim();if(!who){toast('Enter the station you checked with.');return}
+    logIt({type:'comms',text:`Comm check${net?' on '+net:''} with ${who}: ${t.dataset.chk}`});if(t.dataset.chk==='No contact')toast('Logged. Consider an alternate net or runner.');return}
   if(t.dataset.cydone){const [id,k]=t.dataset.cydone.split('|');toggleCy(id,k,true);return}
   if(t.dataset.quickgo){const id=t.dataset.quickgo;const m=allMissions().find(x=>x.id===id);patchMission(id,{go:{d:'GO',at:Date.now(),by:ME||null,checks:{},quick:true,offbase:!!(m.cyoa&&m.cyoa.offbase),reason:''}});logIt({type:'go',mid:id,text:`GO: ${mName(m)} ${m.start} (quick, checklist not recorded)`});return}
   if(t.dataset.rep){const id=t.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:true,repAt:Date.now()}));return}
@@ -1065,6 +1208,22 @@ document.addEventListener('click',e=>{
   else if(a==='saveaar')saveAar();
   else if(a==='logops')quickLog();
   else if(a==='more')moreSheet();
+  else if(a==='addreport')reportDlg(null);else if(a==='savereport')saveReport();
+  else if(a==='delreport'){deleteDoc('intel',document.getElementById('repform').dataset.id);closeDlg()}
+  else if(a==='addpir')pirDlg(null);else if(a==='savepir')savePir();
+  else if(a==='delpir'){deleteDoc('pirs',document.getElementById('pirform').dataset.id);closeDlg()}
+  else if(a==='addisr')isrDlg(null);else if(a==='saveisr')saveIsr();
+  else if(a==='delisr'){deleteDoc('intel',document.getElementById('isrform').dataset.id);closeDlg()}
+  else if(a==='saveassess'){const v=document.getElementById('assesstxt').value.trim();writeDoc('pirs','_assess',{text:v});logIt({type:'intel',text:'Assessment updated: '+v.slice(0,120)})}
+  else if(a==='copybsu'||a==='copya2')copy(bsuText());
+  else if(a==='copya6')copy(a6Text());
+  else if(a==='addnet')netDlg(null);else if(a==='savenet')saveNet();
+  else if(a==='delnet'){deleteDoc('comms',document.getElementById('netform').dataset.id);closeDlg()}
+  else if(a==='addcs')csDlg(null);
+  else if(a==='savecs'){const f=document.getElementById('csform');if(!f.reportValidity())return;const fd=new FormData(f);writeDoc('comms',f.dataset.id||('k'+uid()),{kind:'callsign',who:fd.get('who'),cs:fd.get('cs')});closeDlg()}
+  else if(a==='delcs'){deleteDoc('comms',document.getElementById('csform').dataset.id);closeDlg()}
+  else if(a==='addlmr'){writeDoc('equip','e'+uid(),{name:'LMR radios',cat:'Comms',fmc:'',pmc:'',nmc:'',chips:'',loc:'Charging dock',note:'A2/6 issues at STARTEX and collects at ENDEX'});logIt({type:'equip',text:'Equipment added: LMR radios'})}
+  else if(a==='collectlmr'){const L=lmrItem();if(!L)return;if(!confirmOnce('lmr','Tap Collect all again to return every LMR to the charging dock.'))return;let n=0;ROSTER.forEach(p=>{const g=Object.assign({},gearOf(p.pid));if(g[L[0]]){delete g[L[0]];setGear(p.pid,g);n++}});logIt({type:'comms',text:`LMRs collected: ${n} returned to the charging dock`})}
   else if(a==='help')helpDlg();
   else if(a==='tourpage'){closeDlg();startTour(UI.tab)}
   else if(a==='tourall'){closeDlg();startTour('intro',true)}
@@ -1101,11 +1260,13 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   if(e.target.id==='q'){UI.q=e.target.value;render()}
   if(e.target.id==='opstxt'){UI.opsDraft=e.target.value}
+  if(e.target.id==='chkwho'){UI.chkwho=e.target.value}
   if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
 });
 document.addEventListener('change',e=>{
   if(e.target.dataset.rep&&e.target.type==='checkbox'){const id=e.target.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:e.target.checked,repAt:Date.now()}));return}
   if(e.target.id==='opsmid'){UI.opsMid=e.target.value;return}
+  if(e.target.id==='chknet'){UI.chknet=e.target.value;return}
   if(e.target.dataset.cy){const [id,k]=e.target.dataset.cy.split('|');toggleCy(id,k,e.target.checked);return}
   if(e.target.id==='pf'){UI.pf=e.target.value;render()}
   if(e.target.id==='lf'){UI.lf=e.target.value;render()}
@@ -1121,6 +1282,7 @@ setInterval(()=>{if(!dlg.open||true)render()},20000);
 render();
 function subscribe(){unsubs.forEach(u=>u());unsubs=[];
   ['people','missions','equip','resupply'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;MODE='live';render()},err=>{MODE='error';toast('Live sync stopped: '+(err.code||'error')+'. Reload the page.');render()})));
+  ['intel','pirs','comms'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;RULES_OLD=false;render()},err=>{RULES_OLD=true;render()})));
   unsubs.push(FB.onSnapshot(FB.query(FB.collection(FB.db,'log'),FB.orderBy('ts','desc'),FB.limit(600)),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.log=o;render()},()=>{}));
 }
 window.bootFirebase=function(){
