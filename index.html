@@ -256,6 +256,9 @@ function writeDoc(col,id,data){
 function deleteDoc(col,id){
   delete S[col][id];render();FB.deleteDoc(FB.doc(FB.db,col,id)).catch(e=>toast(errText(e)))}
 function errText(e){const c=e&&e.code;if(c==='permission-denied')return'Not saved: the Firestore rules are not published yet.';if(c==='unavailable')return'Offline: the change will sync when the connection returns.';return'Not saved ('+(c||'error')+'). Try again.'}
+function gearOf(pid){return (S.people[pid]&&S.people[pid].gear)||{}}
+function issuedOf(eid){let n=0,q=0;ROSTER.forEach(p=>{const g=gearOf(p.pid)[eid];if(g){n++;q+=Number(g.qty||1)}});return{n,q}}
+function setGear(pid,gear){return writeDoc('people',pid,Object.assign({},S.people[pid]||{},{gear}))}
 function logIt(o){const id=uid();writeDoc('log',id,Object.assign({toc:false},o,{ts:Date.now()}))}
 
 /* ---------- render ---------- */
@@ -328,7 +331,7 @@ function renderOverview(A){
 function renderPersonnel(A){
   const q=UI.q.trim().toLowerCase();
   let rows=ROSTER.map(p=>({p,x:person(p.pid)}));
-  if(q)rows=rows.filter(r=>r.p.name.toLowerCase().includes(q)||String(r.p.flt)===q);
+  if(q)rows=rows.filter(r=>r.p.name.toLowerCase().includes(q)||String(r.p.flt)===q||Object.values(gearOf(r.p.pid)).some(g=>String(g.serial||'').toLowerCase().includes(q)));
   const f=UI.pf;
   if(f==='cas')rows=rows.filter(r=>r.x.status!=='EFF');
   else if(f==='ex')rows=rows.filter(r=>r.x.exStatus==='Owed'||r.x.exStatus==='In progress');
@@ -336,17 +339,17 @@ function renderPersonnel(A){
   else if(f==='toc')rows=rows.filter(r=>r.x.status!=='EFF'&&!r.x.tocNotified);
   else if(/^t\d$/.test(f))rows=rows.filter(r=>'t'+r.p.team===f);
   const where=pid=>{const w=whereNow(pid,A.ms);if(w.now)return `<span class="pill st-Out">${esc(w.m.lane)} now</span>`;return w.list.map(m=>`<span class="mono small">${esc(m.lane.replace('Tiger ','T'))} ${esc(m.start)}</span>`).join(' ')||'<span class="muted small">Unassigned</span>'};
-  return `<div class="tools"><input type="search" id="q" placeholder="Search name or flight #" value="${esc(UI.q)}" aria-label="Search personnel">
+  return `<div class="tools"><input type="search" id="q" placeholder="Search name, flight # or serial" value="${esc(UI.q)}" aria-label="Search personnel">
   <select id="pf" aria-label="Filter"><option value="all">All 68</option><option value="cas">Casualties</option><option value="toc">Casualties not passed to TOC</option><option value="ex">Exercise owed</option><option value="floor">At participation floor</option>${[1,2,3,4].map(t=>`<option value="t${t}">Team ${t}</option>`).join('')}</select>
   <span class="small muted tnum">${rows.length} shown</span></div>
-  <div class="tablewrap"><table id="roster"><thead><tr><th>Name</th><th>Flt</th><th>Team</th><th>Status</th><th>Missions</th><th>${esc(dayObj(UI.day).name)} tasking</th><th>Exercise</th><th>Updated</th></tr></thead><tbody class="tnum">
+  <div class="tablewrap"><table id="roster"><thead><tr><th>Name</th><th>Flt</th><th>Team</th><th>Status</th><th>Missions</th><th>${esc(dayObj(UI.day).name)} tasking</th><th>Exercise</th><th>Gear</th><th>Updated</th></tr></thead><tbody class="tnum">
   ${rows.map(({p,x})=>{const ex=exempt(p.pid,UI.day,A.ms);const tl=x.exercise==='60-min timeout'&&x.exStatus==='In progress'&&x.exStart?Math.max(0,60-Math.floor((Date.now()-x.exStart)/60000)):null;
    return `<tr data-person="${p.pid}" class="${x.status!=='EFF'&&!x.tocNotified?'flag':''}"><td><b>${esc(p.name)}</b>${x.role?` <span class="pill st-Planned">${esc(x.role)}</span>`:''}${p.tl?' <span class="small muted">TL</span>':''}</td><td>${esc(p.flt)}</td><td>${p.team}</td>
    <td><span class="pill s-${x.status}">${esc(SLBL[x.status])}</span>${x.status!=='EFF'&&!x.tocNotified?' <span class="small" style="color:var(--bad)">TOC?</span>':''}</td>
    <td>${A.c[p.pid]}${ex?' <span class="small muted">exempt</span>':A.c[p.pid]>A.fl?' <span class="small" style="color:var(--warn)">+'+(A.c[p.pid]-A.fl)+'</span>':''}</td>
    <td>${where(p.pid)}</td>
    <td>${x.exercise?`${esc(x.exercise)} <span class="small muted">${esc(x.exStatus||'')}${tl!=null?` · ${tl} min left`:''}</span>`:x.exStatus==='Owed'?'<span class="pill s-WIAY">Choice owed</span>':''}${x.exHist&&x.exHist.length?` <span class="small muted">(${x.exHist.length} total)</span>`:''}</td>
-   <td class="small muted">${fmtT(x.at)}</td></tr>`}).join('')}
+   <td>${(()=>{const g=Object.entries(gearOf(p.pid));if(!g.length)return'<span class="muted small">None</span>';const hit=q?g.find(([,v])=>String(v.serial||'').toLowerCase().includes(q)):null;return hit?`<span class="pill e-FMC">${esc(S.equip[hit[0]]?.name||'Item')} ${esc(hit[1].serial)}</span>`:`${g.length} item${g.length>1?'s':''}`})()}</td><td class="small muted">${fmtT(x.at)}</td></tr>`}).join('')}
   </tbody></table></div>`}
 function renderMissions(A){
   const now=curBlock();
@@ -358,8 +361,8 @@ function renderEquipment(){
   const items=Object.entries(S.equip).sort((a,b)=>(a[1].cat||'').localeCompare(b[1].cat||'')||(a[1].name||'').localeCompare(b[1].name||''));
   const t=equipTotals();
   return `<div class="tools"><span class="pill e-FMC tnum">FMC ${t.FMC}</span><span class="pill e-PMC tnum">PMC ${t.PMC}</span><span class="pill e-NMC tnum">NMC ${t.NMC}</span><span style="margin-left:auto"></span>${items.length?'':'<button type="button" class="btn" data-act="seedequip">Load OPORD issue list</button>'}<button type="button" class="btn pri" data-act="addequip">Add item</button></div>
-  ${items.length?`<div class="tablewrap"><table id="equip"><thead><tr><th>Item</th><th>Category</th><th>On hand</th><th>FMC</th><th>PMC</th><th>NMC</th><th>Location / holder</th><th>Notes</th></tr></thead><tbody class="tnum">
-  ${items.map(([id,e])=>{const tot=Number(e.fmc||0)+Number(e.pmc||0)+Number(e.nmc||0);return `<tr data-equip="${esc(id)}" class="${Number(e.nmc)>0?'flag':''}"><td><b>${esc(e.name)}</b>${e.cat==='Medical'&&e.chips!=null&&e.chips!==''?`<div class="small muted">${esc(e.chips)} chips · ${Math.ceil(Number(e.chips)/3)} sandbags</div>`:''}</td><td>${esc(e.cat)}</td><td>${tot||'<span class="muted">count at issue</span>'}</td><td>${e.fmc?`<span class="pill e-FMC">${esc(e.fmc)}</span>`:''}</td><td>${e.pmc?`<span class="pill e-PMC">${esc(e.pmc)}</span>`:''}</td><td>${e.nmc?`<span class="pill e-NMC">${esc(e.nmc)}</span>`:''}</td><td>${esc(e.loc||'')}</td><td class="small">${esc(e.note||'')}</td></tr>`}).join('')}
+  ${items.length?`<div class="tablewrap"><table id="equip"><thead><tr><th>Item</th><th>Category</th><th>Issued</th><th>On hand</th><th>FMC</th><th>PMC</th><th>NMC</th><th>Location / holder</th><th>Notes</th></tr></thead><tbody class="tnum">
+  ${items.map(([id,e])=>{const tot=Number(e.fmc||0)+Number(e.pmc||0)+Number(e.nmc||0);return `<tr data-equip="${esc(id)}" class="${Number(e.nmc)>0?'flag':''}"><td><b>${esc(e.name)}</b>${e.cat==='Medical'&&e.chips!=null&&e.chips!==''?`<div class="small muted">${esc(e.chips)} chips · ${Math.ceil(Number(e.chips)/3)} sandbags</div>`:''}</td><td>${esc(e.cat)}</td><td>${(()=>{const i=issuedOf(id);return i.n?`${i.q} to ${i.n} pax`:'<span class="muted">—</span>'})()}</td><td>${tot||'<span class="muted">count at issue</span>'}</td><td>${e.fmc?`<span class="pill e-FMC">${esc(e.fmc)}</span>`:''}</td><td>${e.pmc?`<span class="pill e-PMC">${esc(e.pmc)}</span>`:''}</td><td>${e.nmc?`<span class="pill e-NMC">${esc(e.nmc)}</span>`:''}</td><td>${esc(e.loc||'')}</td><td class="small">${esc(e.note||'')}</td></tr>`}).join('')}
   </tbody></table></div>`:'<div class="card empty">No equipment on the board yet.</div>'}`}
 function renderResupply(){
   const rs=Object.entries(S.resupply).sort((a,b)=>(a[1].status==='Pending'?0:1)-(b[1].status==='Pending'?0:1)||(b[1].ts||0)-(a[1].ts||0));
@@ -392,6 +395,7 @@ function renderCUB(A){
    <div class="big tnum"><div><b>${t.FMC}</b>FMC</div><div><b>${t.PMC}</b>PMC</div><div><b>${t.NMC}</b>NMC</div><div><b>${pend.length}</b>Resupply pending</div></div>
    <div><b>PMC / NMC items</b>${nmc.length?`<ul>${nmc.map(e=>`<li>${esc(e.name)}: ${e.pmc?esc(e.pmc)+' PMC ':''}${e.nmc?esc(e.nmc)+' NMC':''}${e.note?` · ${esc(e.note)}`:''}</li>`).join('')}</ul>`:' none'}</div>
    <div><b>Medic packs</b>${med.length?`<ul>${med.map(e=>`<li>${esc(e.name)}: ${esc(e.chips)} chips / ${Math.ceil(Number(e.chips)/3)} sandbags</li>`).join('')}</ul>`:' not tracked'}</div>
+   <div><b>Issued to personnel</b>${(()=>{const l=Object.entries(S.equip).map(([id,e])=>[e,issuedOf(id)]).filter(([,i])=>i.n);return l.length?`<ul>${l.map(([e,i])=>`<li>${esc(e.name)}: ${i.q} to ${i.n} of ${ROSTER.length}</li>`).join('')}</ul>`:' none recorded'})()}</div>
    <div><b>Resupply pending</b>${pend.length?`<ul>${pend.map(r=>`<li>${esc(r.qty)} × ${esc(r.item)}${r.forWhat?` for ${esc(r.forWhat)}`:''}</li>`).join('')}</ul>`:' none'}</div>
   </section></div>`}
 function cubText(which,A){
@@ -442,12 +446,12 @@ function personDlg(pid){
    <div class="small muted">Assigned: ${mine.map(m=>`Day ${m.day} ${esc(m.lane)} ${esc(m.start)} (${esc(m.state||'Planned')})`).join(' · ')||'none'}</div>
    ${his.length?`<div><b class="small">Exercise history</b><ul class="hist">${his.map(h=>`<li>${fmtDT(h.ts)} · ${esc(h.ex)}${h.mission?` · ${esc(h.mission)}`:''}</li>`).join('')}</ul></div>`:''}
    </form>
-   <div class="dfoot"><div class="left"><button type="button" class="btn okb" data-act="rtd">Return to duty</button><button type="button" class="btn sm ghost" data-act="tofloor">Set count to floor (${A.fl})</button></div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveperson">Save</button></div>`);
+   <div class="dfoot"><div class="left"><button type="button" class="btn okb" data-act="rtd">Return to duty</button><button type="button" class="btn sm" data-gear="${pid}">Gear (${Object.keys(gearOf(pid)).length})</button><button type="button" class="btn sm ghost" data-act="tofloor">Set count to floor (${A.fl})</button></div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveperson">Save</button></div>`);
 }
 function savePerson(extra){
   const f=document.getElementById('pform');const pid=f.dataset.pid;const old=person(pid);const fd=new FormData(f);
   const n={status:fd.get('status'),source:fd.get('source'),mid:fd.get('mid'),exercise:fd.get('exercise'),exStatus:fd.get('exStatus'),role:fd.get('role'),adj:Number(fd.get('adj')||0),tocNotified:fd.get('tocNotified')==='on',note:fd.get('note')};
-  Object.assign(n,extra||{});
+  Object.assign(n,extra||{});n.gear=gearOf(pid);
   const ms=allMissions();const mm=ms.find(m=>m.id===n.mid);const mlabel=mm?`Day ${mm.day} ${mm.lane} ${mm.start}`:'';
   if(n.status!==old.status){n.tocNotified=false;if(n.status!=='EFF'&&old.status==='EFF'&&(!n.exStatus||n.exStatus==='Complete')&&n.exercise===(old.exercise||'')){n.exStatus='Owed';n.exercise=''}}
   if(n.exercise==='60-min timeout'&&n.exStatus==='In progress'&&!(old.exercise==='60-min timeout'&&old.exStatus==='In progress'))n.exStart=Date.now();
@@ -514,6 +518,7 @@ function equipDlg(id){const e=id?S.equip[id]:{name:'',cat:'Other',fmc:'',pmc:'',
   <label>NMC qty<input name="nmc" type="number" min="0" value="${esc(e.nmc??'')}"></label>
   <label>Poker chips (medic pack, max 15)<input name="chips" type="number" min="0" max="15" value="${esc(e.chips??'')}"></label>
   <label class="wide">Notes<input name="note" value="${esc(e.note||'')}"></label></div>
+  ${id?(()=>{const hs=ROSTER.filter(p=>gearOf(p.pid)[id]);return `<div><b class="small">Issued to ${hs.length} of ${ROSTER.length}</b>${hs.length?`<div class="chips" style="margin-top:4px">${hs.map(p=>{const g=gearOf(p.pid)[id];return `<button type="button" class="chip" data-gear="${p.pid}">${esc(short(p.pid))}${g.qty>1?' ×'+esc(g.qty):''}${g.serial?' · '+esc(g.serial):''}</button>`}).join('')}</div>`:''}<div class="tools" style="margin-top:6px"><button type="button" class="btn sm" data-act="issueall">Issue 1 to everyone without one</button>${hs.length?'<button type="button" class="btn sm badb" data-act="returnall">Return from everyone</button>':''}</div></div>`})():''}
   <p class="small muted" style="margin:0">Any change in equipment status is an exercise CCIR (OPORD 3.j.2.d). It is logged and flagged for the ATF/CC.</p></form>
   <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delequip">Remove</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveequip">Save</button></div>`)}
 function saveEquip(){const f=document.getElementById('eform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.eid;const old=id?S.equip[id]:null;id=id||('e'+uid());
@@ -560,12 +565,25 @@ const SEED=[
  {name:'Two-way walkie-talkies',cat:'Comms',note:'On-base use only'},{name:'Maps',cat:'Mission gear',note:'Instructor provided'}];
 function seedEquip(){SEED.forEach(e=>{const id='e'+uid();writeDoc('equip',id,Object.assign({fmc:'',pmc:'',nmc:'',loc:'',note:'',chips:''},e))});logIt({type:'equip',text:'Loaded OPORD / Annex B equipment issue list'})}
 
+function gearDlg(pid){const g=gearOf(pid);const items=Object.entries(S.equip).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
+  openDlg(`<form class="dlg" id="gform" data-pid="${pid}"><h3>Gear · ${esc(nm(pid))}</h3>
+  ${Object.keys(g).length?`<div class="tablewrap"><table style="min-width:0"><thead><tr><th>Item</th><th>Qty</th><th>Serial / #</th><th>Issued</th><th></th></tr></thead><tbody class="tnum">${Object.entries(g).map(([eid,x])=>`<tr><td>${esc(S.equip[eid]?.name||'Removed item')}</td><td>${esc(x.qty||1)}</td><td class="mono small">${esc(x.serial||'')}</td><td class="small muted">${fmtDT(x.ts)}</td><td><button type="button" class="btn sm" data-ret="${pid}|${esc(eid)}">Return</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small" style="margin:0">Nothing issued to this person.</p>'}
+  ${items.length?`<div class="fields"><label class="wide">Issue item<select name="eid">${opt([['','Choose item'],...items.map(([id,e])=>[id,e.name])],'')}</select></label><label>Qty<input name="qty" type="number" min="1" value="1"></label><label>Serial / # (optional)<input name="serial" autocomplete="off"></label></div>`:'<p class="small muted" style="margin:0">Add equipment on the Equipment tab first.</p>'}</form>
+  <div class="dfoot"><div class="left"><button type="button" class="btn sm ghost" data-person="${pid}">Status</button></div><button type="button" class="btn ghost" data-act="close">Close</button>${items.length?'<button type="button" class="btn pri" data-act="issue">Issue</button>':''}</div>`)}
+function issueGear(){const f=document.getElementById('gform');const fd=new FormData(f);const pid=f.dataset.pid;const eid=fd.get('eid');if(!eid){toast('Choose an item to issue.');return}
+  const qty=Math.max(1,Number(fd.get('qty')||1));const serial=String(fd.get('serial')||'').trim();const g=Object.assign({},gearOf(pid));const had=g[eid];
+  g[eid]={qty,serial,ts:Date.now()};setGear(pid,g);
+  logIt({type:'gear',pid,text:`${had?'Updated':'Issued'} ${qty} × ${S.equip[eid]?.name||'item'}${serial?' (#'+serial+')':''} ${had?'for':'to'} ${nm(pid)}`});gearDlg(pid)}
+function returnGear(pid,eid){const g=Object.assign({},gearOf(pid));const x=g[eid];if(!x)return;delete g[eid];setGear(pid,g);
+  logIt({type:'gear',pid,text:`${nm(pid)} returned ${x.qty||1} × ${S.equip[eid]?.name||'item'}${x.serial?' (#'+x.serial+')':''}`});gearDlg(pid)}
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
 async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied')}catch(e){openDlg(`<div class="dlg"><h3>Copy this text</h3><textarea rows="12" style="width:100%" readonly>${esc(t)}</textarea></div><div class="dfoot"><button type="button" class="btn" data-act="close">Close</button></div>`)}}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.gear){gearDlg(t.dataset.gear);return}
+  if(t.dataset.ret){const [pid,eid]=t.dataset.ret.split('|');returnGear(pid,eid);return}
   if(t.dataset.day){UI.day=t.dataset.day;render();return}
   if(t.dataset.tab){UI.tab=t.dataset.tab;render();window.scrollTo(0,0);return}
   if(t.dataset.setstatus){const s=dlg.querySelector('select[name=status]');if(s){s.value=t.dataset.setstatus;dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b===t))}return}
@@ -578,6 +596,9 @@ document.addEventListener('click',e=>{
   const a=t.dataset.act;const A=()=>analyze();
   if(a==='close')closeDlg();
   else if(a==='saveperson')savePerson();
+  else if(a==='issue')issueGear();
+  else if(a==='issueall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=gearOf(p.pid);if(!g[id]){setGear(p.pid,Object.assign({},g,{[id]:{qty:1,serial:'',ts:Date.now()}}));n++}});logIt({type:'gear',text:`Issued 1 × ${S.equip[id]?.name} to ${n} personnel`});equipDlg(id)}
+  else if(a==='returnall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=Object.assign({},gearOf(p.pid));if(g[id]){delete g[id];setGear(p.pid,g);n++}});logIt({type:'gear',text:`${S.equip[id]?.name} returned by ${n} personnel`});equipDlg(id)}
   else if(a==='who'){openDlg(`<form class="dlg" id="whoform"><h3>Your name for the log</h3><div class="fields"><label class="wide">Name or role (e.g. Stratton A1/4)<input name="who" maxlength="40" value="${esc(ME||'')}"></label></div><p class="small muted" style="margin:0">Saved on this device only. Every change you make is tagged with it.</p></form><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savewho">Save</button></div>`)}
   else if(a==='savewho'){const v=new FormData(document.getElementById('whoform')).get('who').trim();ME=v||null;try{v?localStorage.setItem('tftiger-who',v):localStorage.removeItem('tftiger-who')}catch(e){}closeDlg();render()}
   else if(a==='rtd'){dlg.querySelector('select[name=status]').value='EFF';const es=dlg.querySelector('select[name=exStatus]');if(es.value&&es.value!=='Complete')es.value='Complete';dlg.querySelector('input[name=tocNotified]').checked=false;savePerson({_rtd:true})}
