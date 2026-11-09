@@ -152,18 +152,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
 <main id="main"></main>
 <dialog id="dlg"></dialog>
-<div id="login" hidden><form id="loginform" autocomplete="on">
- <h2>TF Tiger A1/4 Board</h2><p class="small muted" style="margin:0">For TF Tiger eyes only. Enter the class passcode to view. A1/4 and TOC editors sign in with their own email.</p>
- <label id="emrow" hidden>Editor email<input id="lem" type="email" autocomplete="username"></label>
- <label id="lpwl">Class passcode<input id="lpw" type="password" required autocomplete="current-password"></label>
- <label class="chk"><input type="checkbox" id="edmode"> I'm an editor (A1/4 or TOC)</label>
- <button class="btn pri" id="lgo" type="submit">Sign in</button><p id="loginmsg" role="alert"></p></form></div>
+
 <script src="config.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-Object.assign(window.FB,{initializeApp,getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
+Object.assign(window.FB,{initializeApp,getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
 window.bootFirebase();
 </script>
 <script>
@@ -256,13 +250,12 @@ function analyze(){
 /* ---------- persistence (Firebase) ---------- */
 let CAN_EDIT=false, unsubs=[];
 function writeDoc(col,id,data){
-  if(!CAN_EDIT){toast('You are signed in as a viewer. Ask an editor to make changes.');return Promise.resolve()}
   data=Object.assign({},data,{at:Date.now(),by:ME||null});S[col][id]=data;render();
   return FB.setDoc(FB.doc(FB.db,col,id),JSON.parse(JSON.stringify(data))).catch(e=>toast(errText(e)));
 }
-function deleteDoc(col,id){if(!CAN_EDIT){toast('You are signed in as a viewer.');return}
+function deleteDoc(col,id){
   delete S[col][id];render();FB.deleteDoc(FB.doc(FB.db,col,id)).catch(e=>toast(errText(e)))}
-function errText(e){const c=e&&e.code;if(c==='permission-denied')return'Not saved: this login is view-only.';if(c==='unavailable')return'Offline: the change will sync when the connection returns.';return'Not saved ('+(c||'error')+'). Try again.'}
+function errText(e){const c=e&&e.code;if(c==='permission-denied')return'Not saved: the Firestore rules are not published yet.';if(c==='unavailable')return'Offline: the change will sync when the connection returns.';return'Not saved ('+(c||'error')+'). Try again.'}
 function logIt(o){const id=uid();writeDoc('log',id,Object.assign({toc:false},o,{ts:Date.now()}))}
 
 /* ---------- render ---------- */
@@ -270,7 +263,7 @@ function renderHeader(){
   document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}">${esc(d.name)} · ${esc(d.label)}</button>`).join('');
   const n=nowParts();document.getElementById('clock').textContent=`${n.hm} CST`;
   const s=document.getElementById('sync');
-  s.innerHTML=(MODE==='live'?'<i class="dot live"></i><span>Live</span>':MODE==='error'?'<i class="dot local"></i><span>Sync stopped</span>':'<i class="dot"></i><span>Connecting…</span>')+(ME?` <span>· ${esc(ME.split('@')[0])} ${CAN_EDIT?'(editor)':'(view only)'}</span> <button type="button" class="btn sm ghost" data-act="signout">Sign out</button>`:'');
+  s.innerHTML=(MODE==='live'?'<i class="dot live"></i><span>Live</span>':MODE==='error'?'<i class="dot local"></i><span>Sync stopped</span>':'<i class="dot"></i><span>Connecting…</span>')+` <button type="button" class="btn sm ghost" data-act="who" title="Name shown in the log">${ME?esc(ME):'Set your name'}</button>`;
 }
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k!=='ok').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
@@ -379,7 +372,7 @@ function renderLog(){
   let ls=Object.entries(S.log).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
   if(UI.lf==='toc')ls=ls.filter(([,l])=>!l.toc);if(UI.lf==='ccir')ls=ls.filter(([,l])=>l.ccir);if(UI.lf==='cas')ls=ls.filter(([,l])=>l.type==='cas');
   return `<div class="tools"><select id="lf" aria-label="Filter log"><option value="all">All entries</option><option value="toc">Not yet passed to TOC</option><option value="cas">Casualties only</option><option value="ccir">CCIR items</option></select><span class="small muted tnum">${ls.length} entries</span><span style="margin-left:auto"></span><button type="button" class="btn" data-act="copylog">Copy unpassed to clipboard</button></div>
-  <div class="card log">${ls.map(([id,l])=>`<div class="logrow ${l.ccir?'ccir':''}"><span class="t">${fmtT(l.ts)}<br>${esc(fmtDT(l.ts).split(' ')[0])}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by).split('@')[0])}</span>`:''}</div><label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-toc="${esc(id)}" ${l.toc?'checked':''}> TOC</label></div>`).join('')||'<div class="empty">Nothing logged yet. Status changes, exercises, missions, equipment and resupply all land here.</div>'}</div>`}
+  <div class="card log">${ls.map(([id,l])=>`<div class="logrow ${l.ccir?'ccir':''}"><span class="t">${fmtT(l.ts)}<br>${esc(fmtDT(l.ts).split(' ')[0])}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div><label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-toc="${esc(id)}" ${l.toc?'checked':''}> TOC</label></div>`).join('')||'<div class="empty">Nothing logged yet. Status changes, exercises, missions, equipment and resupply all land here.</div>'}</div>`}
 function a1Text(A){const s=statusCounts();const cas=ROSTER.filter(p=>person(p.pid).status!=='EFF');
   const ex=ROSTER.filter(p=>{const x=person(p.pid);return x.exStatus==='Owed'||x.exStatus==='In progress'});
   return {s,cas,ex}}
@@ -411,7 +404,7 @@ function render(){
   const A=analyze();renderHeader();renderTabs(A);
   const main=document.getElementById('main');
   const focus=document.activeElement&&document.activeElement.id==='q';const caret=focus?document.activeElement.selectionStart:0;
-  const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet.</div>':MODE==='local'?'<div class="banner">Shared storage is not available in this view, so changes save on this device only. Open the board from its claude.ai link to share it live with the TOC.</div>':'';
+  const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet. Add the project keys to config.js.</div>':MODE==='error'?'<div class="banner">Live sync stopped. If this is a new setup, publish the Firestore rules, then reload.</div>':MODE==='local'?'<div class="banner">Shared storage is not available in this view, so changes save on this device only. Open the board from its claude.ai link to share it live with the TOC.</div>':'';
   const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
   main.innerHTML=banner+body;
   const pf=document.getElementById('pf');if(pf)pf.value=UI.pf;const lf=document.getElementById('lf');if(lf)lf.value=UI.lf;
@@ -583,7 +576,8 @@ document.addEventListener('click',e=>{
   const a=t.dataset.act;const A=()=>analyze();
   if(a==='close')closeDlg();
   else if(a==='saveperson')savePerson();
-  else if(a==='signout'){FB&&FB.auth&&FB.signOut(FB.auth)}
+  else if(a==='who'){openDlg(`<form class="dlg" id="whoform"><h3>Your name for the log</h3><div class="fields"><label class="wide">Name or role (e.g. Stratton A1/4)<input name="who" maxlength="40" value="${esc(ME||'')}"></label></div><p class="small muted" style="margin:0">Saved on this device only. Every change you make is tagged with it.</p></form><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savewho">Save</button></div>`)}
+  else if(a==='savewho'){const v=new FormData(document.getElementById('whoform')).get('who').trim();ME=v||null;try{v?localStorage.setItem('tftiger-who',v):localStorage.removeItem('tftiger-who')}catch(e){}closeDlg();render()}
   else if(a==='rtd'){dlg.querySelector('select[name=status]').value='EFF';const es=dlg.querySelector('select[name=exStatus]');if(es.value&&es.value!=='Complete')es.value='Complete';dlg.querySelector('input[name=tocNotified]').checked=false;savePerson({_rtd:true})}
   else if(a==='tofloor'){const f=document.getElementById('pform');const pid=f.dataset.pid;const an=A();const base=an.c[pid]-Number(person(pid).adj||0);f.querySelector('input[name=adj]').value=an.fl-base}
   else if(a==='addmission')missionDlg(null,true);
@@ -623,26 +617,13 @@ function subscribe(){unsubs.forEach(u=>u());unsubs=[];
   ['people','missions','equip','resupply'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;MODE='live';render()},err=>{MODE='error';toast('Live sync stopped: '+(err.code||'error')+'. Reload the page.');render()})));
   unsubs.push(FB.onSnapshot(FB.query(FB.collection(FB.db,'log'),FB.orderBy('ts','desc'),FB.limit(600)),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.log=o;render()},()=>{}));
 }
-function showLogin(msg){const L=document.getElementById('login');L.hidden=false;const m=document.getElementById('loginmsg');m.textContent=msg||''}
-function hideLogin(){document.getElementById('login').hidden=true}
 window.bootFirebase=function(){
   const C=window.FIREBASE_CONFIG;
-  if(!C||!C.apiKey||String(C.apiKey).startsWith('PASTE')){MODE='setup';render();showLogin('This board is not connected to Firebase yet. Add the project keys to config.js.');return}
-  const app=FB.initializeApp(C);FB.auth=FB.getAuth(app);FB.db=FB.getFirestore(app);
-  FB.onAuthStateChanged(FB.auth,u=>{
-    if(u){ME=u.email||null;const eds=(window.EDITORS||[]).map(x=>String(x).toLowerCase());CAN_EDIT=eds.includes(String(u.email||'').toLowerCase());
-      document.body.classList.toggle('ro',!CAN_EDIT);hideLogin();MODE='connecting';subscribe()}
-    else{unsubs.forEach(f=>f());unsubs=[];for(const k in S)S[k]={};CAN_EDIT=false;ME=null;MODE='connecting';showLogin()}
-    render()});
+  if(!C||!C.apiKey||String(C.apiKey).startsWith('PASTE')){MODE='setup';render();return}
+  const app=FB.initializeApp(C);FB.db=FB.getFirestore(app);CAN_EDIT=true;
+  try{ME=localStorage.getItem('tftiger-who')||null}catch(e){}
+  subscribe();render();
 };
-document.getElementById('loginform').addEventListener('submit',async e=>{e.preventDefault();if(!FB||!FB.auth)return;
-  const ed=document.getElementById('edmode').checked;const pw=document.getElementById('lpw').value;
-  const em=ed?document.getElementById('lem').value.trim():(window.VIEWER_EMAIL||'');
-  const btn=document.getElementById('lgo');btn.disabled=true;document.getElementById('loginmsg').textContent='Signing in…';
-  try{await FB.signInWithEmailAndPassword(FB.auth,em,pw);document.getElementById('lpw').value=''}
-  catch(err){const c=err&&err.code||'';document.getElementById('loginmsg').textContent=(c.includes('invalid')||c.includes('wrong-password')||c.includes('user-not-found'))?(ed?'That email and password did not match.':'Wrong passcode.'):c.includes('too-many')?'Too many tries. Wait a minute and try again.':'Could not sign in ('+c+').'}
-  btn.disabled=false});
-document.getElementById('edmode').addEventListener('change',e=>{document.getElementById('emrow').hidden=!e.target.checked;document.getElementById('lpwl').firstChild.textContent=e.target.checked?'Password':'Class passcode'});
 </script>
 </body>
 </html>

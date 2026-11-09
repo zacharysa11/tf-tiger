@@ -1,19 +1,11 @@
 rules_version = '2';
-// TF Tiger A1/4 Board: any signed-in login can read; only the editor logins can write.
-// Keep this list in step with EDITORS in config.js.
+// TF Tiger A1/4 Board: open board. Anyone with the link can read and edit
+// the board's five collections; nothing else in the database is reachable.
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isEditor() {
-      return request.auth != null
-        && request.auth.token.email.lower() in [
-          'paste_editor_email'
-        ];
-    }
     match /{col}/{id} {
-      allow read: if request.auth != null
-        && col in ['people', 'missions', 'equip', 'resupply', 'log'];
-      allow write: if isEditor()
-        && col in ['people', 'missions', 'equip', 'resupply', 'log'];
+      allow read: if col in ['people', 'missions', 'equip', 'resupply', 'log'];
+      allow write: if col in ['people', 'missions', 'equip', 'resupply', 'log'];
     }
   }
 }
