@@ -62,7 +62,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .iconbtn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;height:30px;min-width:30px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font:600 12px var(--body)}
 .iconbtn svg{width:16px;height:16px}
 /* layout */
-.app{display:grid;grid-template-columns:76px 1fr;min-height:calc(100% - 50px)}
+.app{display:grid;grid-template-columns:76px minmax(0,1fr);min-height:calc(100% - 50px)}
 .rail{position:sticky;top:50px;align-self:start;height:calc(100vh - 50px);display:flex;flex-direction:column;gap:4px;padding:10px 8px;border-right:1px solid var(--line);background:var(--panel)}
 .rail button,.bnav button{position:relative;border:0;background:transparent;color:var(--muted);border-radius:10px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font:600 10.5px var(--body);letter-spacing:.02em}
 .rail button svg,.bnav button svg{width:21px;height:21px}
@@ -77,7 +77,7 @@ main{padding:14px 18px 60px;display:grid;gap:14px;align-content:start;min-width:
 .pagehead .sub{color:var(--muted);font-size:12px}
 .pagehead .right{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
 @media (max-width:860px){
-  .app{grid-template-columns:1fr}.rail{display:none}
+  .app{grid-template-columns:minmax(0,1fr)}.rail{display:none}
   .bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:4px 6px calc(4px + env(safe-area-inset-bottom))}
   main{padding:12px 12px 96px}
   .topbar{padding:7px 12px;gap:8px}
@@ -251,6 +251,10 @@ dialog::backdrop{background:rgba(3,6,10,.6);backdrop-filter:blur(2px)}
 .exr>span{font:700 11px var(--display);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding-top:2px}
 .exr p{margin:0}.exr ul{margin:0;padding-left:16px}
 @media (max-width:560px){.exr{grid-template-columns:1fr;gap:2px}}
+html,body{overflow-x:clip;max-width:100%}
+main,.card,.tablewrap{max-width:100%}
+.bnav{transform:translateZ(0);-webkit-transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform}
+@supports not (overflow:clip){body{overflow-x:hidden}}
 </style>
 </head>
 <body>
@@ -541,9 +545,10 @@ function renderTabs(A){
   const a3=actionQueue(A).filter(x=>x.k==='bad').length;const intelNew=Object.values(S.intel).filter(x=>x.kind==='report'&&!x.assessed&&(!x.day||x.day===UI.day)).length;
   const B={a14:pend,a26:intelNew,a3};const cur=secOf(UI.tab)[0];
   const btn=(s)=>`<button type="button" data-sec="${s[0]}" ${cur===s[0]?'aria-current="page"':''}>${ic(s[0])}<span>${s[1]}</span>${B[s[0]]?`<span class="badge">${B[s[0]]}</span>`:''}</button>`;
-  document.getElementById('tabs').innerHTML=SECTIONS.map(btn).join('');
+  const th=SECTIONS.map(btn).join('');const te=document.getElementById('tabs');if(te.__h!==th){te.innerHTML=th;te.__h=th}
   const prim=SECTIONS.slice(0,4);const moreOn=!prim.some(s=>s[0]===cur);
-  document.getElementById('bnav').innerHTML=prim.map(btn).join('')+`<button type="button" data-act="more" ${moreOn?'aria-current="page"':''}>${ic('more')}<span>${moreOn?esc(secOf(UI.tab)[1]):'More'}</span></button>`;
+  const bh=prim.map(btn).join('')+`<button type="button" data-act="more" ${moreOn?'aria-current="page"':''}>${ic('more')}<span>${moreOn?esc(secOf(UI.tab)[1]):'More'}</span></button>`;
+  const be=document.getElementById('bnav');if(be.__h!==bh){be.innerHTML=bh;be.__h=bh}
 }
 function moreSheet(){openDlg(`<div class="dlg"><h3>More</h3><div class="sheetbtns">${SECTIONS.slice(4).map(s=>`<button type="button" class="btn lg" data-sec="${s[0]}" style="display:flex;gap:8px;align-items:center;justify-content:center">${ic(s[0]).replace('<svg','<svg width="18" height="18"')}${s[1]}</button>`).join('')}</div></div><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
 function goSec(id){const s=SECTIONS.find(x=>x[0]===id);if(!s)return;setTab(LASTV[id]&&s[3].includes(LASTV[id])?LASTV[id]:s[2])}
