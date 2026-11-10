@@ -608,6 +608,7 @@ function actionQueue(A){const nowM=nowMinFor(UI.day);const out=[];
   const push=(o)=>{o.left=o.dueM!=null&&nowM!=null?o.dueM-nowM:null;if(!o.k)o.k=o.left!=null&&o.left<0?'bad':o.left!=null&&o.left<=10?'warn':'info';o.due=o.dueM!=null?fromMin(o.dueM):'';out.push(o)};
   A.dayMs.filter(m=>m.cyoa&&m.cyoa.toc&&m.state!=='Scrubbed').forEach(m=>{(cyoaSteps(m,nowM)||[]).filter(s=>!s.done).forEach(s=>push({dueM:toMin(m.cyoa.toc)-s.off,title:s.l,short:`CYOA ${s.k==='decided'?'decision':s.k==='cabs'?'to TOC':'handoff'}`,sub:`CYOA · ${mName(m)} ${m.start}${m.cyoa.resupply?' · resupply: '+m.cyoa.resupply:''}`,btns:`<button type="button" class="btn sm pri" data-cydone="${esc(m.id)}|${s.k}">Done</button>`}))});
   A.dayMs.filter(isMission).forEach(m=>{const st=m.state||'Planned';const g=m.go&&m.go.d;const id=esc(m.id);const S0=toMin(m.start),E0=toMin(m.end);
+    if(st==='Planned'&&m.frago&&(nowM==null||S0-nowM<=120)){const r=readiness(m.frago,m);if(r.state==='blocked')push({dueM:S0-45,k:'bad',title:`Blocked: ${mName(m)} ${m.start}`,short:`Blocked ${mName(m)}`,sub:r.blocked.join(' · '),btns:`<button type="button" class="btn sm" data-assign="${id}">Change FRAGO</button>`});else if(r.state==='input')push({dueM:S0-45,title:`WOC input for ${mName(m)} ${m.start}`,short:`Input ${mName(m)}`,sub:'Need: '+r.missing.join('; '),btns:`<button type="button" class="btn sm pri" data-go="${id}">Enter</button>`})}
     if(st==='Planned'&&!g&&(nowM==null||S0-nowM<=75))push({dueM:S0-15,title:`Go / No-Go: ${mName(m)} ${m.start}`,short:`Go/No-Go ${mName(m)}`,sub:`MC ${m.mc?short(m.mc):'not assigned'} · ${crew(m).length} pax · launches ${m.start}`,btns:`<button type="button" class="btn sm" data-go="${id}">Checklist</button><button type="button" class="btn sm okb" data-quickgo="${id}">GO</button>`});
     else if(st==='Planned'&&g==='GO'&&(nowM==null||S0-nowM<=10))push({dueM:S0,title:`Launch ${mName(m)}`,short:`Launch ${mName(m)}`,sub:`GO given ${fmtT(m.go.at)} · ${crew(m).length} pax`,btns:`<button type="button" class="btn sm pri" data-ops="${id}|Out">Mark out</button>`});
     if(st==='Out'&&(nowM==null||E0-nowM<=10))push({dueM:E0,title:`RTB due: ${mName(m)}`,short:`RTB ${mName(m)}`,sub:`Out since ${m.start} · window ends ${m.end}`,btns:`<button type="button" class="btn sm badb" data-ops="${id}|TIC">TIC</button><button type="button" class="btn sm pri" data-ops="${id}|RTB">RTB</button>`});
@@ -643,6 +644,7 @@ function renderA3(A){
    :`<div class="allclear">✓ All caught up.${upcoming?` Next: ${esc(mName(upcoming))} launches ${esc(upcoming.start)}${nowM!=null?' ('+rel(toMin(upcoming.start)-nowM)+')':''}.`:''}</div>`}
   </section>
   <section class="card" id="timeline"><h2>Timeline <span class="sub">Tap a bar to work that mission · ● = GO</span></h2>${timelineHtml(A)}</section>
+  ${fragoStatusCard()}
   ${cy.length?`<section class="card" id="cyoa"><h2>CYOA missions <span class="sub">T = TOC planning start · decide T-20 · pass to TOC T-10</span></h2><div class="lanegrid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))">${cy.map(m=>{const st=cyoaSteps(m,nowM);return `<div class="mission ${st&&st.some(s=>s.late)?'badc':st&&st.some(s=>s.soon)?'warnc':''}">
     <div class="mhead"><b>${esc(mName(m))}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(m.state||'Planned')}">${esc(m.state||'Planned')}</span><span style="margin-left:auto"></span><button type="button" class="btn sm" data-cyedit="${esc(m.id)}">Edit</button></div>
     <div class="small muted">TOC planning ${m.cyoa&&m.cyoa.toc?`<b class="mono" style="color:var(--ink)">${esc(m.cyoa.toc)}</b>`:'<b style="color:var(--bad)">time not set</b>'}${m.cyoa&&m.cyoa.offbase?' · leaves perimeter':''}${m.cyoa&&m.cyoa.resupply?` · resupply: ${esc(m.cyoa.resupply)}`:''}</div>
@@ -651,7 +653,7 @@ function renderA3(A){
   <section class="card" id="board"><h2>Missions <span class="sub">One tap moves each mission to its next step</span></h2>
    <div class="mrows">${ms.map(m=>{const ns=nextStep(m);const cas=casualtiesFor(m.id);return `<div class="mrow ${m.state==='Out'?'live':''}" id="a3-${esc(m.id)}">
     <div class="tm">${esc(m.start)}<small>–${esc(m.end)}</small></div>
-    <div style="min-width:0"><div class="nm">${esc(mName(m))} ${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}${m.go&&m.go.offbase?' <span class="pill st-Planned">off-base</span>':''}</div><div class="small muted">MC ${m.mc?esc(short(m.mc)):'—'} · ${crew(m).length} pax${m.go&&m.go.d==='NOGO'&&m.go.reason?' · NO-GO: '+esc(m.go.reason):''}</div>${stepsHtml(m)}</div>
+    <div style="min-width:0"><div class="nm">${esc(mName(m))} ${m.frago&&(m.state||'Planned')==='Planned'?readyPill(m.frago,m):''} ${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}${m.go&&m.go.offbase?' <span class="pill st-Planned">off-base</span>':''}</div><div class="small muted">MC ${m.mc?esc(short(m.mc)):'—'} · ${crew(m).length} pax${m.go&&m.go.d==='NOGO'&&m.go.reason?' · NO-GO: '+esc(m.go.reason):''}</div>${stepsHtml(m)}</div>
     <div class="acts">${ns?`<button type="button" class="btn ${(nowM!=null&&m.state==='Planned'&&toMin(m.start)-nowM>75)||(nowM==null&&m.state==='Planned'&&m!==ms.find(x=>x.state==='Planned'))?'':'pri'} ${ns.c||''}" ${ns.a}>${esc(ns.l)}</button>`:`<span class="pill ${m.state==='Scrubbed'?'st-Scrubbed':'st-Complete'}">${m.state==='Scrubbed'?'Scrubbed':'Done'}</span>`}${m.lane!=='CYOA'&&!m.frago&&m.state!=='Complete'&&m.state!=='Scrubbed'?`<button type="button" class="btn sm" data-assign="${esc(m.id)}">Assign FRAGO</button>`:''}<button type="button" class="btn" data-msheet="${esc(m.id)}" aria-label="More actions">⋯</button></div></div>`}).join('')||'<div class="empty">No missions on this day.</div>'}</div></section>
   <section class="card" id="feed"><h2>Ops feed <span class="sub">Missions, decisions, AARs and CCIRs</span></h2>
    <div class="log">${feed.map(([id,l])=>`<div class="logrow ${l.ccir&&!l.rep?'ccir':''}"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div>${l.ccir?`<label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-rep="${esc(id)}" ${l.rep?'checked':''}> Reported</label>`:'<span></span>'}</div>`).join('')||'<div class="empty">Nothing logged yet today.</div>'}</div></section>
@@ -679,7 +681,7 @@ function missionSheet(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!
    ${st==='Planned'?`<button type="button" class="btn badb" data-ops="${i}|Scrub">Scrub</button>`:''}
    ${m.cyoa?`<button type="button" class="btn" data-cyedit="${i}">Edit CYOA</button>`:''}
   </div>
-  ${fragoCard(fragoOf(m))}
+  ${fragoCard(fragoOf(m),m)}
   ${m.aar?`<div class="small"><b>AAR:</b> ${esc(m.aar.result)}${m.aar.summary?' · '+esc(m.aar.summary):''}${m.aar.improve?'<br><b>Improve:</b> '+esc(m.aar.improve):''} <button type="button" class="btn sm" data-aarcopy="${i}">Copy AAR</button></div>`:''}
   </div><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
 function quickLog(kind){const sel=document.getElementById('opsmid');const mid=sel?sel.value:'';const m=mid?allMissions().find(x=>x.id===mid):null;const where=m?` · ${mName(m)} ${m.start}`:'';
@@ -793,14 +795,59 @@ const FRAGOS=[
   data:[['orig','Original mission reattempted','tx'],['fixed','What was changed from the first attempt','ta']]}
 ];
 const FR=Object.fromEntries(FRAGOS.map(f=>[f.id,f]));
+/* ---------- FRAGO prerequisites & WOC inputs ---------- */
+const PREREQ={
+ globalhawk:{inputs:[['airfield','Possible airfield grid(s) from A2/6']]},
+ sentinel:{},
+ ironchef:{inputs:[['village','Village last-known grid (ATF staff)'],['food','Food supplies named by instructor']]},
+ uphold:{inputs:[['site','Site location / what CABS/CC needs from the survey']]},
+ reaper:{},
+ depredation:{soft:[['sentinel','Sentinel ISR on enemy base helps']],inputs:[['base','Enemy base location (if known)',1]]},
+ stronghold:{},
+ wgs:{inputs:[['tower1','Tower 1 grid from A2']]},
+ c130:{soft:[['gtas','Drop grid depends on GTAS'],['redhorse','Red Horse enables larger drops']],inputs:[['dz','Drop zone grid from A2/6'],['drop','Drop details from A4']]},
+ blackout:{intel:'Enemy tower locations',inputs:[['towers','Enemy tower locations (earlier missions / CABS/CC)']]},
+ seniorscout:{soft:[['sentinel','Sentinel or Depredation gives enemy base location'],['depredation','']],inputs:[['target','Enemy base or repeater location']]},
+ compasscall:{soft:[['sentinel','Sentinel or Depredation gives enemy base location'],['depredation','']],inputs:[['target','Enemy base or repeater location']]},
+ harm:{intel:'Enemy jammer location',inputs:[['jammer','Enemy jammer location']]},
+ aries:{intel:'Enemy collection device location',inputs:[['device','Enemy collection device location']]},
+ gtas:{},
+ redhorse:{needs:['gtas']},
+ commando:{},
+ muzzler:{inputs:[['uxo','UXO location from A2']]},
+ tidalwave:{inputs:[['rhexists','Enemy Red Horse present? (if yes, destroy it before GTAS)']]},
+ reattempt:{failed:true,inputs:[['orig','Original mission being reattempted']]}
+};
+function fragoDone(){const s=new Set();allMissions().forEach(m=>{if(m.frago&&m.state==='Complete'&&!(m.aar&&/Not complete|Failed/.test(m.aar.result||'')))s.add(m.frago)});return s}
+function failedMissions(){return allMissions().filter(m=>m.state==='Scrubbed'||(m.aar&&/Not complete|Failed|Partial/.test(m.aar.result||'')))}
+function readiness(fid,m){const p=PREREQ[fid]||{};const done=fragoDone();const out={blocked:[],missing:[],soft:[],ok:true};
+  (p.needs||[]).forEach(k=>{if(!done.has(k))out.blocked.push(`${FR[k].no} ${FR[k].name} must be complete first`)});
+  if(p.failed&&!failedMissions().length)out.blocked.push('No failed or partial mission to reattempt yet');
+  (p.soft||[]).forEach(([k,l])=>{if(l&&!done.has(k))out.soft.push(l)});
+  const inp=(m&&m.inputs)||{};(p.inputs||[]).forEach(([k,l,opt])=>{if(!opt&&!String(inp[k]||'').trim())out.missing.push(l)});
+  out.state=out.blocked.length?'blocked':out.missing.length?'input':'ready';return out}
+function readyPill(fid,m){const r=readiness(fid,m);return r.state==='blocked'?'<span class="pill e-NMC">Blocked</span>':r.state==='input'?'<span class="pill e-PMC">Needs WOC input</span>':'<span class="pill e-FMC">Ready</span>'}
+function prereqHtml(fid,m,editable){if(!fid)return'';const p=PREREQ[fid]||{};const r=readiness(fid,m);const inp=(m&&m.inputs)||{};
+  const lines=[...r.blocked.map(x=>`<li class="bad">${esc(x)}</li>`),...r.soft.map(x=>`<li class="info">${esc(x)}</li>`)];
+  const fields=(p.inputs||[]).map(([k,l,o])=>editable?`<label class="wide">${esc(l)}${o?' (optional)':''}<input name="inp_${k}" value="${esc(inp[k]||'')}"></label>`:`<div class="small">${esc(l)}: ${inp[k]?`<b>${esc(inp[k])}</b>`:'<span style="color:var(--warn)">not yet</span>'}</div>`).join('');
+  if(!lines.length&&!fields)return `<div class="small"><span class="pill e-FMC">Ready</span> No prerequisites.</div>`;
+  return `<div class="fl" style="margin-top:4px">Prerequisites &amp; WOC inputs ${readyPill(fid,m)}</div>${lines.length?`<ul class="alerts">${lines.join('')}</ul>`:''}${fields?(editable?`<div class="fields">${fields}</div>`:fields):''}`}
+function fragoStatusCard(){const done=fragoDone();
+  return `<details class="card" id="fragostatus"><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of 20 complete · tap to expand</span></summary>
+  <div class="mrows" style="margin-top:10px">${FRAGOS.map(f=>{const r=readiness(f.id,null);const isDone=done.has(f.id);const p=PREREQ[f.id]||{};
+   return `<div class="mrow" style="grid-template-columns:44px minmax(0,1fr) auto"><div class="tm">${f.no}</div><div style="min-width:0"><div class="nm" style="font-size:14px">${esc(f.name)} <span class="small muted" style="font-family:var(--body);font-weight:400">${esc(f.type)}</span></div>
+   <div class="small muted">${[...r.blocked,...r.soft].map(esc).join(' · ')||((p.inputs||[]).filter(x=>!x[2]).length?'WOC provides: '+(p.inputs||[]).filter(x=>!x[2]).map(x=>esc(x[1])).join('; '):'No prerequisites')}</div></div>
+   <span class="pill ${isDone?'st-Complete':r.blocked.length?'e-NMC':'e-FMC'}">${isDone?'Done':r.blocked.length?'Blocked':'Available'}</span></div>`}).join('')}</div></details>`}
+
 function fragoOf(m){return m&&m.frago?FR[m.frago]:null}
-function fragoOpts(sel){return `<option value="">— none / MCE plan —</option>${['ISR / recon','Offense','Comms','Logistics','Engineering','Support'].map(c=>`<optgroup label="${c}">${FRAGOS.filter(f=>f.cat===c).map(f=>`<option value="${f.id}" ${sel===f.id?'selected':''}>${f.no} ${esc(f.name)} · ${esc(f.type)}</option>`).join('')}</optgroup>`).join('')}`}
-function fragoCard(f){return f?`<div class="fragobox"><div><b>${f.no} ${esc(f.name)}</b> <span class="pill st-Planned">${esc(f.cat)}</span>${f.casualty?` <span class="pill e-PMC">Accept ${f.casualty}% cas</span>`:''}</div><div class="small">${esc(f.mission)}</div><div class="small"><b>Complete when:</b> ${esc(f.complete)}</div>${f.unlock?`<div class="small"><b>Unlocks:</b> ${esc(f.unlock)}</div>`:''}${['globalhawk','sentinel','ironchef','uphold','reaper'].includes(f.id)?'<div class="small"><b>Unlocks:</b> 2.1–2.5 together unlock the upgraded digital map (WOC/TOC) and physical maps via Hercules</div>':''}<div class="small muted">45 min plan · 60 min execute · 30 min debrief · ≤10 pax · OTS instructor · GO/NO-GO from A3</div></div>`:''}
+function fragoOpts(sel){return `<option value="">— none / MCE plan —</option>${['ISR / recon','Offense','Comms','Logistics','Engineering','Support'].map(c=>`<optgroup label="${c}">${FRAGOS.filter(f=>f.cat===c).map(f=>`<option value="${f.id}" ${sel===f.id?'selected':''}>${readiness(f.id,null).blocked.length?'⛔ ':fragoDone().has(f.id)?'✓ ':''}${f.no} ${esc(f.name)} · ${esc(f.type)}</option>`).join('')}</optgroup>`).join('')}`}
+function fragoCard(f,m){return f?fragoCard0(f)+`<div class="fragobox" style="border-left-color:var(--info)">${prereqHtml(f.id,m,false)}</div>`:''}
+function fragoCard0(f){return f?`<div class="fragobox"><div><b>${f.no} ${esc(f.name)}</b> <span class="pill st-Planned">${esc(f.cat)}</span>${f.casualty?` <span class="pill e-PMC">Accept ${f.casualty}% cas</span>`:''}</div><div class="small">${esc(f.mission)}</div><div class="small"><b>Complete when:</b> ${esc(f.complete)}</div>${f.unlock?`<div class="small"><b>Unlocks:</b> ${esc(f.unlock)}</div>`:''}${['globalhawk','sentinel','ironchef','uphold','reaper'].includes(f.id)?'<div class="small"><b>Unlocks:</b> 2.1–2.5 together unlock the upgraded digital map (WOC/TOC) and physical maps via Hercules</div>':''}<div class="small muted">45 min plan · 60 min execute · 30 min debrief · ≤10 pax · OTS instructor · GO/NO-GO from A3</div></div>`:''}
 
 function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:'',end:'',cyoa:{toc:'',resupply:'',offbase:false}};const cy=m.cyoa||{};
   openDlg(`<form class="dlg" id="cyform" data-mid="${esc(id||'')}"><h3>${id?'Edit CYOA mission':'Add CYOA mission'} <span class="small muted">${esc(dayObj(id?m.day:UI.day).name)}</span></h3>
   <div class="fields"><label class="wide">FRAGO chosen<select name="frago" id="cyfrago">${fragoOpts(m.frago||'')}</select></label></div>
-  <div id="cyfragocard">${fragoCard(fragoOf(m))}</div>
+  <div id="cyfragocard">${fragoCard(fragoOf(m),m)}</div>
   <div class="fields"><label class="wide">Name on the board (optional)<input name="note" value="${esc(m.note||'')}" placeholder="Defaults to the FRAGO name"></label>
   <label>TOC planning starts (T)<input name="toc" id="cytoc" inputmode="numeric" pattern="[0-9]{4}" value="${esc(cy.toc||'')}" required placeholder="0700"></label>
   <label>Depart (T+45)<input name="start" id="cystart" inputmode="numeric" pattern="[0-9]{4}" value="${esc(m.start||'')}" required></label>
@@ -820,7 +867,8 @@ function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)retur
   const sec=(t,items)=>`<div class="fl" style="margin-top:4px">${t}</div><div class="picker" style="max-height:none">${items.map(([k,l])=>`<label style="grid-template-columns:22px 1fr"><input type="checkbox" name="ck_${k}" ${ck[k]||ck[k.slice(2)]?'checked':''}><span>${esc(l)}</span></label>`).join('')}</div>`;
   openDlg(`<form class="dlg" id="goform" data-mid="${esc(id)}"><h3>Go/No-Go · ${esc(mName(m))} ${esc(m.start)} ${goPill(m)}</h3>
   <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · <span style="${n>10?'color:var(--bad);font-weight:700':''}">${n} pax${n>10?' (over 10)':''}</span></div>
-  ${fragoCard(f)}
+  ${fragoCard0?(f?fragoCard0(f):''):''}
+  ${f?`<div class="fragobox" style="border-left-color:var(--info)">${prereqHtml(f.id,m,true)}</div>`:''}
   ${flags.length?`<ul class="alerts">${flags.map(a=>`<li class="${a.k}">${esc(a.t)}</li>`).join('')}</ul>`:''}
   <label class="small" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" name="offbase" ${(g.offbase||(m.cyoa&&m.cyoa.offbase)||f)?'checked':''}> Mission leaves the base perimeter</label>
   ${f?sec(`${f.name} specific`,f.checks.map((l,i)=>['f_'+i,l])):''}
@@ -832,12 +880,14 @@ function saveGo(d){const f=document.getElementById('goform');const fd=new FormDa
   const list=goList(m);const checks={};list.forEach(([k])=>checks[k]=fd.get('ck_'+k)==='on');const reason=String(fd.get('reason')||'').trim();
   if(d==='NOGO'&&!reason){toast('Add the reason for the NO-GO.');return}
   if(d==='GO'&&crew(m).length>10&&!confirmOnce('go10','Crew is over 10. Every FRAGO caps teams at 10. Tap GO again to override.'))return;
+  const inputs=Object.assign({},m.inputs||{});(PREREQ[m.frago]&&PREREQ[m.frago].inputs||[]).forEach(([k])=>{const v=fd.get('inp_'+k);if(v!=null)inputs[k]=String(v).trim()});
+  if(d==='GO'&&m.frago){const r=readiness(m.frago,{inputs});if(r.state!=='ready'&&!confirmOnce('goreq',(r.blocked[0]||'Missing: '+r.missing.join(', '))+'. Tap GO again to override.'))return}
   const miss=list.filter(([k])=>!checks[k]).length;
-  patchMission(id,{go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
+  patchMission(id,{inputs,go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
   logIt({type:'go',mid:id,text:`${d==='GO'?'GO':'NO-GO'}: ${mName(m)} ${m.start}${reason?' ('+reason+')':''}${d==='GO'&&miss?` · ${miss} checklist item${miss>1?'s':''} open`:''}${fd.get('offbase')==='on'?' · off-perimeter':''}`});closeDlg()}
 function assignDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;
   openDlg(`<form class="dlg" id="asform" data-mid="${esc(id)}"><h3>Assign FRAGO · ${esc(m.lane)} ${esc(m.start)}</h3><div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax</div>
-  <div class="fields"><label class="wide">FRAGO<select name="frago" id="asfrago">${fragoOpts(m.frago||'')}</select></label></div><div id="asfragocard">${fragoCard(fragoOf(m))}</div></form>
+  <div class="fields"><label class="wide">FRAGO<select name="frago" id="asfrago">${fragoOpts(m.frago||'')}</select></label></div><div id="asfragocard">${fragoCard(fragoOf(m),m)}</div></form>
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveassign">Assign</button></div>`)}
 function durMin(a,b){return a&&b?Math.round((b-a)/60000):null}
 function aarField(k,label,type,val){const nmk='d_'+k;
