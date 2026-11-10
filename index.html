@@ -260,6 +260,15 @@ main,.card,.tablewrap{max-width:100%}
 .staffr:hover{border-color:var(--muted)}
 .sr{font:700 11px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
 .sr.none{color:var(--dim);font-weight:600}
+.gochk{display:grid;gap:4px}
+.gor{display:grid;grid-template-columns:24px 110px 1fr;gap:8px;align-items:center;padding:7px 9px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
+.gor .gi{font-weight:800;text-align:center}.gor.ok .gi{color:var(--ok)}.gor.warn{border-color:color-mix(in srgb,var(--warn) 50%,transparent)}.gor.warn .gi{color:var(--warn)}.gor.bad{border-color:var(--bad);background:var(--badbg)}.gor.bad .gi{color:var(--bad)}
+.gotick{display:grid;gap:6px}.gotick label{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line2);border-radius:9px;cursor:pointer;font-weight:600}
+.gotick input{width:20px;height:20px;accent-color:var(--ok)}
+.cychips{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.cyc{border:1px solid var(--line2);background:var(--soft);border-radius:6px;padding:2px 7px;font:600 11px var(--mono);cursor:pointer}
+.cyc.done{background:var(--okbg);color:var(--ok);border-color:transparent}.cyc.soon{background:var(--warnbg);color:var(--warn);border-color:var(--warn)}.cyc.late{background:var(--badbg);color:var(--bad);border-color:var(--bad)}
+@media (max-width:560px){.gor{grid-template-columns:20px 1fr}.gor>span:last-child{grid-column:2}}
 </style>
 </head>
 <body>
@@ -527,12 +536,12 @@ function cubText(which,A){
 /* ---------- render ---------- */
 const ICONS={a26:'<path d="M12 12v9M8 21h8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 5.8a6 6 0 0 0 0 8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 3a10 10 0 0 0 0 14M19 3a10 10 0 0 1 0 14"/>',a14:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 11l3-2 3 2v5l-3 2-3-2z"/>',overview:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',personnel:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.4c3 0 5.4 2.2 5.4 5.6"/>',missions:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',a3:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',equipment:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',resupply:'<path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',log:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',cub:'<path d="M3 4h18v12H3zM12 16v4M8 20h8"/>',more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 function ic(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`}
-const SECTIONS=[['overview','Overview','overview',['overview']],['a14','A1/4','personnel',['personnel','equipment','resupply']],['a26','A2/6','intel',['intel','comms']],['a3','A3','a3',['a3','missions']],['log','Log','log',['log']],['cub','CUB','cub',['cub']]];
-const SUBL={personnel:'People',equipment:'Equipment',resupply:'Resupply',intel:'A2 · Intel',comms:'A6 · Comms',a3:'Ops',missions:'Schedule & crews'};
+const SECTIONS=[['overview','Overview','overview',['overview']],['a14','A1/4','personnel',['personnel','equipment','resupply']],['a26','A2/6','intel',['intel','comms']],['a3','A3','a3',['a3','cyoa','grids','missions']],['log','Log','log',['log']],['cub','CUB','cub',['cub']]];
+const SUBL={personnel:'People',equipment:'Equipment',resupply:'Resupply',intel:'A2 · Intel',comms:'A6 · Comms',a3:'Ops',cyoa:'CYOA menu',grids:'Grids & sites',missions:'Schedule'};
 const TABS=SECTIONS.map(s=>[s[2],s[1]]);
 function secOf(v){return SECTIONS.find(s=>s[3].includes(v))||SECTIONS[0]}
 const LASTV={};
-const TITLES={overview:['Overview','Task force status at a glance'],personnel:['A1/4 · People','Accountability, casualties, exercises, gear'],missions:['A3 · Schedule & crews','MCE schedule and crew assignments'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['A1/4 · Equipment','Status, issue and serials'],resupply:['A1/4 · Resupply','A1/4 approves'],intel:['A2/6 · Intel','PIRs, reports, ISR, assessment'],comms:['A2/6 · Comms','Comms plan, callsigns, LMRs, comm checks'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A2, A3, A4 and A6 slides']};
+const TITLES={overview:['Overview','Task force status at a glance'],personnel:['A1/4 · People','Accountability, casualties, exercises, gear'],missions:['A3 · Schedule & crews','MCE schedule and crew assignments'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['A1/4 · Equipment','Status, issue and serials'],resupply:['A1/4 · Resupply','A1/4 approves'],cyoa:['A3 · CYOA menu','All missions, prerequisites and EXORD overviews'],grids:['A3 · Grids & sites','Every location from intel and AARs'],intel:['A2/6 · Intel','PIRs, reports, ISR, assessment'],comms:['A2/6 · Comms','Comms plan, callsigns, LMRs, comm checks'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A2, A3, A4 and A6 slides']};
 function utcHM(){const d=new Date();return String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
 function renderHeader(A){
   document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}" title="${esc(d.name+' · '+d.label)}"><b>D${d.id}</b>${esc(d.label.split(' ').slice(0,2).join(' '))}</button>`).join('');
@@ -545,7 +554,7 @@ function renderHeader(A){
     `<span class="tick ${out?'':'ok'}" data-tab="a3">Out <span class="mono">${out}</span></span>`+
     `<span class="tick ${ccir?'bad':''}" data-tab="a3">CCIR <span class="mono">${ccir}</span></span>`+
     `<span class="tick" data-tab="personnel">PAX <span class="mono">${s.EFF}/${ROSTER.length}</span></span>`;
-  document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Name shown in the log">${ME?esc(ME):'Set name'}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
+  document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
 }
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
@@ -562,7 +571,9 @@ function goSec(id){const s=SECTIONS.find(x=>x[0]===id);if(!s)return;setTab(LASTV
 let THEME='dark';try{THEME=localStorage.getItem('tftiger-mode')||'dark'}catch(e){}
 document.documentElement.dataset.mode=THEME;
 function setTab(k){if(!TITLES[k])return;UI.tab=k;LASTV[secOf(k)[0]]=k;try{history.replaceState(null,'','#'+k);localStorage.setItem('tftiger-tab',k)}catch(e){}if(dlg.open)closeDlg();render();window.scrollTo(0,0)}
-(function(){const h=(location.hash||'').slice(1);let k=TITLES[h]?h:null;if(!k){try{k=localStorage.getItem('tftiger-tab')}catch(e){}}if(k&&TITLES[k])UI.tab=k})();
+const ROLE_HOME={'ATF/CC':'overview','Deputy CC':'overview','A1':'personnel','A2':'intel','A3':'a3','A4':'equipment','A6':'comms','A1/4':'personnel','A2/6':'intel','CABS/CC':'a3'};
+let ROLE='';try{ROLE=localStorage.getItem('tftiger-role')||''}catch(e){}
+(function(){const h=(location.hash||'').slice(1);let k=TITLES[h]?h:null;if(!k&&ROLE_HOME[ROLE])k=ROLE_HOME[ROLE];if(!k){try{k=localStorage.getItem('tftiger-tab')}catch(e){}}if(k&&TITLES[k])UI.tab=k})();
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TITLES[h]&&h!==UI.tab){UI.tab=h;render()}});
 document.addEventListener('keydown',e=>{const tg=e.target;const typing=tg&&(/INPUT|TEXTAREA|SELECT/.test(tg.tagName)||tg.isContentEditable);
   if(e.key==='Enter'&&tg&&tg.id==='opstxt'){e.preventDefault();quickLog();return}
@@ -580,7 +591,7 @@ function render(){
   const [t,sub]=TITLES[UI.tab];const d=dayObj(UI.day);
   const sec=secOf(UI.tab);const subs=sec[3].length>1?`<div class="subtabs" role="tablist">${sec[3].map(v=>`<button type="button" role="tab" data-tab="${v}" aria-selected="${UI.tab===v}">${esc(SUBL[v])}</button>`).join('')}</div>`:'';
   const head=subs+(UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`);
-  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,intel:renderIntel,comms:renderComms,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
+  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,cyoa:renderCyoaMenu,grids:renderGrids,intel:renderIntel,comms:renderComms,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
   let seen='1';try{seen=localStorage.getItem('tftiger-toured')}catch(e){}
   const welcome=!seen&&!TOUR?'<div class="welcome"><b>New to the board?</b><span class="small">A 2-minute guided tour shows you where everything is.</span><span style="margin-left:auto"></span><button type="button" class="btn sm ghost" data-act="welcomeno">No thanks</button><button type="button" class="btn sm pri" data-act="welcomego">Start tour</button></div>':'';
   main.innerHTML=banner+welcome+head+body;
@@ -646,42 +657,6 @@ function timelineHtml(A){const ms=A.dayMs.filter(isMission);if(!ms.length)return
   const rows=lanes.map(l=>`<div class="tlrow"><span class="ln">${esc(l.replace('Tiger ','T'))}</span>${ms.filter(m=>m.lane===l).map(m=>{const g=m.go&&m.go.d;return `<button type="button" class="tlbar ${esc(m.state||'Planned')} ${g==='GO'?'go':g==='NOGO'?'nogo':''}" data-msheet="${esc(m.id)}" style="left:${pct(toMin(m.start))};width:calc(${pct(toMin(m.end))} - ${pct(toMin(m.start))} - 2px)" title="${esc(mName(m)+' '+m.start+'–'+m.end+' · '+(m.state||'Planned'))}">${esc(m.lane==='CYOA'?mName(m):(m.mc?short(m.mc):m.start))}</button>`}).join('')}</div>`).join('');
   const now=nowM!=null&&nowM>=lo&&nowM<=hi?`<div class="tlnow" style="left:calc(70px + (100% - 80px) * ${(nowM-lo)/span})"><span>${fromMin(nowM)}</span></div>`:'';
   return `<div class="tl"><div class="tlin">${hrs}${now}<div style="position:relative">${rows}</div></div></div>`}
-function renderA3(A){
-  const nowM=nowMinFor(UI.day);const ms=A.dayMs.filter(isMission);const d=dayObj(UI.day);
-  const c=k=>ms.filter(m=>(m.state||'Planned')===k).length;const owed=ms.filter(aarOwed).length;
-  const q=actionQueue(A);const shown=q.slice(0,8);
-  const upcoming=ms.filter(m=>m.state==='Planned'&&(nowM==null||toMin(m.start)>nowM)).sort((a,b)=>toMin(a.start)-toMin(b.start))[0];
-  const cy=A.dayMs.filter(m=>m.lane==='CYOA'||m.cyoa);
-  const missOpts=[['','General'],...ms.filter(m=>m.state!=='Scrubbed').map(m=>[m.id,`${mName(m)} ${m.start}${m.state==='Out'?' · OUT':''}`])];
-  const defMid=UI.opsMid!=null?UI.opsMid:(ms.find(m=>m.state==='Out')||{}).id||'';
-  const feed=Object.entries(S.log).filter(([,l])=>['ops','go','aar','cyoa','msn'].includes(l.type)||l.ccir).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).slice(0,15);
-  return `<div class="pagehead"><h1>A3 Operations</h1><span class="sub">${esc(d.name)} ${esc(d.label)}${nowM==null?' · not today: times shown without countdowns':''} · keys <span class="kbd">/</span> log <span class="kbd">1-8</span> tabs</span>
-   <span class="right"><button type="button" class="btn sm pri" data-act="addcyoa">+ CYOA mission</button><button type="button" class="btn sm" data-act="copya3">Copy A3 slide</button><button type="button" class="btn sm" data-act="turnover">Turnover</button></span></div>
-  <div class="kpis tnum"><div class="kpi ${q.some(x=>x.k==='bad')?'bad':'ok'}"><b>${q.filter(x=>x.k==='bad').length}</b><span>Overdue</span></div><div class="kpi info"><b>${c('Planned')}</b><span>Planned</span></div><div class="kpi info"><b>${c('Out')}</b><span>Out now</span></div><div class="kpi warn"><b>${c('RTB')}</b><span>RTB</span></div><div class="kpi ok"><b>${c('Complete')}</b><span>Complete</span></div><div class="kpi ${owed?'bad':'ok'}"><b>${owed}</b><span>AARs owed</span></div></div>
-  ${(()=>{const done=new Set(allMissions().filter(x=>x.state==='Complete'&&x.frago).map(x=>x.frago));const m5=['globalhawk','sentinel','ironchef','uphold','reaper'];const n=m5.filter(k=>done.has(k)).length;return `<div class="small muted" id="unlocks">Map upgrade: <b style="color:var(--ink)">${n}/5</b> of CYOA 2.1–2.5 complete${n<5?' (still need '+m5.filter(k=>!done.has(k)).map(k=>FR[k].name).join(', ')+')':' · upgraded maps available via Hercules'} · SIPR (MS Teams): <b style="color:var(--ink)">${done.has('wgs')?'enabled':'not yet (WGS)'}</b></div>`})()}
-  <section class="card" id="queue"><h2>Action queue <span class="sub">What needs you next, most urgent first</span></h2>
-   ${shown.length?`<div class="queue">${shown.map(x=>`<div class="qi ${x.k}"><div class="due">${x.due?esc(x.due):'—'}<small>${x.left!=null?rel(x.left):x.due?'due':'now'}</small></div><div><div class="tt">${esc(x.title)}</div><div class="ss">${esc(x.sub)}</div></div><div class="act">${x.btns}</div></div>`).join('')}</div>${q.length>shown.length?`<p class="small muted" style="margin:8px 0 0">+${q.length-shown.length} more after these</p>`:''}`
-   :`<div class="allclear">✓ All caught up.${upcoming?` Next: ${esc(mName(upcoming))} launches ${esc(upcoming.start)}${nowM!=null?' ('+rel(toMin(upcoming.start)-nowM)+')':''}.`:''}</div>`}
-  </section>
-  <section class="card" id="timeline"><h2>Timeline <span class="sub">Tap a bar to work that mission · ● = GO</span></h2>${timelineHtml(A)}</section>
-  ${fragoStatusCard()}
-  ${cy.length?`<section class="card" id="cyoa"><h2>CYOA missions <span class="sub">T = TOC planning start · decide T-20 · pass to TOC T-10</span></h2><div class="lanegrid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))">${cy.map(m=>{const st=cyoaSteps(m,nowM);return `<div class="mission ${st&&st.some(s=>s.late)?'badc':st&&st.some(s=>s.soon)?'warnc':''}">
-    <div class="mhead"><b>${esc(mName(m))}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(m.state||'Planned')}">${esc(m.state||'Planned')}</span><span style="margin-left:auto"></span><button type="button" class="btn sm" data-cyedit="${esc(m.id)}">Edit</button></div>
-    <div class="small muted">TOC planning ${m.cyoa&&m.cyoa.toc?`<b class="mono" style="color:var(--ink)">${esc(m.cyoa.toc)}</b>`:'<b style="color:var(--bad)">time not set</b>'}${m.cyoa&&m.cyoa.offbase?' · leaves perimeter':''}${m.cyoa&&m.cyoa.resupply?` · resupply: ${esc(m.cyoa.resupply)}`:''}</div>
-    ${st?st.map(s=>`<label class="cystep ${s.done?'done':s.late?'late':s.soon?'soon':''}"><input type="checkbox" data-cy="${esc(m.id)}|${s.k}" ${s.done?'checked':''}><span class="mono">T-${s.off} ${s.due}</span><span>${esc(s.l)}</span><span class="mono small">${s.done?fmtT(s.done):s.left!=null?rel(s.left):''}</span></label>`).join(''):''}
-    <div class="tools"><button type="button" class="btn sm" data-msheet="${esc(m.id)}">Work mission</button></div></div>`}).join('')}</div></section>`:''}
-  <section class="card" id="board"><h2>Missions <span class="sub">One tap moves each mission to its next step</span></h2>
-   <div class="mrows">${ms.map(m=>{const ns=nextStep(m);const cas=casualtiesFor(m.id);return `<div class="mrow ${m.state==='Out'?'live':''}" id="a3-${esc(m.id)}">
-    <div class="tm">${esc(m.start)}<small>–${esc(m.end)}</small></div>
-    <div style="min-width:0"><div class="nm">${esc(mName(m))} ${m.frago&&(m.state||'Planned')==='Planned'?readyPill(m.frago,m):''} ${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}${m.go&&m.go.offbase?' <span class="pill st-Planned">off-base</span>':''}</div><div class="small muted">MC ${m.mc?esc(short(m.mc)):'—'} · ${crew(m).length} pax${m.go&&m.go.d==='NOGO'&&m.go.reason?' · NO-GO: '+esc(m.go.reason):''}</div>${stepsHtml(m)}</div>
-    <div class="acts">${ns?`<button type="button" class="btn ${(nowM!=null&&m.state==='Planned'&&toMin(m.start)-nowM>75)||(nowM==null&&m.state==='Planned'&&m!==ms.find(x=>x.state==='Planned'))?'':'pri'} ${ns.c||''}" ${ns.a}>${esc(ns.l)}</button>`:`<span class="pill ${m.state==='Scrubbed'?'st-Scrubbed':'st-Complete'}">${m.state==='Scrubbed'?'Scrubbed':'Done'}</span>`}${m.lane!=='CYOA'&&!m.frago&&m.state!=='Complete'&&m.state!=='Scrubbed'?`<button type="button" class="btn sm" data-assign="${esc(m.id)}">Assign FRAGO</button>`:''}<button type="button" class="btn" data-msheet="${esc(m.id)}" aria-label="More actions">⋯</button></div></div>`}).join('')||'<div class="empty">No missions on this day.</div>'}</div></section>
-  <section class="card" id="feed"><h2>Ops feed <span class="sub">Missions, decisions, AARs and CCIRs</span></h2>
-   <div class="log">${feed.map(([id,l])=>`<div class="logrow ${l.ccir&&!l.rep?'ccir':''}"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div>${l.ccir?`<label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-rep="${esc(id)}" ${l.rep?'checked':''}> Reported</label>`:'<span></span>'}</div>`).join('')||'<div class="empty">Nothing logged yet today.</div>'}</div></section>
-  <div class="quickbar" id="quickbar">
-   <div class="qrow"><select class="sel" id="opsmid" aria-label="Mission for this entry">${opt(missOpts,defMid)}</select>
-    <button type="button" class="btn sm badb" data-quick="TIC">Troops in contact</button><button type="button" class="btn sm badb" data-quick="ROE">ROE violation</button><button type="button" class="btn sm warnb" data-quick="SIGHT">Raider sighted</button><button type="button" class="btn sm warnb" data-quick="COMMS">Comms lost</button></div>
-   <div class="qrow"><input class="inp" id="opstxt" placeholder="Type what happened, press Enter to log" autocomplete="off" value="${esc(UI.opsDraft||'')}"><label class="small" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="opsccir"> CCIR</label><button type="button" class="btn pri" data-act="logops">Log</button></div>
-  </div>`}
 function missionSheet(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)return;const ns=nextStep(m);const st=m.state||'Planned';const cas=casualtiesFor(id);
   const flags=A.alerts.filter(a=>a.mid===id);const i=esc(id);
   openDlg(`<div class="dlg"><h3>${esc(mName(m))} <span class="mono small muted">${esc(m.start)}–${esc(m.end)}</span> <span class="pill st-${esc(st)}">${esc(st)}</span></h3>
@@ -861,10 +836,10 @@ function readiness(fid,m){const p=PREREQ[fid]||{};const done=fragoDone();const o
   (p.needs||[]).forEach(k=>{if(!done.has(k))out.blocked.push(`${FR[k].no} ${FR[k].name} must be complete first`)});
   if(p.failed&&!failedMissions().length)out.blocked.push('No failed or partial mission to reattempt yet');
   (p.soft||[]).forEach(([k,l])=>{if(l&&!done.has(k))out.soft.push(l)});
-  const inp=(m&&m.inputs)||{};(p.inputs||[]).forEach(([k,l,opt])=>{if(!opt&&!String(inp[k]||'').trim())out.missing.push(l)});
+  const inp=inputsOf(fid,m);(p.inputs||[]).forEach(([k,l,opt])=>{if(!opt&&!String(inp[k]||'').trim())out.missing.push(l)});
   out.state=out.blocked.length?'blocked':out.missing.length?'input':'ready';return out}
 function readyPill(fid,m){const r=readiness(fid,m);return r.state==='blocked'?'<span class="pill e-NMC">Blocked</span>':r.state==='input'?'<span class="pill e-PMC">Needs WOC input</span>':'<span class="pill e-FMC">Ready</span>'}
-function prereqHtml(fid,m,editable){if(!fid)return'';const p=PREREQ[fid]||{};const r=readiness(fid,m);const inp=(m&&m.inputs)||{};
+function prereqHtml(fid,m,editable){if(!fid)return'';const p=PREREQ[fid]||{};const r=readiness(fid,m);const inp=inputsOf(fid,m);
   const lines=[...r.blocked.map(x=>`<li class="bad">${esc(x)}</li>`),...r.soft.map(x=>`<li class="info">${esc(x)}</li>`)];
   const fields=(p.inputs||[]).map(([k,l,o])=>editable?`<label class="wide">${esc(l)}${o?' (optional)':''}<input name="inp_${k}" value="${esc(inp[k]||'')}"></label>`:`<div class="small">${esc(l)}: ${inp[k]?`<b>${esc(inp[k])}</b>`:'<span style="color:var(--warn)">not yet</span>'}</div>`).join('');
   if(!lines.length&&!fields)return `<div class="small"><span class="pill e-FMC">Ready</span> No prerequisites.</div>`;
@@ -918,30 +893,6 @@ function saveCyoa(){const f=document.getElementById('cyform');if(!f.reportValidi
   const old=S.missions[id]||{};const cy=Object.assign({},old.cyoa||{},{toc:hhmm(fd.get('toc')),resupply:fd.get('resupply'),offbase:fd.get('offbase')==='on'});
   const n=Object.assign({},old,{day:old.day||UI.day,lane:'CYOA',frago:fr?fr.id:'',note,start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),state:old.state||'Planned',mc:old.mc||'',members:old.members||[],cyoa:cy});
   writeDoc('missions',id,n);logIt({type:'cyoa',mid:id,text:`CYOA ${isNew?'added':'updated'}: ${note}${fr?' ('+fr.type+')':''} ${n.start}–${n.end}, TOC planning ${cy.toc}${cy.resupply?', resupply: '+cy.resupply:''}${cy.offbase?', leaves perimeter':''}`});closeDlg()}
-function goList(m){const f=fragoOf(m);return [...GOCHK.map(([k,l])=>['g_'+k,l]),...FR_COMMON.map((l,i)=>['c_'+i,l]),...(f?f.checks.map((l,i)=>['f_'+i,l]):[])]}
-function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)return;const g=m.go||{};const ck=g.checks||{};const f=fragoOf(m);
-  const flags=A.alerts.filter(a=>a.mid===id);const n=crew(m).length;
-  const sec=(t,items)=>`<div class="fl" style="margin-top:4px">${t}</div><div class="picker" style="max-height:none">${items.map(([k,l])=>`<label style="grid-template-columns:22px 1fr"><input type="checkbox" name="ck_${k}" ${ck[k]||ck[k.slice(2)]?'checked':''}><span>${esc(l)}</span></label>`).join('')}</div>`;
-  openDlg(`<form class="dlg" id="goform" data-mid="${esc(id)}"><h3>Go/No-Go · ${esc(mName(m))} ${esc(m.start)} ${goPill(m)}</h3>
-  <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · <span style="${n>10?'color:var(--bad);font-weight:700':''}">${n} pax${n>10?' (over 10)':''}</span></div>
-  ${fragoCard0?(f?fragoCard0(f):''):''}
-  ${f?`<div class="fragobox" style="border-left-color:var(--info)">${prereqHtml(f.id,m,true)}</div>`:''}
-  ${flags.length?`<ul class="alerts">${flags.map(a=>`<li class="${a.k}">${esc(a.t)}</li>`).join('')}</ul>`:''}
-  <label class="small" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" name="offbase" ${(g.offbase||(m.cyoa&&m.cyoa.offbase)||f)?'checked':''}> Mission leaves the base perimeter</label>
-  ${f?sec(`${f.name} specific`,f.checks.map((l,i)=>['f_'+i,l])):''}
-  ${sec('Every FRAGO (EXORD para 3–4)',FR_COMMON.map((l,i)=>['c_'+i,l]))}
-  ${sec('A3 standard checks',GOCHK.map(([k,l])=>['g_'+k,l]))}
-  <div class="fields"><label class="wide">Reason / conditions (required for NO-GO)<input name="reason" value="${esc(g.reason||'')}"></label></div></form>
-  <div class="dfoot"><div class="left"><button type="button" class="btn ghost sm" data-act="close">Cancel</button><button type="button" class="btn sm" data-act="checkall">Check all</button></div><button type="button" class="btn badb" data-act="nogo">NO-GO</button><button type="button" class="btn okb" data-act="go">GO</button></div>`)}
-function saveGo(d){const f=document.getElementById('goform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);
-  const list=goList(m);const checks={};list.forEach(([k])=>checks[k]=fd.get('ck_'+k)==='on');const reason=String(fd.get('reason')||'').trim();
-  if(d==='NOGO'&&!reason){toast('Add the reason for the NO-GO.');return}
-  if(d==='GO'&&crew(m).length>10&&!confirmOnce('go10','Crew is over 10. Every FRAGO caps teams at 10. Tap GO again to override.'))return;
-  const inputs=Object.assign({},m.inputs||{});(PREREQ[m.frago]&&PREREQ[m.frago].inputs||[]).forEach(([k])=>{const v=fd.get('inp_'+k);if(v!=null)inputs[k]=String(v).trim()});
-  if(d==='GO'&&m.frago){const r=readiness(m.frago,{inputs});if(r.state!=='ready'&&!confirmOnce('goreq',(r.blocked[0]||'Missing: '+r.missing.join(', '))+'. Tap GO again to override.'))return}
-  const miss=list.filter(([k])=>!checks[k]).length;
-  patchMission(id,{inputs,go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
-  logIt({type:'go',mid:id,text:`${d==='GO'?'GO':'NO-GO'}: ${mName(m)} ${m.start}${reason?' ('+reason+')':''}${d==='GO'&&miss?` · ${miss} checklist item${miss>1?'s':''} open`:''}${fd.get('offbase')==='on'?' · off-perimeter':''}`});closeDlg()}
 function assignDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;
   openDlg(`<form class="dlg" id="asform" data-mid="${esc(id)}"><h3>Assign FRAGO · ${esc(m.lane)} ${esc(m.start)}</h3><div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax</div>
   <div class="fields"><label class="wide">FRAGO<select name="frago" id="asfrago">${fragoOpts(m.frago||'')}</select></label></div><div id="asfragocard">${fragoCard(fragoOf(m),m)}</div></form>
@@ -1060,6 +1011,8 @@ function renderIntel(A){
    <textarea id="assesstxt" rows="5" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)" placeholder="e.g. Raider is likely patrolling the north trail between 1000-1200 to locate our runway site.">${esc(assess)}</textarea>
    <div class="tools" style="margin-top:6px"><button type="button" class="btn sm pri" data-act="saveassess">Save assessment</button>${S.pirs._assess&&S.pirs._assess.at?`<span class="small muted">Updated ${fmtT(S.pirs._assess.at)}${S.pirs._assess.by?' by '+esc(S.pirs._assess.by):''}</span>`:''}</div>
   </section></div>
+  <div class="tools"><button type="button" class="btn sm" data-tab="grids">Grids &amp; sites ›</button></div>
+  ${productsCard()}
   <section class="card" id="reports"><h2>Intel reports <span class="sub">SALUTE · sightings from A3's quick log and AAR contacts land here automatically</span></h2>
    ${reps.length?`<div class="log">${reps.map(([id,x])=>{const m=x.mid?allMissions().find(mm=>mm.id===x.mid):null;return `<div class="logrow" style="grid-template-columns:58px 1fr auto;cursor:pointer" data-intel="${esc(id)}"><span class="t">${x.time?esc(x.time):fmtT(x.ts)}</span><div><div>${x.sig?'<span class="pill e-NMC">Significant</span> ':''}${x.pir?`<span class="pill st-Out">${esc(pirName(x.pir))}</span> `:''}<b>${esc(x.activity||'Report')}</b>${x.text?' · '+esc(x.text):''}</div><div class="small muted">${esc(salute(x))}${m?` · ${esc(mName(m))} ${esc(m.start)}`:''} · ${esc(x.source||'A2')}</div></div>${x.assessed?'<span class="pill e-FMC">Assessed</span>':'<span class="pill e-PMC">New</span>'}</div>`}).join('')}</div>`:'<div class="empty">No reports today.</div>'}
   </section>
@@ -1182,8 +1135,8 @@ const TOURS={
   {sel:'.lanegrid .mission [data-mission]',title:'Edit crew and times',text:'Move people between missions at any time. The picker warns when someone is already busy or above the participation floor.'},
   {sel:'[data-act="addmission"]',title:'Add a mission',text:'For anything not on the plan: CYOA, base defense, or extra tasks.'}],
  a3:[
-  {sel:'#queue',title:'Your action queue',text:'Everything that needs you, most urgent first. Red is overdue, amber is due within 10 minutes. Handle each item with its own buttons and it drops off.'},
-  {sel:'#queue .qi .act',title:'Act right in the queue',text:'Done for CYOA handoffs, Checklist or GO for Go/No-Go, Mark out, RTB, Enter AAR, Complete, and Reported for CCIRs.'},
+  {sel:'#queue',title:'Next up',text:'Everything that needs you, most urgent first. Red is overdue, amber is due within 10 minutes. Handle each item with its own buttons and it drops off.'},
+  
   {sel:'#timeline',title:'Timeline',text:'All of today’s missions against the clock. The red line is now. A dot means GO, blue is out, green is done. Tap a bar to work that mission.'},
   {sel:'[data-act="addcyoa"]',title:'Add a CYOA mission',text:'Enter the mission and when TOC planning starts. The board works out T-20 and T-10 and puts each handoff in your queue with a countdown.'},
   {sel:'#board .mrow',title:'One tap to the next step',text:'Each mission shows its progress (GO → OUT → RTB → AAR → DONE) and one button for the next step. ⋯ opens every action for that mission.'},
@@ -1274,6 +1227,124 @@ function saveStaff(clear){const f=document.getElementById('staffform');const mid
   if(v&&m.lane==='WOC'&&WOC_ROLES.includes(v)){const holder=crew(m).find(x=>x!==pid&&(roles[x]!==undefined?roles[x]:staffRoleOf(m,x))===v);if(holder){toast(`${v} is already ${short(holder)}. One person per position: clear theirs first.`);return}}
   patchMission(mid,Object.assign({day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state:m.state||'Planned',note:m.note||''},{roles}));
   logIt({type:'adm',text:`${dayObj(m.day).name} ${m.lane}: ${nm(pid)} ${v?'set as '+v:'position cleared'}`});closeDlg()}
+
+/* ---------- simple Go/No-Go ---------- */
+const BRING={wgs:['Toolbox','Comm specialist','Tower materials'],commando:['Toolbox','Comm specialist','Repeater'],seniorscout:['Toolbox','Intelligence Specialist','SIGINT device'],compasscall:['Toolbox','Intelligence Specialist','Jammer'],blackout:['Toolbox'],harm:['Toolbox'],aries:['Toolbox'],gtas:['Sandbags (63+)'],redhorse:['Sandbags (100+)','Blueprint'],muzzler:['EOD 9-line card'],ironchef:['Aid supplies'],sentinel:['SALUTE card'],tidalwave:['Empty-bag plan']};
+function goAuto(m,A,inputs){const n=crew(m).length;const unfit=crew(m).filter(x=>['WIAR','WIAB','KIA','MIA'].includes(person(x).status));
+  const part=A.alerts.filter(a=>a.part&&a.mid===m.id);const dbl=A.alerts.filter(a=>a.k==='bad'&&a.mid===m.id&&/double-booked/.test(a.t));
+  const r=m.frago?readiness(m.frago,inputs?{inputs}:m):null;
+  const rows=[['Crew',n>0&&n<=10&&!unfit.length&&!dbl.length?'ok':'bad',n===0?'No crew assigned':n>10?`${n} pax, max is 10`:unfit.length?`${unfit.map(short).join(', ')} not returned to duty`:dbl.length?'Someone is double-booked':`${n} pax, all fit`],
+   ['Participation',part.length?'warn':'ok',part.length?'Someone goes again while others are still behind':'OK']];
+  if(r){rows.push(['Prerequisites',r.blocked.length?'bad':'ok',r.blocked.join('; ')||'Met']);rows.push(['WOC inputs',r.missing.length?'bad':'ok',r.missing.length?'Missing: '+r.missing.join('; '):'In hand'])}
+  return rows}
+function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)return;const g=m.go||{};const ck=g.checks||{};const f=fragoOf(m);
+  const auto=goAuto(m,A);const r=m.frago?readiness(m.frago,m):null;const p=PREREQ[m.frago]||{};
+  const need=(p.inputs||[]).filter(([k,l,o])=>!o&&r&&r.missing.includes(l));
+  const bring=[...(BRING[m.frago]||[]),'Medic pack'];
+  openDlg(`<form class="dlg" id="goform" data-mid="${esc(id)}"><h3>GO / NO-GO · ${esc(mName(m))} <span class="mono small muted">${esc(m.start)}</span> ${goPill(m)}</h3>
+  <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'}${f?` · <b style="color:var(--ink)">Done when:</b> ${esc(f.complete)}`:''}</div>
+  <div class="gochk">${auto.map(([l,s,t])=>`<div class="gor ${s}"><span class="gi">${s==='ok'?'✓':s==='warn'?'!':'✗'}</span><b>${esc(l)}</b><span>${esc(t)}</span></div>`).join('')}</div>
+  ${need.length?`<div class="fields">${need.map(([k,l])=>`<label class="wide">${esc(l)}<input name="inp_${k}" placeholder="Enter grid / detail"></label>`).join('')}</div>`:''}
+  <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief?'checked':''}><span>MC briefed the plan to CABS/CC and the OTS instructor</span></label>
+  <label><input type="checkbox" name="ck_instr" ${ck.instr?'checked':''}><span>OTS instructor is going with the team</span></label></div>
+  <div class="small"><b>Team brings:</b> ${bring.map(esc).join(' · ')}</div>
+  <details><summary class="small" style="cursor:pointer">NO-GO reason / more</summary><div class="fields" style="margin-top:6px"><label class="wide">Reason (required for NO-GO)<input name="reason" value="${esc(g.reason||'')}"></label>
+  <label class="wide" style="display:flex;gap:6px;align-items:center;text-transform:none;color:var(--ink)"><input type="checkbox" name="offbase" ${(g.offbase||(m.cyoa&&m.cyoa.offbase)||f)?'checked':''}> Leaves the base perimeter</label></div></details></form>
+  <div class="dfoot"><div class="left"><button type="button" class="btn ghost sm" data-act="close">Cancel</button></div><button type="button" class="btn badb lg" data-act="nogo">NO-GO</button><button type="button" class="btn okb lg" data-act="go">GO</button></div>`)}
+function saveGo(d){const f=document.getElementById('goform');const fd=new FormData(f);const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);
+  const reason=String(fd.get('reason')||'').trim();
+  if(d==='NOGO'&&!reason){const det=f.querySelector('details');if(det)det.open=true;toast('Add the reason for the NO-GO.');return}
+  const inputs=Object.assign({},m.inputs||{});(PREREQ[m.frago]&&PREREQ[m.frago].inputs||[]).forEach(([k])=>{const v=fd.get('inp_'+k);if(v!=null&&String(v).trim())inputs[k]=String(v).trim()});
+  const checks={brief:fd.get('ck_brief')==='on',instr:fd.get('ck_instr')==='on'};
+  if(d==='GO'){const bad=goAuto(m,analyze(),inputs).find(x=>x[1]==='bad');if(bad&&!confirmOnce('gobad',`${bad[0]}: ${bad[2]}. Tap GO again to override.`))return;
+    if(!bad&&(!checks.brief||!checks.instr)&&!confirmOnce('gotick','Brief and instructor not confirmed. Tap GO again to override.'))return}
+  patchMission(id,{inputs,go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
+  logIt({type:'go',mid:id,text:`${d==='GO'?'GO':'NO-GO'}: ${mName(m)} ${m.start}${reason?' ('+reason+')':''}`});closeDlg()}
+/* ---------- grids & sites ---------- */
+const LOCMAP={globalhawk:{airfield:'loc-runway'},ironchef:{village:'loc-village'},uphold:{site:'loc-backup'},wgs:{tower1:'loc-tower1'},muzzler:{uxo:'loc-uxo'},depredation:{base:'loc-enemybase'},seniorscout:{target:'loc-enemybase'},compasscall:{target:'loc-enemybase'}};
+const LTYPES=['Site','Civilian','Hazard','Enemy','Friendly'];const LSTAT=['Unverified','Planned','Confirmed','Visited','Unsecured','Secured','Cleared','Built','Destroyed','Unknown'];
+function locs(){return Object.entries(S.intel).filter(([,x])=>x.kind==='loc')}
+function locGrid(id){const x=S.intel[id];return x&&x.grid&&!/unknown|\?/i.test(x.grid)?x.grid:''}
+function inputsOf(fid,m){const o={};const mp=LOCMAP[fid]||{};for(const k in mp){const g=locGrid(mp[k]);if(g)o[k]=g}const mi=(m&&m.inputs)||{};for(const k in mi)if(String(mi[k]||'').trim())o[k]=mi[k];return o}
+function locPill(s){return `<span class="pill ${/Cleared|Built|Secured|Confirmed/.test(s||'')?'e-FMC':/Unsecured|Unknown|Destroyed/.test(s||'')?'e-NMC':'e-PMC'}">${esc(s||'Unverified')}</span>`}
+function renderGrids(A){const order=t=>LTYPES.indexOf(t);const L=locs().sort((a,b)=>order(a[1].type)-order(b[1].type)||String(a[1].name).localeCompare(b[1].name));
+  const owed=L.filter(([,x])=>x.owed);
+  return `<div class="tools"><button type="button" class="btn pri" data-act="addloc">+ Add site</button><span class="small muted">Every grid from intel and AARs. Missions pull their WOC inputs from here.</span></div>
+  ${owed.length?`<div class="banner">Still owed: ${owed.map(([,x])=>`${esc(x.name)}: ${esc(x.owed)}`).join(' · ')}</div>`:''}
+  <div class="mrows">${L.map(([id,x])=>`<div class="mrow" data-loc="${esc(id)}" style="cursor:pointer;grid-template-columns:118px minmax(0,1fr) auto"><div class="tm" style="font-size:13px">${esc(x.grid||'grid unknown')}</div>
+   <div style="min-width:0"><div class="nm" style="font-size:14px">${esc(x.name)} <span class="small muted" style="font-family:var(--body);font-weight:500">${esc(x.type||'Site')}</span></div>
+   <div class="small muted">${esc(x.source||'')}${x.frago&&FR[x.frago]?' · '+FR[x.frago].no+' '+esc(FR[x.frago].name):''}</div>${x.notes?`<div class="small">${esc(x.notes)}</div>`:''}
+   ${x.left?`<div class="small"><b>Left here:</b> ${esc(x.left)}</div>`:''}${x.owed?`<div class="small" style="color:var(--warn)"><b>Still owed:</b> ${esc(x.owed)}</div>`:''}</div>${locPill(x.status)}</div>`).join('')||'<div class="empty">No sites yet.</div>'}</div>
+  ${productsCard()}`}
+function productsCard(){const P=Object.entries(S.intel).filter(([,x])=>x.kind==='product').sort((a,b)=>(a[1].no||0)-(b[1].no||0));if(!P.length)return'';
+  return `<details class="card" id="products" ${UI.prodOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">Intel products (binder)</b> <span class="small muted">${P.length} · tap to expand</span></summary>
+  <div class="mrows" style="margin-top:10px">${P.map(([,x])=>`<div class="mrow" style="grid-template-columns:44px minmax(0,1fr)"><div class="tm">#${esc(x.no)}</div><div><div class="nm" style="font-size:14px">${esc(x.subject)}</div><div class="small">${esc(x.key)}</div>${x.frago&&FR[x.frago]?`<div class="small muted">→ ${FR[x.frago].no} ${esc(FR[x.frago].name)}</div>`:''}</div></div>`).join('')}</div></details>`}
+function locDlg(id){const x=id?S.intel[id]:{kind:'loc',type:'Site',status:'Unverified'};
+  openDlg(`<form class="dlg" id="locform" data-id="${esc(id||'')}"><h3>${id?esc(x.name):'New site'}</h3><div class="fields">
+  <label class="wide">Name<input name="name" value="${esc(x.name||'')}" required></label>
+  <label>Grid (MGRS)<input name="grid" value="${esc(x.grid||'')}" placeholder="677/119"></label>
+  <label>Type<select name="type">${opt(LTYPES,x.type)}</select></label><label>Status<select name="status">${opt(LSTAT,x.status)}</select></label>
+  <label>Source<input name="source" value="${esc(x.source||'')}" placeholder="Intel #4 / Day 1 Tiger 1 AAR"></label>
+  <label class="wide">Linked FRAGO<select name="frago">${fragoOpts(x.frago||'')}</select></label>
+  <label class="wide">Notes<input name="notes" value="${esc(x.notes||'')}"></label>
+  <label class="wide">Left here / delivered<input name="left" value="${esc(x.left||'')}"></label>
+  <label class="wide">Still owed<input name="owed" value="${esc(x.owed||'')}"></label></div></form>
+  <div class="dfoot"><div class="left">${id?'<button type="button" class="btn sm badb" data-act="delloc">Delete</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveloc">Save</button></div>`)}
+function saveLoc(){const f=document.getElementById('locform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.id;const old=id?S.intel[id]:null;id=id||('loc-'+uid());
+  const n={kind:'loc'};['name','grid','type','status','source','frago','notes','left','owed'].forEach(k=>n[k]=String(fd.get(k)||'').trim());
+  writeDoc('intel',id,n);const ch=!old?'added':old.grid!==n.grid?`grid ${old.grid||'?'} → ${n.grid}`:old.status!==n.status?`status ${n.status}`:old.owed!==n.owed?`still owed: ${n.owed||'nothing'}`:'updated';
+  logIt({type:'intel',text:`Site ${n.name} ${n.grid?'('+n.grid+') ':''}${ch}`});closeDlg()}
+/* ---------- A3 pages ---------- */
+function renderCyoaMenu(A){if(UI.fsOpen===undefined)UI.fsOpen=true;const done=fragoDone();const m5=['globalhawk','sentinel','ironchef','uphold','reaper'];const n=m5.filter(k=>done.has(k)).length;
+  return `<div class="tools"><span class="tick">Map upgrade <span class="mono">${n}/5</span></span><span class="tick ${done.has('wgs')?'ok':''}">SIPR ${done.has('wgs')?'enabled':'not yet'}</span><span class="tick ${done.has('commando')?'ok':''}">LMR off base ${done.has('commando')?'enabled':'not yet'}</span><span style="margin-left:auto"></span><button type="button" class="btn sm pri" data-act="addcyoa">+ CYOA mission</button></div>${fragoStatusCard()}`}
+const CYS={decided:'Decide',atfInstr:'ATF instr',cabs:'To TOC',cabsInstr:'TOC instr'};
+function renderA3(A){
+  const nowM=nowMinFor(UI.day);const ms=A.dayMs.filter(isMission);const d=dayObj(UI.day);
+  const q=actionQueue(A);const shown=q.slice(0,5);const late=q.filter(x=>x.k==='bad').length;const owed=ms.filter(aarOwed).length;
+  const out=ms.filter(m=>m.state==='Out');
+  const upcoming=ms.filter(m=>m.state==='Planned'&&(nowM==null||toMin(m.start)>=nowM)).sort((a,b)=>toMin(a.start)-toMin(b.start))[0];
+  const missOpts=[['','General'],...ms.filter(m=>m.state!=='Scrubbed').map(m=>[m.id,`${mName(m)} ${m.start}${m.state==='Out'?' · OUT':''}`])];
+  const defMid=UI.opsMid!=null?UI.opsMid:(out[0]||{}).id||'';
+  const feed=Object.entries(S.log).filter(([,l])=>['ops','go','aar','cyoa','msn'].includes(l.type)||l.ccir).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).slice(0,15);
+  return `<div class="pagehead"><h1>A3 Ops</h1><span class="sub">${esc(d.name)} ${esc(d.label)}</span>
+   <span class="right"><button type="button" class="btn sm pri" data-act="addcyoa">+ CYOA</button><button type="button" class="btn sm" data-act="copya3">A3 slide</button><button type="button" class="btn sm" data-act="turnover">Turnover</button></span></div>
+  <div class="tools tnum"><span class="tick ${late?'bad':'ok'}">Overdue <span class="mono">${late}</span></span><span class="tick">Out <span class="mono">${out.length}</span></span><span class="tick ${owed?'warn':''}">AARs owed <span class="mono">${owed}</span></span>${upcoming?`<span class="tick">Next launch <span class="mono">${esc(upcoming.start)}</span> ${esc(mName(upcoming))}</span>`:''}</div>
+  <section class="card" id="queue"><h2>Next up</h2>
+   ${shown.length?`<div class="queue">${shown.map(x=>`<div class="qi ${x.k}"><div class="due">${x.due?esc(x.due):'—'}<small>${x.left!=null?rel(x.left):x.due?'due':'now'}</small></div><div><div class="tt">${esc(x.title)}</div><div class="ss">${esc(x.sub)}</div></div><div class="act">${x.btns}</div></div>`).join('')}</div>${q.length>shown.length?`<p class="small muted" style="margin:8px 0 0">+${q.length-shown.length} more</p>`:''}`
+   :`<div class="allclear">✓ All caught up.${upcoming?` Next: ${esc(mName(upcoming))} at ${esc(upcoming.start)}.`:''}</div>`}
+  </section>
+  <section class="card" id="board"><h2>Missions <span class="sub">The button moves each one forward</span></h2>
+   <div class="mrows">${ms.map(m=>{const ns=nextStep(m);const cas=casualtiesFor(m.id);const st=m.cyoa&&m.cyoa.toc?cyoaSteps(m,nowM):null;return `<div class="mrow ${m.state==='Out'?'live':''}" id="a3-${esc(m.id)}">
+    <div class="tm">${esc(m.start||'--')}<small>–${esc(m.end||'--')}</small></div>
+    <div style="min-width:0"><div class="nm">${esc(mName(m))} ${m.frago&&(m.state||'Planned')==='Planned'?readyPill(m.frago,m):''} ${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}${m.aar&&/Not complete|Partial/.test(m.aar.result||'')?` <span class="pill e-NMC">${esc(m.aar.result)}</span>`:''}</div>
+    <div class="small muted">MC ${m.mc?esc(short(m.mc)):'—'} · ${crew(m).length} pax</div>${stepsHtml(m)}
+    ${st?`<div class="cychips">${st.map(s=>`<button type="button" class="cyc ${s.done?'done':s.late?'late':s.soon?'soon':''}" data-cytog="${esc(m.id)}|${s.k}|${s.done?0:1}">T-${s.off} ${CYS[s.k]} ${s.done?'✓':esc(s.due)}</button>`).join('')}</div>`:''}</div>
+    <div class="acts">${ns?`<button type="button" class="btn pri ${ns.c||''}" ${ns.a}>${esc(ns.l)}</button>`:`<span class="pill ${m.state==='Scrubbed'?'st-Scrubbed':'st-Complete'}">${m.state==='Scrubbed'?'Scrubbed':'Done'}</span>`}${m.lane!=='CYOA'&&!m.frago&&m.state!=='Complete'&&m.state!=='Scrubbed'?`<button type="button" class="btn sm" data-assign="${esc(m.id)}">FRAGO</button>`:''}<button type="button" class="btn" data-msheet="${esc(m.id)}" aria-label="More actions">⋯</button></div></div>`}).join('')||'<div class="empty">No missions on this day.</div>'}</div></section>
+  <details class="card" id="timeline" ${UI.tlOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">Timeline</b></summary><div style="margin-top:10px">${timelineHtml(A)}</div></details>
+  <details class="card" id="feed" ${UI.feedOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">Ops feed</b> <span class="small muted">${feed.length} recent</span></summary>
+   <div class="log" style="margin-top:8px">${feed.map(([id,l])=>`<div class="logrow ${l.ccir&&!l.rep?'ccir':''}"><span class="t">${fmtT(l.ts)}</span><div>${esc(l.text)}${l.by?` <span class="small muted">· ${esc(String(l.by))}</span>`:''}</div>${l.ccir?`<label class="small" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-rep="${esc(id)}" ${l.rep?'checked':''}> Reported</label>`:'<span></span>'}</div>`).join('')||'<div class="empty">Nothing logged yet.</div>'}</div></details>
+  <div class="quickbar" id="quickbar">
+   <div class="qrow"><select class="sel" id="opsmid" aria-label="Mission for this entry">${opt(missOpts,defMid)}</select>
+    <button type="button" class="btn sm badb" data-quick="TIC">Troops in contact</button><button type="button" class="btn sm badb" data-quick="ROE">ROE violation</button><button type="button" class="btn sm warnb" data-quick="SIGHT">Raider sighted</button><button type="button" class="btn sm warnb" data-quick="COMMS">Comms lost</button></div>
+   <div class="qrow"><input class="inp" id="opstxt" placeholder="Type what happened, press Enter to log" autocomplete="off" value="${esc(UI.opsDraft||'')}"><label class="small" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="opsccir"> CCIR</label><button type="button" class="btn pri" data-act="logops">Log</button></div>
+  </div>`}
+/* ---------- one-time seed: binder intel + Day 1 results ---------- */
+let LIVE=new Set();
+function maybeSeed(){if(window.__seeded||!['missions','intel','pirs'].every(c=>LIVE.has(c)))return;window.__seeded=1;if(S.pirs._seed1)return;const now=Date.now();
+  const L={'loc-runway':{name:'Runway area',grid:'N of 120 / W of 679',type:'Site',status:'Unverified',source:'Intel #1',frago:'globalhawk',notes:'Only area on the island able to support a runway. Enemy posturing to occupy it.'},
+   'loc-village':{name:'Village (humanitarian aid)',grid:'6816/1216',type:'Civilian',status:'Visited',source:'Intel #2 · Day 1 Tiger 1 1300 AAR',frago:'ironchef',notes:'Locals need food and medical supplies. Same 100 m square as WGS tower 1.',left:'2 litters, 9 poker chips, 2 JFAKs (Day 1 Tiger 1)',owed:'1 litter, 3 JFAKs, 1 poker chip'},
+   'loc-uxo':{name:'UXO (WW2)',grid:'677/119',type:'Hazard',status:'Unsecured',source:'Intel #4',frago:'muzzler',notes:'~100 m from the backup site and at the edge of the runway area. No radios within 25 ft. EOD via MC → CABS/CC → WOC → HHQ.'},
+   'loc-enemybase':{name:'Enemy (Raider) base',grid:'',type:'Enemy',status:'Unknown',source:'Intel #5',frago:'sentinel',notes:'Base with DFPs, small arms only. Location not yet found.'},
+   'loc-tower1':{name:'WGS tower 1 site',grid:'681/121',type:'Friendly',status:'Planned',source:'Intel #6',frago:'wgs',notes:'Tower 2 at MC discretion, 200 m+ from base.'},
+   'loc-backup':{name:'Backup site (possibly abandoned village)',grid:'677/118',type:'Site',status:'Unverified',source:'Intel #8',frago:'uphold',notes:'Additional contingency location. UXO reported ~100 m north at 677/119.'}};
+  const P=[[1,'Enemy posturing for key runway area','Runway area N of 120, W of 679. Prepare countermeasures; increase ISR.','globalhawk'],[2,'Humanitarian crisis on Wang-an','Village IVO 6816/1216 needs food and medical supplies; scout and deliver.','ironchef'],[3,'Priority signal interception','HHQ high priority: intercept enemy comms; disseminate fast.','seniorscout'],[4,'UXO discovered','UXO at 677/119, unstable and unsecured. MC → CABS/CC → WOC → HHQ for EOD (USS Milius).','muzzler'],[5,'Enemy base established','Enemy base with DFPs, small arms only. Recon numbers, fortifications, supply routes; consider probing strikes.','sentinel'],[6,'SIPR comms not established','Tower 1 at 681/121; tower 2 MC choice. One primary, one redundant.','wgs'],[7,'Intel gaps around the ICL','Thick canopy: recon the area around our base.','reaper'],[8,'Additional contingency location','Possibly abandoned village IVO 677 118 as a backup site.','uphold']];
+  for(const id in L)if(!S.intel[id])writeDoc('intel',id,Object.assign({kind:'loc'},L[id]));
+  P.forEach(([no,subject,key,frago])=>{const id='intel-p'+no;if(!S.intel[id])writeDoc('intel',id,{kind:'product',no,subject,key,frago,ts:now})});
+  const mid='1-Tiger1-1300';const b=BASE.slots.find(x=>x.id===mid);const cur=S.missions[mid]||{};
+  if(b&&!cur.aar){writeDoc('missions',mid,Object.assign({},cur,{day:'1',lane:b.lane,start:'1300',end:'1415',mc:cur.mc||b.mc,members:cur.members||b.members,state:'Complete',note:cur.note||'',frago:'ironchef',inputs:Object.assign({village:'6816/1216'},cur.inputs||{}),
+    aar:{result:'Not complete',from:'CABS/CC',data:{aid:'Delivered: 2 litters, 9 poker chips, 2 JFAKs. Still owed: 1 litter, 3 JFAKs, 1 poker chip.'},summary:'Partial aid delivered to the village IVO 6816/1216.',improve:'Reattempt with the rest of the aid: 1 litter, 3 JFAKs, 1 poker chip.',follow:'Reattempt Iron Chef',at:now,by:ME||null,cas:0,pax:crew(Object.assign({},b,cur)).length}}));
+    writeDoc('log','seed1-ironchef',{type:'aar',mid,toc:false,ts:now,text:'AAR received: Day 1 Tiger 1 1300 · Iron Chef · Not complete · delivered 2 litters, 9 chips, 2 JFAKs; still owed 1 litter, 3 JFAKs, 1 chip'})}
+  writeDoc('pirs','_seed1',{at:now})}
 
 /* ---------- dialogs ---------- */
 const dlg=document.getElementById('dlg');
@@ -1472,7 +1543,9 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-cytog],[data-loc],[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.cytog){const [id,k,on]=t.dataset.cytog.split('|');toggleCy(id,k,on==='1');return}
+  if(t.dataset.loc){locDlg(t.dataset.loc);return}
   if(t.dataset.staff){const [mid,pid]=t.dataset.staff.split('|');staffDlg(mid,pid);return}
   if(t.dataset.reattempt){const o=allMissions().find(x=>x.id===t.dataset.reattempt);if(!o)return;const id='c'+uid();const n0=(o.attempt||1)+1;
     writeDoc('missions',id,{day:UI.day,lane:'CYOA',frago:o.frago,note:`${FR[o.frago].name} (attempt ${n0})`,start:'',end:'',state:'Planned',mc:'',members:[],attempt:n0,retryOf:o.id,inputs:Object.assign({},o.inputs||{}),cyoa:{toc:'',resupply:'',offbase:!!(o.cyoa&&o.cyoa.offbase)}});
@@ -1518,6 +1591,8 @@ document.addEventListener('click',e=>{
   else if(a==='go')saveGo('GO');
   else if(a==='nogo')saveGo('NOGO');
   else if(a==='saveaar')saveAar();
+  else if(a==='addloc')locDlg(null);else if(a==='saveloc')saveLoc();
+  else if(a==='delloc'){deleteDoc('intel',document.getElementById('locform').dataset.id);closeDlg()}
   else if(a==='savestaff')saveStaff();else if(a==='clearstaff')saveStaff(true);
   else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);patchMission(id,{frago:v});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${v?FR[v].name+' ('+FR[v].type+')':'FRAGO cleared'}`});closeDlg()}
   else if(a==='logops')quickLog();
@@ -1552,8 +1627,8 @@ document.addEventListener('click',e=>{
   else if(a==='saveserials')saveSerials();
   else if(a==='issueall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=gearOf(p.pid);if(!g[id]){setGear(p.pid,Object.assign({},g,{[id]:{qty:1,serial:'',ts:Date.now()}}));n++}});logIt({type:'gear',text:`Issued 1 × ${S.equip[id]?.name} to ${n} personnel`});equipDlg(id)}
   else if(a==='returnall'){const id=document.getElementById('eform').dataset.eid;let n=0;ROSTER.forEach(p=>{const g=Object.assign({},gearOf(p.pid));if(g[id]){delete g[id];setGear(p.pid,g);n++}});logIt({type:'gear',text:`${S.equip[id]?.name} returned by ${n} personnel`});equipDlg(id)}
-  else if(a==='who'){openDlg(`<form class="dlg" id="whoform"><h3>Your name for the log</h3><div class="fields"><label class="wide">Name or role (e.g. Stratton A1/4)<input name="who" maxlength="40" value="${esc(ME||'')}"></label></div><p class="small muted" style="margin:0">Saved on this device only. Every change you make is tagged with it.</p></form><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savewho">Save</button></div>`)}
-  else if(a==='savewho'){const v=new FormData(document.getElementById('whoform')).get('who').trim();ME=v||null;try{v?localStorage.setItem('tftiger-who',v):localStorage.removeItem('tftiger-who')}catch(e){}closeDlg();render()}
+  else if(a==='who'){openDlg(`<form class="dlg" id="whoform"><h3>Who are you?</h3><div class="fields"><label class="wide">Name<input name="who" maxlength="40" value="${esc(ME||'')}" placeholder="Stratton"></label></div><div class="fl">Your role (the board opens on your section)</div><div class="segpick">${Object.keys(ROLE_HOME).map(r=>`<label><input type="radio" name="role" value="${r}" ${ROLE===r?'checked':''}><span>${r}</span></label>`).join('')}</div><p class="small muted" style="margin:0">Saved on this device only. Your name tags every change in the log.</p></form><div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savewho">Save</button></div>`)}
+  else if(a==='savewho'){const fd=new FormData(document.getElementById('whoform'));const v=String(fd.get('who')||'').trim();ME=v||null;const r=fd.get('role')||'';const changed=r!==ROLE;ROLE=r;try{v?localStorage.setItem('tftiger-who',v):localStorage.removeItem('tftiger-who');r?localStorage.setItem('tftiger-role',r):localStorage.removeItem('tftiger-role')}catch(e){}closeDlg();if(changed&&ROLE_HOME[r])setTab(ROLE_HOME[r]);else render()}
   else if(a==='rtd'){dlg.querySelector('select[name=status]').value='EFF';const es=dlg.querySelector('select[name=exStatus]');if(es.value&&es.value!=='Complete')es.value='Complete';dlg.querySelector('input[name=tocNotified]').checked=false;savePerson({_rtd:true})}
   else if(a==='tofloor'){const f=document.getElementById('pform');const pid=f.dataset.pid;const an=A();const base=an.c[pid]-Number(person(pid).adj||0);f.querySelector('input[name=adj]').value=an.fl-base}
   else if(a==='addmission')missionDlg(null,true);
@@ -1595,14 +1670,14 @@ document.addEventListener('change',e=>{
   if(e.target.name==='status'&&e.target.form&&e.target.form.id==='pform'){dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b.dataset.setstatus===e.target.value))}
 });
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
-document.addEventListener('toggle',e=>{if(e.target.id==='participation')UI.partOpen=e.target.open;if(e.target.id==='fragostatus')UI.fsOpen=e.target.open;if(e.target.classList&&e.target.classList.contains('fdet')){if(e.target.open)UI.fdOpen=e.target.dataset.fid;else if(UI.fdOpen===e.target.dataset.fid)UI.fdOpen=null}},true);
+document.addEventListener('toggle',e=>{if(e.target.id==='participation')UI.partOpen=e.target.open;if(e.target.id==='fragostatus')UI.fsOpen=e.target.open;if(e.target.id==='timeline')UI.tlOpen=e.target.open;if(e.target.id==='feed')UI.feedOpen=e.target.open;if(e.target.id==='products')UI.prodOpen=e.target.open;if(e.target.classList&&e.target.classList.contains('fdet')){if(e.target.open)UI.fdOpen=e.target.dataset.fid;else if(UI.fdOpen===e.target.dataset.fid)UI.fdOpen=null}},true);
 setInterval(()=>{if(!dlg.open||true)render()},20000);
 
 /* ---------- boot (Firebase) ---------- */
 render();
 function subscribe(){unsubs.forEach(u=>u());unsubs=[];
-  ['people','missions','equip','resupply'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;MODE='live';render()},err=>{MODE='error';toast('Live sync stopped: '+(err.code||'error')+'. Reload the page.');render()})));
-  ['intel','pirs','comms'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;RULES_OLD=false;render()},err=>{RULES_OLD=true;render()})));
+  ['people','missions','equip','resupply'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;MODE='live';if(!s.metadata||!s.metadata.fromCache)LIVE.add(c);maybeSeed();render()},err=>{MODE='error';toast('Live sync stopped: '+(err.code||'error')+'. Reload the page.');render()})));
+  ['intel','pirs','comms'].forEach(c=>unsubs.push(FB.onSnapshot(FB.collection(FB.db,c),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S[c]=o;RULES_OLD=false;if(!s.metadata||!s.metadata.fromCache)LIVE.add(c);maybeSeed();render()},err=>{RULES_OLD=true;render()})));
   unsubs.push(FB.onSnapshot(FB.query(FB.collection(FB.db,'log'),FB.orderBy('ts','desc'),FB.limit(600)),s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.log=o;render()},()=>{}));
 }
 window.bootFirebase=function(){
