@@ -396,9 +396,6 @@ function renderOverview(A){
   ${(()=>{const atF=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);const ps=new Set();A.dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>crew(m).forEach(x=>ps.add(x)));const nt=atF.filter(p=>!ps.has(p.pid)).length;
    return `<button type="button" class="tick" data-act="partgo" style="justify-self:start;padding:6px 12px;font-size:13px" title="Open participation in A1/4 People">Participation floor <span class="mono">${A.fl}</span> · <span class="mono">${nt}</span> at floor not yet tasked ›</button>`})()}
   <div>
-   ${(()=>{const crit=A.alerts.filter(a=>a.k==='bad');const other=A.alerts.filter(a=>a.k!=='bad'&&a.k!=='ok').length;
-    return crit.length?`<section class="card" id="alerts"><h2>Critical <span class="sub">CCIRs, double-bookings, unfit crew, overdue A3 items</span></h2><ul class="alerts">${crit.slice(0,8).map(a=>`<li class="bad" ${a.mid?`data-mission="${esc(a.mid)}"`:a.pid?`data-person="${a.pid}"`:a.eid?`data-equip="${esc(a.eid)}"`:''} style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>${crit.length>8?`<p class="small muted">+${crit.length-8} more</p>`:''}${other?`<p class="small muted" style="margin:8px 0 0">${other} lower-priority item${other>1?'s':''} live in A1/4 and A3.</p>`:''}</section>`
-    :`<div class="allclear" id="alerts">✓ Nothing critical.${other?` <span class="small" style="font-weight:500">${other} lower-priority item${other>1?'s':''} in A1/4 and A3.</span>`:''}</div>`})()}
   </div>
   <section class="card" id="now"><h2>${now?'On mission now':'Mission plan'} <span class="sub">${now?`${now} CST`:esc(day.name+' · '+day.label)}</span><span class="right"><button type="button" class="btn sm" data-tab="missions">All missions</button></span></h2>
    <div class="lanegrid">${(cur.length?cur:next).map(m=>missionCard(m,A,now)).join('')||'<div class="empty">No missions in this block.</div>'}</div>
@@ -532,7 +529,7 @@ function renderHeader(A){
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
   const a3=actionQueue(A).filter(x=>x.k==='bad').length;const intelNew=Object.values(S.intel).filter(x=>x.kind==='report'&&!x.assessed&&(!x.day||x.day===UI.day)).length;
-  const B={overview:n,a14:pend,a26:intelNew,a3};const cur=secOf(UI.tab)[0];
+  const B={a14:pend,a26:intelNew,a3};const cur=secOf(UI.tab)[0];
   const btn=(s)=>`<button type="button" data-sec="${s[0]}" ${cur===s[0]?'aria-current="page"':''}>${ic(s[0])}<span>${s[1]}</span>${B[s[0]]?`<span class="badge">${B[s[0]]}</span>`:''}</button>`;
   document.getElementById('tabs').innerHTML=SECTIONS.map(btn).join('');
   const prim=SECTIONS.slice(0,4);const moreOn=!prim.some(s=>s[0]===cur);
