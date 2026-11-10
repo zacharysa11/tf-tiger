@@ -1266,12 +1266,12 @@ function staffDlg(mid,pid){const m=allMissions().find(x=>x.id===mid);if(!m)retur
   openDlg(`<form class="dlg" id="staffform" data-mid="${esc(mid)}" data-pid="${pid}"><h3>${esc(nm(pid))} <span class="small muted">${esc(m.lane)} · ${esc(dayObj(m.day).name)}</span></h3>
   <div class="segpick">${opts.map(r=>`<label><input type="radio" name="role" value="${r}" ${cur===r?'checked':''}><span>${r}</span></label>`).join('')}</div>
   <div class="fields"><label class="wide">Or type a position${m.lane==='TOC'?' (e.g. TOC deputy, ops, intel, comms)':''}<input name="custom" value="${esc(opts.includes(cur)?'':cur)}"></label></div>
-  <p class="small muted" style="margin:0">Annex B allows up to two people per A-staff role. Only applies to this day.</p></form>
+  <p class="small muted" style="margin:0">One person per WOC position. Only applies to this day.</p></form>
   <div class="dfoot"><div class="left">${cur?'<button type="button" class="btn sm ghost" data-act="clearstaff">Clear</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savestaff">Save</button></div>`)}
 function saveStaff(clear){const f=document.getElementById('staffform');const mid=f.dataset.mid,pid=f.dataset.pid;const fd=new FormData(f);
   const v=clear?'':(String(fd.get('custom')||'').trim()||fd.get('role')||'');const m=allMissions().find(x=>x.id===mid);
   const roles=Object.assign({},(S.missions[mid]||{}).roles||m.roles||{});roles[pid]=v;
-  if(v&&m.lane==='WOC'&&WOC_ROLES.includes(v)&&v!=='ATF/CC'&&v!=='Deputy CC'&&Object.entries(roles).filter(([k,r])=>r===v).length>2){toast('Annex B: no more than two people per role.');return}
+  if(v&&m.lane==='WOC'&&WOC_ROLES.includes(v)){const holder=crew(m).find(x=>x!==pid&&(roles[x]!==undefined?roles[x]:staffRoleOf(m,x))===v);if(holder){toast(`${v} is already ${short(holder)}. One person per position: clear theirs first.`);return}}
   patchMission(mid,Object.assign({day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state:m.state||'Planned',note:m.note||''},{roles}));
   logIt({type:'adm',text:`${dayObj(m.day).name} ${m.lane}: ${nm(pid)} ${v?'set as '+v:'position cleared'}`});closeDlg()}
 
