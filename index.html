@@ -256,7 +256,7 @@ main,.card,.tablewrap{max-width:100%}
 .bnav{transform:translateZ(0);-webkit-transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform}
 @supports not (overflow:clip){body{overflow-x:hidden}}
 .staffl{display:grid;gap:4px}
-.staffr{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px}
+.staffr{display:grid;grid-template-columns:86px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px}
 .staffr:hover{border-color:var(--muted)}
 .sr{font:700 11px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
 .sr.none{color:var(--dim);font-weight:600}
@@ -293,6 +293,7 @@ const ROLES=['','ATF/CC','A-Staff','CABS/CC','TOC key personnel','IDO','Chaplain
 const MSTATES=['Planned','Out','RTB','Complete','Scrubbed'];
 const ECATS=['Weapons','Ammunition','Medical','Comms','Mission gear','Other'];
 const P={}; BASE.roster.forEach(p=>P[p.pid]=p);
+const DEFAULT_ROLES={'2-WOC-0700':{'payne-mason':'ATF/CC','moushon-jacob':'Deputy CC','rios-david':'A1','magtoto-nathan':'A2','stratton-zachary':'A3','mcdonald-david':'A4','feng-gabriel':'A6'}};
 const ROSTER=BASE.roster.slice().sort((a,b)=>a.name.localeCompare(b.name));
 const DAYS=BASE.days;
 const FB=window.FB;
@@ -1250,13 +1251,14 @@ function helpDlg(){const k=UI.tab;const [t]=TITLES[k];
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
 
 /* ---------- daily WOC/TOC staff ---------- */
-const WOC_ROLES=['ATF/CC','A1/4','A2/6','A3'];
-function staffRoleOf(m,pid){return ((m.roles||{})[pid])||(pid===m.mc?(m.lane==='WOC'?'ATF/CC':'CABS/CC'):'')}
+const WOC_ROLES=['ATF/CC','Deputy CC','A1/4','A1','A2/6','A2','A3','A4','A6'];
+const WOC_NEEDS=[['A1',['A1','A1/4']],['A2',['A2','A2/6']],['A3',['A3']],['A4',['A4','A1/4']],['A6',['A6','A2/6']]];
+function staffRoleOf(m,pid){const o=(m.roles||{});if(pid in o)return o[pid];const d=(DEFAULT_ROLES[m.id]||{});if(pid in d)return d[pid];return pid===m.mc?(m.lane==='WOC'?'ATF/CC':'CABS/CC'):''}
 function staffCard(A){const st=A.dayMs.filter(m=>!isMission(m));if(!st.length)return'';
   return `<section class="card" id="staff"><h2>WOC &amp; TOC staff <span class="sub">${esc(dayObj(UI.day).name)} · 0700–1530 · tap a name to set their position</span></h2>
   <div class="grid2">${st.map(m=>{const ppl=crew(m);const order=m.lane==='WOC'?WOC_ROLES:[];
     const sorted=ppl.slice().sort((a,b)=>{const ra=staffRoleOf(m,a),rb=staffRoleOf(m,b);const ia=order.indexOf(ra),ib=order.indexOf(rb);return (a===m.mc?-1:0)-(b===m.mc?-1:0)||((ia<0?9:ia)-(ib<0?9:ib))||(ra?0:1)-(rb?0:1)||nm(a).localeCompare(nm(b))});
-    const missing=m.lane==='WOC'?WOC_ROLES.filter(r=>!ppl.some(x=>staffRoleOf(m,x)===r)):[];
+    const missing=m.lane==='WOC'?WOC_NEEDS.filter(([n,rs])=>!ppl.some(x=>rs.includes(staffRoleOf(m,x)))).map(([n])=>n):[];
     return `<div class="mission"><div class="mhead"><b>${esc(m.lane)}</b><span class="small muted">${ppl.length} pax · lead ${esc(short(m.mc))}</span>${missing.length?`<span class="pill e-PMC">No ${missing.join(', ')}</span>`:''}</div>
     <div class="staffl">${sorted.map(x=>{const r=staffRoleOf(m,x);const p=person(x);return `<button type="button" class="staffr" data-staff="${esc(m.id)}|${x}"><span class="sr ${r?'':'none'}">${esc(r||'Set role')}</span><span>${esc(nm(x))}</span>${p.status!=='EFF'?`<span class="pill s-${p.status}">${esc(SLBL[p.status])}</span>`:''}</button>`}).join('')}</div></div>`}).join('')}</div></section>`}
 function staffDlg(mid,pid){const m=allMissions().find(x=>x.id===mid);if(!m)return;const cur=staffRoleOf(m,pid);
@@ -1268,8 +1270,8 @@ function staffDlg(mid,pid){const m=allMissions().find(x=>x.id===mid);if(!m)retur
   <div class="dfoot"><div class="left">${cur?'<button type="button" class="btn sm ghost" data-act="clearstaff">Clear</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savestaff">Save</button></div>`)}
 function saveStaff(clear){const f=document.getElementById('staffform');const mid=f.dataset.mid,pid=f.dataset.pid;const fd=new FormData(f);
   const v=clear?'':(String(fd.get('custom')||'').trim()||fd.get('role')||'');const m=allMissions().find(x=>x.id===mid);
-  const roles=Object.assign({},(S.missions[mid]||{}).roles||m.roles||{});if(v)roles[pid]=v;else delete roles[pid];
-  if(v&&m.lane==='WOC'&&WOC_ROLES.includes(v)&&Object.entries(roles).filter(([k,r])=>r===v).length>2){toast('Annex B: no more than two people per role.');return}
+  const roles=Object.assign({},(S.missions[mid]||{}).roles||m.roles||{});roles[pid]=v;
+  if(v&&m.lane==='WOC'&&WOC_ROLES.includes(v)&&v!=='ATF/CC'&&v!=='Deputy CC'&&Object.entries(roles).filter(([k,r])=>r===v).length>2){toast('Annex B: no more than two people per role.');return}
   patchMission(mid,Object.assign({day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state:m.state||'Planned',note:m.note||''},{roles}));
   logIt({type:'adm',text:`${dayObj(m.day).name} ${m.lane}: ${nm(pid)} ${v?'set as '+v:'position cleared'}`});closeDlg()}
 
