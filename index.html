@@ -241,6 +241,10 @@ dialog::backdrop{background:rgba(3,6,10,.6);backdrop-filter:blur(2px)}
 .aargrid b{font:700 14px var(--display)}
 .aarrow{grid-column:1/-1;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px;color:var(--ink)}
 .segpick.sm label{min-width:58px;flex:0}.segpick.sm span{padding:5px 8px;font-size:12px}
+.fdet>summary{list-style:none;cursor:pointer}.fdet>summary::-webkit-details-marker{display:none}
+.fdet[open]>summary{border-color:var(--accent);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.fbody{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--accent);border-top:0;border-radius:0 0 11px 11px;background:var(--panel)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
 </style>
 </head>
 <body>
@@ -830,12 +834,25 @@ function prereqHtml(fid,m,editable){if(!fid)return'';const p=PREREQ[fid]||{};con
   const fields=(p.inputs||[]).map(([k,l,o])=>editable?`<label class="wide">${esc(l)}${o?' (optional)':''}<input name="inp_${k}" value="${esc(inp[k]||'')}"></label>`:`<div class="small">${esc(l)}: ${inp[k]?`<b>${esc(inp[k])}</b>`:'<span style="color:var(--warn)">not yet</span>'}</div>`).join('');
   if(!lines.length&&!fields)return `<div class="small"><span class="pill e-FMC">Ready</span> No prerequisites.</div>`;
   return `<div class="fl" style="margin-top:4px">Prerequisites &amp; WOC inputs ${readyPill(fid,m)}</div>${lines.length?`<ul class="alerts">${lines.join('')}</ul>`:''}${fields?(editable?`<div class="fields">${fields}</div>`:fields):''}`}
-function fragoStatusCard(){const done=fragoDone();
-  return `<details class="card" id="fragostatus" ${UI.fsOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of 20 complete · tap to expand</span></summary>
+function fragoStatusCard(){const done=fragoDone();const all=allMissions();
+  return `<details class="card" id="fragostatus" ${UI.fsOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of 20 complete · tap a mission for its details</span></summary>
   <div class="mrows" style="margin-top:10px">${FRAGOS.map(f=>{const r=readiness(f.id,null);const isDone=done.has(f.id);const p=PREREQ[f.id]||{};
-   return `<div class="mrow" style="grid-template-columns:44px minmax(0,1fr) auto"><div class="tm">${f.no}</div><div style="min-width:0"><div class="nm" style="font-size:14px">${esc(f.name)} <span class="small muted" style="font-family:var(--body);font-weight:400">${esc(f.type)}</span></div>
-   <div class="small muted">${[...r.blocked,...r.soft].map(esc).join(' · ')||((p.inputs||[]).filter(x=>!x[2]).length?'WOC provides: '+(p.inputs||[]).filter(x=>!x[2]).map(x=>esc(x[1])).join('; '):'No prerequisites')}</div></div>
-   <span class="pill ${isDone?'st-Complete':r.blocked.length?'e-NMC':'e-FMC'}">${isDone?'Done':r.blocked.length?'Blocked':'Available'}</span></div>`}).join('')}</div></details>`}
+   const uses=all.filter(m=>m.frago===f.id);const inputs=(p.inputs||[]);
+   const kind={yn:'yes/no',num:'number',ta:'notes',tx:'text'};
+   return `<details class="fdet" data-fid="${f.id}" ${UI.fdOpen===f.id?'open':''}><summary class="mrow" style="grid-template-columns:44px minmax(0,1fr) auto"><div class="tm">${f.no}</div><div style="min-width:0"><div class="nm" style="font-size:14px">${esc(f.name)} <span class="small muted" style="font-family:var(--body);font-weight:400">${esc(f.type)}</span></div>
+   <div class="small muted">${[...r.blocked,...r.soft].map(esc).join(' · ')||(inputs.filter(x=>!x[2]).length?'WOC provides: '+inputs.filter(x=>!x[2]).map(x=>esc(x[1])).join('; '):'No prerequisites')}</div></div>
+   <span class="pill ${isDone?'st-Complete':r.blocked.length?'e-NMC':'e-FMC'}">${isDone?'Done':r.blocked.length?'Blocked':'Available'}</span></summary>
+   <div class="fbody">
+    <div class="small"><b>Mission:</b> ${esc(f.mission)}</div>
+    <div class="small"><b>Complete when:</b> ${esc(f.complete)}</div>
+    <div class="chips"><span class="pill st-Planned">${esc(f.cat)}</span><span class="pill st-Planned">45 plan · 60 execute · 30 debrief</span><span class="pill st-Planned">≤10 pax</span>${f.casualty?`<span class="pill e-PMC">Accept ${f.casualty}% cas</span>`:''}${f.unlock?`<span class="pill st-Out">Unlocks: ${esc(f.unlock)}</span>`:''}${['globalhawk','sentinel','ironchef','uphold','reaper'].includes(f.id)?'<span class="pill st-Out">Counts toward map upgrade (2.1–2.5)</span>':''}</div>
+    <div class="fgrid">
+     <div><div class="fl">Before GO (FRAGO-specific)</div><ul class="hist" style="color:var(--ink)">${f.checks.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>
+     <div><div class="fl">Prerequisites & WOC inputs</div><ul class="hist" style="color:var(--ink)">${[...(p.needs||[]).map(k=>`Requires ${FR[k].no} ${FR[k].name} complete`),...(p.failed?['Requires a failed or partial mission']:[]),...(p.soft||[]).filter(x=>x[1]).map(x=>x[1]+' (advisory)'),...inputs.map(x=>x[1]+(x[2]?' (optional)':''))].map(x=>`<li>${esc(x)}</li>`).join('')||'<li>None</li>'}</ul></div>
+     <div><div class="fl">AAR captures</div><ul class="hist" style="color:var(--ink)">${f.data.map(([k,l,ty,i])=>`<li>${esc(l)} <span class="muted">(${kind[ty]||ty}${i?', to A2':''})</span></li>`).join('')}</ul></div>
+    </div>
+    <div class="small"><b>On the board:</b> ${uses.length?uses.map(m=>`<button type="button" class="chip" data-msheet="${esc(m.id)}">Day ${esc(m.day)} ${esc(m.lane)} ${esc(m.start)} · ${esc(m.state||'Planned')}${m.aar?' · AAR '+esc(m.aar.result):''}</button>`).join(' '):'<span class="muted">not tasked yet</span>'}</div>
+   </div></details>`}).join('')}</div></details>`}
 
 function fragoOf(m){return m&&m.frago?FR[m.frago]:null}
 function fragoOpts(sel){return `<option value="">— none / MCE plan —</option>${['ISR / recon','Offense','Comms','Logistics','Engineering','Support'].map(c=>`<optgroup label="${c}">${FRAGOS.filter(f=>f.cat===c).map(f=>`<option value="${f.id}" ${sel===f.id?'selected':''}>${readiness(f.id,null).blocked.length?'⛔ ':fragoDone().has(f.id)?'✓ ':''}${f.no} ${esc(f.name)} · ${esc(f.type)}</option>`).join('')}</optgroup>`).join('')}`}
@@ -1506,7 +1523,7 @@ document.addEventListener('change',e=>{
   if(e.target.name==='status'&&e.target.form&&e.target.form.id==='pform'){dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b.dataset.setstatus===e.target.value))}
 });
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
-document.addEventListener('toggle',e=>{if(e.target.id==='participation')UI.partOpen=e.target.open;if(e.target.id==='fragostatus')UI.fsOpen=e.target.open},true);
+document.addEventListener('toggle',e=>{if(e.target.id==='participation')UI.partOpen=e.target.open;if(e.target.id==='fragostatus')UI.fsOpen=e.target.open;if(e.target.classList&&e.target.classList.contains('fdet')){if(e.target.open)UI.fdOpen=e.target.dataset.fid;else if(UI.fdOpen===e.target.dataset.fid)UI.fdOpen=null}},true);
 setInterval(()=>{if(!dlg.open||true)render()},20000);
 
 /* ---------- boot (Firebase) ---------- */
