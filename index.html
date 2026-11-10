@@ -391,27 +391,13 @@ function renderOverview(A){
   const now=curBlock();const day=dayObj(UI.day);
   const cur=A.dayMs.filter(m=>now&&hhmm(m.start)<=now&&now<hhmm(m.end)&&isMission(m));
   const next=A.dayMs.filter(m=>isMission(m)&&(!now||hhmm(m.start)>now)&&m.state==='Planned').slice(0,4);
-  const dist={};ROSTER.forEach(p=>{if(exempt(p.pid,UI.day,A.ms))return;dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
-  const max=Math.max(1,...Object.values(dist));
-  const atFloor=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);
-  const plannedSoon=new Set();A.dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>crew(m).forEach(x=>plannedSoon.add(x)));
-  const notTasked=atFloor.filter(p=>!plannedSoon.has(p.pid));
-  const staff=[...staffOn(UI.day,A.ms)];
-  const prev=DAYS[DAYS.findIndex(d=>d.id===UI.day)-1];
-  const prevStaff=prev?[...staffOn(prev.id,A.ms)].filter(x=>A.c[x]<A.fl):[];
   const et=equipTotals();const pend=Object.values(S.resupply).filter(r=>r.status==='Pending');
   return `${kpis()}
-  <div class="grid2">
+  ${(()=>{const atF=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);const ps=new Set();A.dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>crew(m).forEach(x=>ps.add(x)));const nt=atF.filter(p=>!ps.has(p.pid)).length;
+   return `<button type="button" class="tick" data-act="partgo" style="justify-self:start;padding:6px 12px;font-size:13px" title="Open participation in A1/4 People">Participation floor <span class="mono">${A.fl}</span> · <span class="mono">${nt}</span> at floor not yet tasked ›</button>`})()}
+  <div>
    <section class="card" id="alerts"><h2>Needs attention <span class="sub">${esc(day.name)} · Annex B, CCIRs, equipment</span></h2>
     ${A.alerts.length?`<ul class="alerts">${A.alerts.slice(0,14).map(a=>`<li class="${a.k}" ${a.mid?`data-mission="${esc(a.mid)}"`:a.pid?`data-person="${a.pid}"`:a.eid?`data-equip="${esc(a.eid)}"`:''} style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>${A.alerts.length>14?`<p class="small muted">+${A.alerts.length-14} more</p>`:''}`:'<ul class="alerts"><li class="ok">No conflicts, participation violations or CCIR items.</li></ul>'}
-   </section>
-   <section class="card" id="participation"><h2>Mission participation <span class="sub">Annex B II.1 · non-exempt members</span></h2>
-    <p style="margin:0 0 8px">Floor is <b class="tnum">${A.fl}</b>. Nobody goes on mission ${A.fl+2} until everyone has ${A.fl+1}.</p>
-    <div class="bars tnum">${Object.keys(dist).sort((a,b)=>a-b).map(k=>`<div class="bar ${+k===A.fl?'floor':''}"><span>${k} mission${+k===1?'':'s'}</span><i style="width:${dist[k]/max*100}%"></i><b>${dist[k]}</b></div>`).join('')}</div>
-    <p class="small" style="margin:10px 0 4px"><b>At the floor and not on a planned mission today (${notTasked.length}):</b></p>
-    <div class="chips">${notTasked.map(p=>`<button type="button" class="chip" data-person="${p.pid}">${esc(short(p.pid))}</button>`).join('')||'<span class="muted small">Everyone at the floor is tasked.</span>'}</div>
-    <p class="small muted" style="margin:10px 0 0">Exempt today (WOC/TOC staff, IDO): ${staff.length+ROSTER.filter(p=>person(p.pid).role==='IDO'&&!staff.includes(p.pid)).length}. They return at the lowest count next day.</p>
-    ${prevStaff.length?`<div class="tools" style="margin-top:8px"><button type="button" class="btn sm pri" data-act="equalize">Set ${prevStaff.length} of ${esc(prev.name)}'s WOC/TOC staff to floor (${A.fl})</button></div>`:''}
    </section>
   </div>
   <section class="card" id="now"><h2>${now?'On mission now':'Mission plan'} <span class="sub">${now?`${now} CST`:esc(day.name+' · '+day.label)}</span><span class="right"><button type="button" class="btn sm" data-tab="missions">All missions</button></span></h2>
@@ -431,7 +417,22 @@ function renderPersonnel(A){
   else if(f==='toc')rows=rows.filter(r=>r.x.status!=='EFF'&&!r.x.tocNotified);
   else if(/^t\d$/.test(f))rows=rows.filter(r=>'t'+r.p.team===f);
   const where=pid=>{const w=whereNow(pid,A.ms);if(w.now)return `<span class="pill st-Out">${esc(w.m.lane)} now</span>`;return w.list.map(m=>`<span class="mono small">${esc(m.lane.replace('Tiger ','T'))} ${esc(m.start)}</span>`).join(' ')||'<span class="muted small">Unassigned</span>'};
-  return `<div class="tools"><input type="search" id="q" placeholder="Search name, flight # or serial" value="${esc(UI.q)}" aria-label="Search personnel">
+  const dist={};ROSTER.forEach(p=>{if(exempt(p.pid,UI.day,A.ms))return;dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
+  const max=Math.max(1,...Object.values(dist));
+  const atFloor=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);
+  const plannedSoon=new Set();A.dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>crew(m).forEach(x=>plannedSoon.add(x)));
+  const notTasked=atFloor.filter(p=>!plannedSoon.has(p.pid));
+  const staff=[...staffOn(UI.day,A.ms)];
+  const prev=DAYS[DAYS.findIndex(d=>d.id===UI.day)-1];
+  const prevStaff=prev?[...staffOn(prev.id,A.ms)].filter(x=>A.c[x]<A.fl):[];
+  const partCard=`<details class="card" id="participation" ${UI.partOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">Mission participation</b> <span class="small muted">floor ${A.fl} · ${notTasked.length} at floor not tasked · tap to expand</span></summary><div style="margin-top:10px">`+`    <p style="margin:0 0 8px">Floor is <b class="tnum">${A.fl}</b>. Nobody goes on mission ${A.fl+2} until everyone has ${A.fl+1}.</p>
+    <div class="bars tnum">${Object.keys(dist).sort((a,b)=>a-b).map(k=>`<div class="bar ${+k===A.fl?'floor':''}"><span>${k} mission${+k===1?'':'s'}</span><i style="width:${dist[k]/max*100}%"></i><b>${dist[k]}</b></div>`).join('')}</div>
+    <p class="small" style="margin:10px 0 4px"><b>At the floor and not on a planned mission today (${notTasked.length}):</b></p>
+    <div class="chips">${notTasked.map(p=>`<button type="button" class="chip" data-person="${p.pid}">${esc(short(p.pid))}</button>`).join('')||'<span class="muted small">Everyone at the floor is tasked.</span>'}</div>
+    <p class="small muted" style="margin:10px 0 0">Exempt today (WOC/TOC staff, IDO): ${staff.length+ROSTER.filter(p=>person(p.pid).role==='IDO'&&!staff.includes(p.pid)).length}. They return at the lowest count next day.</p>
+    ${prevStaff.length?`<div class="tools" style="margin-top:8px"><button type="button" class="btn sm pri" data-act="equalize">Set ${prevStaff.length} of ${esc(prev.name)}'s WOC/TOC staff to floor (${A.fl})</button></div>`:''}
+`+`</div></details>`;
+  return partCard+`<div class="tools"><input type="search" id="q" placeholder="Search name, flight # or serial" value="${esc(UI.q)}" aria-label="Search personnel">
   <select id="pf" aria-label="Filter"><option value="all">All 68</option><option value="cas">Casualties</option><option value="toc">Casualties not passed to TOC</option><option value="ex">Exercise owed</option><option value="floor">At participation floor</option>${[1,2,3,4].map(t=>`<option value="t${t}">Team ${t}</option>`).join('')}</select>
   <span class="small muted tnum">${rows.length} shown</span></div>
   <div class="tablewrap"><table id="roster"><thead><tr><th>Name</th><th>Flt</th><th>Team</th><th>Status</th><th>Missions</th><th>${esc(dayObj(UI.day).name)} tasking</th><th>Exercise</th><th>Gear</th><th>Updated</th></tr></thead><tbody class="tnum">
@@ -833,7 +834,7 @@ function prereqHtml(fid,m,editable){if(!fid)return'';const p=PREREQ[fid]||{};con
   if(!lines.length&&!fields)return `<div class="small"><span class="pill e-FMC">Ready</span> No prerequisites.</div>`;
   return `<div class="fl" style="margin-top:4px">Prerequisites &amp; WOC inputs ${readyPill(fid,m)}</div>${lines.length?`<ul class="alerts">${lines.join('')}</ul>`:''}${fields?(editable?`<div class="fields">${fields}</div>`:fields):''}`}
 function fragoStatusCard(){const done=fragoDone();
-  return `<details class="card" id="fragostatus"><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of 20 complete · tap to expand</span></summary>
+  return `<details class="card" id="fragostatus" ${UI.fsOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of 20 complete · tap to expand</span></summary>
   <div class="mrows" style="margin-top:10px">${FRAGOS.map(f=>{const r=readiness(f.id,null);const isDone=done.has(f.id);const p=PREREQ[f.id]||{};
    return `<div class="mrow" style="grid-template-columns:44px minmax(0,1fr) auto"><div class="tm">${f.no}</div><div style="min-width:0"><div class="nm" style="font-size:14px">${esc(f.name)} <span class="small muted" style="font-family:var(--body);font-weight:400">${esc(f.type)}</span></div>
    <div class="small muted">${[...r.blocked,...r.soft].map(esc).join(' · ')||((p.inputs||[]).filter(x=>!x[2]).length?'WOC provides: '+(p.inputs||[]).filter(x=>!x[2]).map(x=>esc(x[1])).join('; '):'No prerequisites')}</div></div>
@@ -1113,7 +1114,7 @@ const TOURS={
  overview:[
   {sel:'.kpis',title:'Personnel at a glance',text:'Assigned, effective, WIA by triage color, KIA, MIA, and exercises still owed.'},
   {sel:'#alerts',title:'Needs attention',text:'Annex B participation problems, double-bookings, CCIRs, CYOA deadlines, AARs owed and equipment issues. Tap any line to open it.'},
-  {sel:'#participation',title:'Mission participation',text:'The floor is the lowest mission count. Nobody goes again until everyone reaches it. The chips are people at the floor who are not tasked yet.'},
+  {sel:'[data-act="partgo"]',title:'Mission participation',text:'The floor is the lowest mission count. Tap to open the full breakdown in A1/4 People.'},
   {sel:'#now',title:'Missions now or next',text:'Who is out right now, or what launches next, with each person’s status color.'}],
  personnel:[
   {sel:'#q',title:'Find anyone fast',text:'Search by name, flight number, or a weapon serial to see who holds it.'},
@@ -1435,6 +1436,7 @@ document.addEventListener('click',e=>{
   else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);patchMission(id,{frago:v});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${v?FR[v].name+' ('+FR[v].type+')':'FRAGO cleared'}`});closeDlg()}
   else if(a==='logops')quickLog();
   else if(a==='more')moreSheet();
+  else if(a==='partgo'){UI.partOpen=true;setTab('personnel');setTimeout(()=>{const el=document.getElementById('participation');if(el)el.scrollIntoView({block:'start'})},50)}
   else if(a==='addreport')reportDlg(null);else if(a==='savereport')saveReport();
   else if(a==='delreport'){deleteDoc('intel',document.getElementById('repform').dataset.id);closeDlg()}
   else if(a==='addpir')pirDlg(null);else if(a==='savepir')savePir();
@@ -1507,6 +1509,7 @@ document.addEventListener('change',e=>{
   if(e.target.name==='status'&&e.target.form&&e.target.form.id==='pform'){dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b.dataset.setstatus===e.target.value))}
 });
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
+document.addEventListener('toggle',e=>{if(e.target.id==='participation')UI.partOpen=e.target.open;if(e.target.id==='fragostatus')UI.fsOpen=e.target.open},true);
 setInterval(()=>{if(!dlg.open||true)render()},20000);
 
 /* ---------- boot (Firebase) ---------- */
