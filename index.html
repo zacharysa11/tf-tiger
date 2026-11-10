@@ -330,7 +330,7 @@ function analyze(){
    const nonEx=ROSTER.filter(p=>!exempt(p.pid,D.id,ms)&&person(p.pid).role!=='Chaplain').map(p=>p.pid);
    starts.forEach(st=>{const grp=pend.filter(m=>hhmm(m.start)===st);const f=Math.min(...nonEx.map(x=>proj[x]));const behind=nonEx.filter(x=>proj[x]===f&&!grp.some(m=>crew(m).includes(x))).length;
     if(D.id===UI.day)grp.forEach(m=>{const over=crew(m).filter(x=>nonEx.includes(x)&&proj[x]>f);
-      if(over.length&&behind){alerts.push({k:'warn',t:`${m.lane} ${m.start}: ${over.map(x=>short(x)+' (#'+(proj[x]+1)+')').join('; ')} would go again while ${behind} member${behind>1?'s are':' is'} still at ${f} (Annex B II.1)`,mid:m.id});flags[m.id]=flags[m.id]||'warn'}});
+      if(over.length&&behind){alerts.push({k:'warn',part:1,t:`${m.lane} ${m.start}: ${over.map(x=>short(x)+' (#'+(proj[x]+1)+')').join('; ')} would go again while ${behind} member${behind>1?'s are':' is'} still at ${f} (Annex B II.1)`,mid:m.id});flags[m.id]=flags[m.id]||'warn'}});
     grp.forEach(m=>crew(m).forEach(x=>{if(x in proj)proj[x]++}))});
    if(D.id!==UI.day&&DAYS.indexOf(D)<DAYS.findIndex(d=>d.id===UI.day)){const endF=Math.min(...nonEx.map(x=>proj[x]));staffOn(D.id,ms).forEach(x=>{if(x in proj&&proj[x]<endF)proj[x]=endF})}});
   dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>{
@@ -396,9 +396,9 @@ function renderOverview(A){
   ${(()=>{const atF=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);const ps=new Set();A.dayMs.filter(m=>isMission(m)&&(m.state==='Planned'||m.state==='Out')).forEach(m=>crew(m).forEach(x=>ps.add(x)));const nt=atF.filter(p=>!ps.has(p.pid)).length;
    return `<button type="button" class="tick" data-act="partgo" style="justify-self:start;padding:6px 12px;font-size:13px" title="Open participation in A1/4 People">Participation floor <span class="mono">${A.fl}</span> · <span class="mono">${nt}</span> at floor not yet tasked ›</button>`})()}
   <div>
-   <section class="card" id="alerts"><h2>Needs attention <span class="sub">${esc(day.name)} · Annex B, CCIRs, equipment</span></h2>
-    ${A.alerts.length?`<ul class="alerts">${A.alerts.slice(0,14).map(a=>`<li class="${a.k}" ${a.mid?`data-mission="${esc(a.mid)}"`:a.pid?`data-person="${a.pid}"`:a.eid?`data-equip="${esc(a.eid)}"`:''} style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>${A.alerts.length>14?`<p class="small muted">+${A.alerts.length-14} more</p>`:''}`:'<ul class="alerts"><li class="ok">No conflicts, participation violations or CCIR items.</li></ul>'}
-   </section>
+   ${(()=>{const crit=A.alerts.filter(a=>a.k==='bad');const other=A.alerts.filter(a=>a.k!=='bad'&&a.k!=='ok').length;
+    return crit.length?`<section class="card" id="alerts"><h2>Critical <span class="sub">CCIRs, double-bookings, unfit crew, overdue A3 items</span></h2><ul class="alerts">${crit.slice(0,8).map(a=>`<li class="bad" ${a.mid?`data-mission="${esc(a.mid)}"`:a.pid?`data-person="${a.pid}"`:a.eid?`data-equip="${esc(a.eid)}"`:''} style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>${crit.length>8?`<p class="small muted">+${crit.length-8} more</p>`:''}${other?`<p class="small muted" style="margin:8px 0 0">${other} lower-priority item${other>1?'s':''} live in A1/4 and A3.</p>`:''}</section>`
+    :`<div class="allclear" id="alerts">✓ Nothing critical.${other?` <span class="small" style="font-weight:500">${other} lower-priority item${other>1?'s':''} in A1/4 and A3.</span>`:''}</div>`})()}
   </div>
   <section class="card" id="now"><h2>${now?'On mission now':'Mission plan'} <span class="sub">${now?`${now} CST`:esc(day.name+' · '+day.label)}</span><span class="right"><button type="button" class="btn sm" data-tab="missions">All missions</button></span></h2>
    <div class="lanegrid">${(cur.length?cur:next).map(m=>missionCard(m,A,now)).join('')||'<div class="empty">No missions in this block.</div>'}</div>
@@ -425,7 +425,7 @@ function renderPersonnel(A){
   const staff=[...staffOn(UI.day,A.ms)];
   const prev=DAYS[DAYS.findIndex(d=>d.id===UI.day)-1];
   const prevStaff=prev?[...staffOn(prev.id,A.ms)].filter(x=>A.c[x]<A.fl):[];
-  const partCard=`<details class="card" id="participation" ${UI.partOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">Mission participation</b> <span class="small muted">floor ${A.fl} · ${notTasked.length} at floor not tasked · tap to expand</span></summary><div style="margin-top:10px">`+`    <p style="margin:0 0 8px">Floor is <b class="tnum">${A.fl}</b>. Nobody goes on mission ${A.fl+2} until everyone has ${A.fl+1}.</p>
+  const partCard=`<details class="card" id="participation" ${UI.partOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">Mission participation</b> <span class="small muted">floor ${A.fl} · ${notTasked.length} at floor not tasked${A.alerts.filter(a=>a.part).length?` · <b style="color:var(--warn)">${A.alerts.filter(a=>a.part).length} plan warnings</b>`:''} · tap to expand</span></summary><div style="margin-top:10px">`+`    ${(()=>{const pw=A.alerts.filter(a=>a.part);return pw.length?`<ul class="alerts" style="margin-bottom:10px">${pw.map(a=>`<li class="warn" data-mission="${esc(a.mid)}" style="cursor:pointer">${esc(a.t)}</li>`).join('')}</ul>`:''})()}<p style="margin:0 0 8px">Floor is <b class="tnum">${A.fl}</b>. Nobody goes on mission ${A.fl+2} until everyone has ${A.fl+1}.</p>
     <div class="bars tnum">${Object.keys(dist).sort((a,b)=>a-b).map(k=>`<div class="bar ${+k===A.fl?'floor':''}"><span>${k} mission${+k===1?'':'s'}</span><i style="width:${dist[k]/max*100}%"></i><b>${dist[k]}</b></div>`).join('')}</div>
     <p class="small" style="margin:10px 0 4px"><b>At the floor and not on a planned mission today (${notTasked.length}):</b></p>
     <div class="chips">${notTasked.map(p=>`<button type="button" class="chip" data-person="${p.pid}">${esc(short(p.pid))}</button>`).join('')||'<span class="muted small">Everyone at the floor is tasked.</span>'}</div>
@@ -1113,7 +1113,7 @@ const TOURS={
   {sel:'[data-act="help"]',title:'Help is always here',text:'Tap ? on any page for quick how-tos, color meanings, shortcuts, and a tour of just that page.'}],
  overview:[
   {sel:'.kpis',title:'Personnel at a glance',text:'Assigned, effective, WIA by triage color, KIA, MIA, and exercises still owed.'},
-  {sel:'#alerts',title:'Needs attention',text:'Annex B participation problems, double-bookings, CCIRs, CYOA deadlines, AARs owed and equipment issues. Tap any line to open it.'},
+  {sel:'#alerts',title:'Critical items',text:'Only what the ATF/CC must act on now: CCIRs, double-bookings, unfit crew, overdue A3 deadlines. Lower-priority items live in A1/4 and A3.'},
   {sel:'[data-act="partgo"]',title:'Mission participation',text:'The floor is the lowest mission count. Tap to open the full breakdown in A1/4 People.'},
   {sel:'#now',title:'Missions now or next',text:'Who is out right now, or what launches next, with each person’s status color.'}],
  personnel:[
@@ -1145,7 +1145,7 @@ const TOURS={
  cub:[{sel:'#slide-a1',title:'Live CUB slides',text:'A1, A4 and A3 slides built from current data.'},{sel:'[data-act="copya3"]',title:'Copy for the brief',text:'Copy any slide as text to read from or paste into the CUB deck.'}]
 };
 const HELP={
- overview:['Read the red and amber lines first; tap one to open it.','Use the participation card before the CABS/CC fills the next block.'],
+ overview:['Red items are critical; tap one to open it. Participation plan warnings are in A1/4 People.','Use the participation card before the CABS/CC fills the next block.'],
  personnel:['Casualty: tap the person → pick status → source → mission → Save.','Exercise: open the person → Exercise chosen → status In progress (timeouts count down 60 min) → Return to duty when done.','Gear: open the person → Gear → pick item, serial → Issue.'],
  missions:['Change a crew: Edit on the card → tick names → Save.','Complete · count participation adds one mission to everyone on that crew.'],
  a3:['Start of block: work the queue top to bottom.','CYOA: + CYOA mission → enter TOC planning time → tick each handoff by T-20 and T-10.','Go/No-Go: Checklist → Check all or tick items → GO or NO-GO (a reason is required).','During a mission: pick it in the quick log → one-tap TIC or ROE → report to the ATF/CC → tick Reported.','After: RTB → Enter AAR (result + a line or two) → Complete.'],
