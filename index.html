@@ -255,6 +255,11 @@ html,body{overflow-x:clip;max-width:100%}
 main,.card,.tablewrap{max-width:100%}
 .bnav{transform:translateZ(0);-webkit-transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform}
 @supports not (overflow:clip){body{overflow-x:hidden}}
+.staffl{display:grid;gap:4px}
+.staffr{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px}
+.staffr:hover{border-color:var(--muted)}
+.sr{font:700 11px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.sr.none{color:var(--dim);font-weight:600}
 </style>
 </head>
 <body>
@@ -392,7 +397,7 @@ function equipTotals(){const t={FMC:0,PMC:0,NMC:0};Object.values(S.equip).forEac
 function missionCard(m,A,now){
   const st=m.state||'Planned';const cas=casualtiesFor(m.id);const isNow=now&&hhmm(m.start)<=now&&now<hhmm(m.end);
   const fl=A.flags[m.id];
-  const chips=crew(m).map(x=>{const p=person(x);return `<button type="button" class="chip ${x===m.mc?'mc':''} ${p.status!=='EFF'?'s-'+p.status:''}" data-person="${x}" title="${esc(nm(x))}">${x===m.mc?'★ ':''}${esc(short(x))}${isMission(m)?` <span class="muted tnum">${A.c[x]}</span>`:''}</button>`}).join('');
+  const chips=crew(m).map(x=>{const p=person(x);return `<button type="button" class="chip ${x===m.mc?'mc':''} ${p.status!=='EFF'?'s-'+p.status:''}" data-person="${x}" title="${esc(nm(x))}">${x===m.mc?'★ ':''}${!isMission(m)&&staffRoleOf(m,x)&&x!==m.mc?`<b>${esc(staffRoleOf(m,x))}</b> `:''}${esc(short(x))}${isMission(m)?` <span class="muted tnum">${A.c[x]}</span>`:''}</button>`}).join('');
   return `<div class="mission ${isNow?'now':''} ${fl==='bad'?'badc':fl==='warn'?'warnc':''}" id="m-${esc(m.id)}">
    <div class="mhead"><b>${esc(m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${isMission(m)&&m.go&&m.go.d?goPill(m):''}${aarPill(m)}${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-mission="${esc(m.id)}">Edit</button></div>
    ${isMission(m)?(m.frago&&FR[m.frago]?`<div class="small"><span class="pill st-Out">${esc(FR[m.frago].name)}</span> <span class="muted">${esc(FR[m.frago].type)}</span></div>`:(m.state==='Planned'?`<button type="button" class="btn sm" data-assign="${esc(m.id)}" style="justify-self:start">Assign FRAGO</button>`:'')):''}
@@ -411,6 +416,7 @@ function renderOverview(A){
    return `<button type="button" class="tick" data-act="partgo" style="justify-self:start;padding:6px 12px;font-size:13px" title="Open participation in A1/4 People">Participation floor <span class="mono">${A.fl}</span> · <span class="mono">${nt}</span> at floor not yet tasked ›</button>`})()}
   <div>
   </div>
+  ${staffCard(A)}
   <section class="card" id="now"><h2>${now?'On mission now':'Mission plan'} <span class="sub">${now?`${now} CST`:esc(day.name+' · '+day.label)}</span><span class="right"><button type="button" class="btn sm" data-tab="missions">All missions</button></span></h2>
    <div class="lanegrid">${(cur.length?cur:next).map(m=>missionCard(m,A,now)).join('')||'<div class="empty">No missions in this block.</div>'}</div>
   </section>
@@ -427,7 +433,7 @@ function renderPersonnel(A){
   else if(f==='floor')rows=rows.filter(r=>!exempt(r.p.pid,UI.day,A.ms)&&A.c[r.p.pid]===A.fl);
   else if(f==='toc')rows=rows.filter(r=>r.x.status!=='EFF'&&!r.x.tocNotified);
   else if(/^t\d$/.test(f))rows=rows.filter(r=>'t'+r.p.team===f);
-  const where=pid=>{const w=whereNow(pid,A.ms);if(w.now)return `<span class="pill st-Out">${esc(w.m.lane)} now</span>`;return w.list.map(m=>`<span class="mono small">${esc(m.lane.replace('Tiger ','T'))} ${esc(m.start)}</span>`).join(' ')||'<span class="muted small">Unassigned</span>'};
+  const where=pid=>{const sm=A.dayMs.find(m=>!isMission(m)&&crew(m).includes(pid));if(sm)return `<span class="pill st-Out">${esc(sm.lane)}${staffRoleOf(sm,pid)?' · '+esc(staffRoleOf(sm,pid)):''}</span>`;const w=whereNow(pid,A.ms);if(w.now)return `<span class="pill st-Out">${esc(w.m.lane)} now</span>`;return w.list.map(m=>`<span class="mono small">${esc(m.lane.replace('Tiger ','T'))} ${esc(m.start)}</span>`).join(' ')||'<span class="muted small">Unassigned</span>'};
   const dist={};ROSTER.forEach(p=>{if(exempt(p.pid,UI.day,A.ms))return;dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
   const max=Math.max(1,...Object.values(dist));
   const atFloor=ROSTER.filter(p=>!exempt(p.pid,UI.day,A.ms)&&A.c[p.pid]===A.fl);
@@ -1243,6 +1249,30 @@ function helpDlg(){const k=UI.tab;const [t]=TITLES[k];
   <p class="small muted" style="margin:0">Changes save instantly for everyone. If the dot at the top is not green, check your connection and reload.</p></div>
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Close</button></div>`)}
 
+/* ---------- daily WOC/TOC staff ---------- */
+const WOC_ROLES=['ATF/CC','A1/4','A2/6','A3'];
+function staffRoleOf(m,pid){return ((m.roles||{})[pid])||(pid===m.mc?(m.lane==='WOC'?'ATF/CC':'CABS/CC'):'')}
+function staffCard(A){const st=A.dayMs.filter(m=>!isMission(m));if(!st.length)return'';
+  return `<section class="card" id="staff"><h2>WOC &amp; TOC staff <span class="sub">${esc(dayObj(UI.day).name)} · 0700–1530 · tap a name to set their position</span></h2>
+  <div class="grid2">${st.map(m=>{const ppl=crew(m);const order=m.lane==='WOC'?WOC_ROLES:[];
+    const sorted=ppl.slice().sort((a,b)=>{const ra=staffRoleOf(m,a),rb=staffRoleOf(m,b);const ia=order.indexOf(ra),ib=order.indexOf(rb);return (a===m.mc?-1:0)-(b===m.mc?-1:0)||((ia<0?9:ia)-(ib<0?9:ib))||(ra?0:1)-(rb?0:1)||nm(a).localeCompare(nm(b))});
+    const missing=m.lane==='WOC'?WOC_ROLES.filter(r=>!ppl.some(x=>staffRoleOf(m,x)===r)):[];
+    return `<div class="mission"><div class="mhead"><b>${esc(m.lane)}</b><span class="small muted">${ppl.length} pax · lead ${esc(short(m.mc))}</span>${missing.length?`<span class="pill e-PMC">No ${missing.join(', ')}</span>`:''}</div>
+    <div class="staffl">${sorted.map(x=>{const r=staffRoleOf(m,x);const p=person(x);return `<button type="button" class="staffr" data-staff="${esc(m.id)}|${x}"><span class="sr ${r?'':'none'}">${esc(r||'Set role')}</span><span>${esc(nm(x))}</span>${p.status!=='EFF'?`<span class="pill s-${p.status}">${esc(SLBL[p.status])}</span>`:''}</button>`}).join('')}</div></div>`}).join('')}</div></section>`}
+function staffDlg(mid,pid){const m=allMissions().find(x=>x.id===mid);if(!m)return;const cur=staffRoleOf(m,pid);
+  const opts=m.lane==='WOC'?WOC_ROLES:['CABS/CC'];
+  openDlg(`<form class="dlg" id="staffform" data-mid="${esc(mid)}" data-pid="${pid}"><h3>${esc(nm(pid))} <span class="small muted">${esc(m.lane)} · ${esc(dayObj(m.day).name)}</span></h3>
+  <div class="segpick">${opts.map(r=>`<label><input type="radio" name="role" value="${r}" ${cur===r?'checked':''}><span>${r}</span></label>`).join('')}</div>
+  <div class="fields"><label class="wide">Or type a position${m.lane==='TOC'?' (e.g. TOC deputy, ops, intel, comms)':''}<input name="custom" value="${esc(opts.includes(cur)?'':cur)}"></label></div>
+  <p class="small muted" style="margin:0">Annex B allows up to two people per A-staff role. Only applies to this day.</p></form>
+  <div class="dfoot"><div class="left">${cur?'<button type="button" class="btn sm ghost" data-act="clearstaff">Clear</button>':''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savestaff">Save</button></div>`)}
+function saveStaff(clear){const f=document.getElementById('staffform');const mid=f.dataset.mid,pid=f.dataset.pid;const fd=new FormData(f);
+  const v=clear?'':(String(fd.get('custom')||'').trim()||fd.get('role')||'');const m=allMissions().find(x=>x.id===mid);
+  const roles=Object.assign({},(S.missions[mid]||{}).roles||m.roles||{});if(v)roles[pid]=v;else delete roles[pid];
+  if(v&&m.lane==='WOC'&&WOC_ROLES.includes(v)&&Object.entries(roles).filter(([k,r])=>r===v).length>2){toast('Annex B: no more than two people per role.');return}
+  patchMission(mid,Object.assign({day:m.day,lane:m.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,state:m.state||'Planned',note:m.note||''},{roles}));
+  logIt({type:'adm',text:`${dayObj(m.day).name} ${m.lane}: ${nm(pid)} ${v?'set as '+v:'position cleared'}`});closeDlg()}
+
 /* ---------- dialogs ---------- */
 const dlg=document.getElementById('dlg');
 function openDlg(html){dlg.innerHTML=html;if(!dlg.open)dlg.showModal()}
@@ -1440,7 +1470,8 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.staff){const [mid,pid]=t.dataset.staff.split('|');staffDlg(mid,pid);return}
   if(t.dataset.reattempt){const o=allMissions().find(x=>x.id===t.dataset.reattempt);if(!o)return;const id='c'+uid();const n0=(o.attempt||1)+1;
     writeDoc('missions',id,{day:UI.day,lane:'CYOA',frago:o.frago,note:`${FR[o.frago].name} (attempt ${n0})`,start:'',end:'',state:'Planned',mc:'',members:[],attempt:n0,retryOf:o.id,inputs:Object.assign({},o.inputs||{}),cyoa:{toc:'',resupply:'',offbase:!!(o.cyoa&&o.cyoa.offbase)}});
     logIt({type:'cyoa',mid:id,text:`Reattempt planned: ${FR[o.frago].name} (attempt ${n0}) after ${mName(o)} ${o.start}${o.aar&&o.aar.improve?' · lesson: '+o.aar.improve:''}`});closeDlg();setTimeout(()=>cyoaDlg(id),60);return}
@@ -1485,6 +1516,7 @@ document.addEventListener('click',e=>{
   else if(a==='go')saveGo('GO');
   else if(a==='nogo')saveGo('NOGO');
   else if(a==='saveaar')saveAar();
+  else if(a==='savestaff')saveStaff();else if(a==='clearstaff')saveStaff(true);
   else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);patchMission(id,{frago:v});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${v?FR[v].name+' ('+FR[v].type+')':'FRAGO cleared'}`});closeDlg()}
   else if(a==='logops')quickLog();
   else if(a==='more')moreSheet();
