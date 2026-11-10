@@ -688,6 +688,7 @@ function missionSheet(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!
    ${st!=='Complete'&&st!=='Scrubbed'?`<button type="button" class="btn okb" data-ops="${i}|Complete">Mark complete</button>`:''}
    ${st==='Planned'?`<button type="button" class="btn badb" data-ops="${i}|Scrub">Scrub</button>`:''}
    ${m.cyoa?`<button type="button" class="btn" data-cyedit="${i}">Edit CYOA</button>`:''}
+   ${m.frago&&(m.state==='Scrubbed'||(m.aar&&/Partial|Not complete|Failed/.test(m.aar.result||'')))?`<button type="button" class="btn warnb" data-reattempt="${i}">Reattempt a mission</button>`:''}
   </div>
   ${fragoCard(fragoOf(m),m)}
   ${m.aar?`<div class="small"><b>AAR:</b> ${esc(m.aar.result)}${m.aar.summary?' · '+esc(m.aar.summary):''}${m.aar.improve?'<br><b>Improve:</b> '+esc(m.aar.improve):''} <button type="button" class="btn sm" data-aarcopy="${i}">Copy AAR</button></div>`:''}
@@ -795,12 +796,7 @@ const FRAGOS=[
   mission:'Destroy enemy airfield infrastructure to deny their increased aerial resupply.',
   complete:'Declared by MC.',
   checks:['Team briefed: Red Horse must be completely destroyed before GTAS can be targeted','Sand emptied only at the two sand piles on the airfield','Empty sandbags turned in to supply building after return'],
-  data:[['rhexists','Enemy Red Horse existed','yn'],['rh','Red Horse side dismantled','yn'],['gtas','GTAS side dismantled','yn'],['bags','Sandbags emptied / turned in','num']]},
- {id:'reattempt',no:'2.20',name:'Reattempt failed mission',type:'Repeat a failed mission',cat:'Support',
-  mission:'Re-run a mission that failed earlier.',
-  complete:'Per the original FRAGO.',
-  checks:['Original failed mission and reason for failure identified','Lessons from the original AAR briefed to the team'],
-  data:[['orig','Original mission reattempted','tx'],['fixed','What was changed from the first attempt','ta']]}
+  data:[['rhexists','Enemy Red Horse existed','yn'],['rh','Red Horse side dismantled','yn'],['gtas','GTAS side dismantled','yn'],['bags','Sandbags emptied / turned in','num']]}
 ];
 const FR=Object.fromEntries(FRAGOS.map(f=>[f.id,f]));
 const EXORD={
@@ -822,8 +818,7 @@ const EXORD={
  redhorse:{sit:'GTAS gives visibility; larger resupply aircraft need more runway infrastructure.',intent:'Build an airfield structure enabling larger aerial resupply.',obj:['3-sided "U" structure, 100+ sandbags, within 15 ft of the GTAS'],rules:['FRAGO GTAS must be complete first','Blueprint briefed to CABS/CC and OTS instructor before departure','Bottom layer: 3 sides, each 6 wide x 3 deep; 2nd layer 2 deep; 3rd layer 1 deep','Bags 2/3 full, tied, tightly packed; do not repurpose GTAS bags; no loose sand at site']},
  commando:{sit:'Radio comms between the TOC and MCE teams are not established and LMR comms are critical.',intent:'Install a concealed repeater so LMRs work outside the base perimeter.',obj:['Install the repeater at the refugee camp after getting permission from the locals','Transit in and out without engaging enemy forces'],rules:['Team includes comm specialist(s)','Repeater on a metallic surface, 1 hand on it for 2 min','Plan routes to avoid enemy and minimize time outside the wire','Complete when install team returns to TOC and reports to CABS/CC']},
  muzzler:{sit:'A UXO (likely WW2) was found and endangers friendly operations.',intent:'Enable an EOD team (USS Milius, 20 mi off the island, by helicopter) to disarm it.',obj:['UXO location identified by ATF/A2','Cordon it and coordinate with EOD','Secure the site until EOD arrives'],rules:['Execute the 5-Cs: Confirm, Clear, Cordon, Check, Control','Send EOD 9-line to TOC for relay to WOC','No radios within 25 ft of the UXO','Complete when the UXO is safely disarmed']},
- tidalwave:{sit:'The enemy built airfield structures to sustain operations, threatening friendly ops on Wang-an.',intent:'Destroy enemy airfield infrastructure to deny their increased aerial resupply.',obj:['Completely dismantle at least one side of the enemy GTAS triangle or Red Horse U'],rules:['If an enemy Red Horse exists, it must be completely destroyed before their GTAS','Empty sandbags only at the two sand piles on the airfield','Turn empty sandbags in to your supply building after returning','Complete declared by MC']},
- reattempt:{sit:'An earlier mission failed or was only partly completed.',intent:'Accomplish the original objectives using the lessons learned.',obj:['Per the original FRAGO'],rules:['Brief what changed from the first attempt','Use the original FRAGO\'s completion criteria']}
+ tidalwave:{sit:'The enemy built airfield structures to sustain operations, threatening friendly ops on Wang-an.',intent:'Destroy enemy airfield infrastructure to deny their increased aerial resupply.',obj:['Completely dismantle at least one side of the enemy GTAS triangle or Red Horse U'],rules:['If an enemy Red Horse exists, it must be completely destroyed before their GTAS','Empty sandbags only at the two sand piles on the airfield','Turn empty sandbags in to your supply building after returning','Complete declared by MC']}
 };
 
 /* ---------- FRAGO prerequisites & WOC inputs ---------- */
@@ -846,8 +841,7 @@ const PREREQ={
  redhorse:{needs:['gtas']},
  commando:{},
  muzzler:{inputs:[['uxo','UXO location from A2']]},
- tidalwave:{inputs:[['rhexists','Enemy Red Horse present? (if yes, destroy it before GTAS)']]},
- reattempt:{failed:true,inputs:[['orig','Original mission being reattempted']]}
+ tidalwave:{inputs:[['rhexists','Enemy Red Horse present? (if yes, destroy it before GTAS)']]}
 };
 function fragoDone(){const s=new Set();allMissions().forEach(m=>{if(m.frago&&m.state==='Complete'&&!(m.aar&&/Not complete|Failed/.test(m.aar.result||'')))s.add(m.frago)});return s}
 function failedMissions(){return allMissions().filter(m=>m.state==='Scrubbed'||(m.aar&&/Not complete|Failed|Partial/.test(m.aar.result||'')))}
@@ -864,7 +858,7 @@ function prereqHtml(fid,m,editable){if(!fid)return'';const p=PREREQ[fid]||{};con
   if(!lines.length&&!fields)return `<div class="small"><span class="pill e-FMC">Ready</span> No prerequisites.</div>`;
   return `<div class="fl" style="margin-top:4px">Prerequisites &amp; WOC inputs ${readyPill(fid,m)}</div>${lines.length?`<ul class="alerts">${lines.join('')}</ul>`:''}${fields?(editable?`<div class="fields">${fields}</div>`:fields):''}`}
 function fragoStatusCard(){const done=fragoDone();const all=allMissions();
-  return `<details class="card" id="fragostatus" ${UI.fsOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of 20 complete · tap a mission for its details</span></summary>
+  return `<details class="card" id="fragostatus" ${UI.fsOpen?'open':''}><summary style="cursor:pointer"><b style="font:700 13px var(--display);letter-spacing:.09em;text-transform:uppercase">CYOA menu status</b> <span class="small muted">${done.size} of ${FRAGOS.length} complete · tap a mission for its details</span></summary>
   <div class="mrows" style="margin-top:10px">${FRAGOS.map(f=>{const r=readiness(f.id,null);const isDone=done.has(f.id);const p=PREREQ[f.id]||{};
    const uses=all.filter(m=>m.frago===f.id);const inputs=(p.inputs||[]);
    const kind={yn:'yes/no',num:'number',ta:'notes',tx:'text'};
@@ -897,6 +891,7 @@ function fragoCard0(f){return f?`<div class="fragobox"><div><b>${f.no} ${esc(f.n
 function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:'',end:'',cyoa:{toc:'',resupply:'',offbase:false}};const cy=m.cyoa||{};
   openDlg(`<form class="dlg" id="cyform" data-mid="${esc(id||'')}"><h3>${id?'Edit CYOA mission':'Add CYOA mission'} <span class="small muted">${esc(dayObj(id?m.day:UI.day).name)}</span></h3>
   <div class="fields"><label class="wide">FRAGO chosen<select name="frago" id="cyfrago">${fragoOpts(m.frago||'')}</select></label></div>
+  ${m.retryOf?(()=>{const o=allMissions().find(x=>x.id===m.retryOf);return o?`<div class="banner">Attempt ${m.attempt||2} of ${esc(mName(o))} ${esc(o.start)} (${esc(o.aar?o.aar.result:o.state)}).${o.aar&&o.aar.improve?' Lesson: '+esc(o.aar.improve):''}</div>`:''})():''}
   <div id="cyfragocard">${fragoCard(fragoOf(m),m)}</div>
   <div class="fields"><label class="wide">Name on the board (optional)<input name="note" value="${esc(m.note||'')}" placeholder="Defaults to the FRAGO name"></label>
   <label>TOC planning starts (T)<input name="toc" id="cytoc" inputmode="numeric" pattern="[0-9]{4}" value="${esc(cy.toc||'')}" required placeholder="0700"></label>
@@ -1440,7 +1435,10 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.reattempt){const o=allMissions().find(x=>x.id===t.dataset.reattempt);if(!o)return;const id='c'+uid();const n0=(o.attempt||1)+1;
+    writeDoc('missions',id,{day:UI.day,lane:'CYOA',frago:o.frago,note:`${FR[o.frago].name} (attempt ${n0})`,start:'',end:'',state:'Planned',mc:'',members:[],attempt:n0,retryOf:o.id,inputs:Object.assign({},o.inputs||{}),cyoa:{toc:'',resupply:'',offbase:!!(o.cyoa&&o.cyoa.offbase)}});
+    logIt({type:'cyoa',mid:id,text:`Reattempt planned: ${FR[o.frago].name} (attempt ${n0}) after ${mName(o)} ${o.start}${o.aar&&o.aar.improve?' · lesson: '+o.aar.improve:''}`});closeDlg();setTimeout(()=>cyoaDlg(id),60);return}
   if(t.dataset.assign){assignDlg(t.dataset.assign);return}
   if(t.dataset.aarcopy){const m=allMissions().find(x=>x.id===t.dataset.aarcopy);if(m)copy(aarText(m));return}
   if(t.dataset.sec){goSec(t.dataset.sec);return}
