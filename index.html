@@ -1384,7 +1384,7 @@ function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)retur
   <div class="tools"><button type="button" class="btn sm" data-mission="${esc(id)}">Change crew</button><button type="button" class="btn sm" data-loadout="${esc(id)}">Set gear loadout</button></div>
   <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief?'checked':''}><span>MC briefed the plan to CABS/CC and the OTS instructor</span></label>
   <label><input type="checkbox" name="ck_instr" ${ck.instr?'checked':''}><span>OTS instructor is going with the team</span></label>
-  <label><input type="checkbox" name="ck_cc" ${ck.cc?'checked':''}><span>ATF/CC knows and agrees (team is leaving the base)</span></label></div>
+  <label><input type="checkbox" name="ck_cc" ${ck.cc?'checked':''}><span>Coordinated with the ATF/CC (team is leaving the base). The GO is still yours.</span></label></div>
   <div class="small"><b>Team brings:</b> ${bring.map(esc).join(' · ')}</div>
   <details><summary class="small" style="cursor:pointer">NO-GO reason / more</summary><div class="fields" style="margin-top:6px"><label class="wide">Reason (required for NO-GO)<input name="reason" value="${esc(g.reason||'')}"></label>
   <label class="wide" style="display:flex;gap:6px;align-items:center;text-transform:none;color:var(--ink)"><input type="checkbox" name="offbase" ${(g.offbase||(m.cyoa&&m.cyoa.offbase)||f)?'checked':''}> Leaves the base perimeter</label></div></details></form>
@@ -1395,7 +1395,7 @@ function saveGo(d){const f=document.getElementById('goform');const fd=new FormDa
   const inputs=Object.assign({},m.inputs||{});(PREREQ[m.frago]&&PREREQ[m.frago].inputs||[]).forEach(([k])=>{const v=fd.get('inp_'+k);if(v!=null&&String(v).trim())inputs[k]=String(v).trim()});
   const checks={brief:fd.get('ck_brief')==='on',instr:fd.get('ck_instr')==='on',cc:fd.get('ck_cc')==='on'};
   if(d==='GO'){const bad=goAuto(m,analyze(),inputs).find(x=>x[1]==='bad');if(bad&&!confirmOnce('gobad',`${bad[0]}: ${bad[2]}. Tap GO again to override.`))return;
-    if(!bad&&(!checks.brief||!checks.instr||!checks.cc)&&!confirmOnce('gotick','Not all 3 boxes are ticked (brief, instructor, ATF/CC). Tap GO again to override.'))return}
+    if(!bad&&(!checks.brief||!checks.instr||!checks.cc)&&!confirmOnce('gotick','Not all 3 boxes are ticked (brief, instructor, coordinated with ATF/CC). Tap GO again to give the GO anyway.'))return}
   patchMission(id,{inputs,go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
   logIt({type:'go',mid:id,text:`${d==='GO'?'GO':'NO-GO'}: ${mName(m)} ${m.start}${reason?' ('+reason+')':''}`});closeDlg()}
 /* ---------- grids & sites ---------- */
