@@ -452,6 +452,7 @@ function renderOverview(A){
    return `<button type="button" class="tick" data-act="partgo" style="justify-self:start;padding:6px 12px;font-size:13px" title="Open participation in A1/4 People">Fewest missions anyone has: <span class="mono">${A.fl}</span> · <span class="mono">${nt}</span> of them not on a mission yet ›</button>`})()}
   <div>
   </div>
+  <section class="card" id="snap"><h2>Passed &amp; failed</h2>${snapHtml()}</section>
   ${staffCard(A)}
   <section class="card" id="now"><h2>${now?'On mission now':'Mission plan'} <span class="sub">${now?`${now} CST`:esc(day.name+' · '+day.label)}</span><span class="right"><button type="button" class="btn sm" data-tab="missions">All missions</button></span></h2>
    <div class="lanegrid">${(cur.length?cur:next).map(m=>missionCard(m,A,now)).join('')||'<div class="empty">No missions in this block.</div>'}</div>
@@ -549,7 +550,8 @@ function renderCUB(A){
   <section class="slide" id="slide-a3"><h3><span>A3 · Operations</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
    ${(()=>{const ms=A.dayMs.filter(isMission);const k=s=>ms.filter(m=>(m.state||'Planned')===s).length;const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
    const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
-   return `<div class="big tnum"><div><b>${k('Complete')}</b>Complete</div><div><b>${k('Out')}</b>Out</div><div><b>${k('Planned')}</b>Planned</div><div><b>${ms.filter(aarOwed).length}</b>AARs owed</div></div>
+   const sn=scoreSnap();
+   return `<div class="small"><b>Mission results to date:</b> ${sn.tot.out} out · ${sn.tot.pass} passed · ${sn.tot.fail} failed${Object.entries(sn.days).map(([d,x])=>` · ${esc(dayObj(d)?dayObj(d).name:'Day '+d)}: ${x.pass}/${x.out}`).join('')}</div><div class="big tnum"><div><b>${k('Complete')}</b>Complete</div><div><b>${k('Out')}</b>Out</div><div><b>${k('Planned')}</b>Planned</div><div><b>${ms.filter(aarOwed).length}</b>AARs owed</div></div>
    <div><b>Results</b>${ms.filter(m=>m.state==='Complete').length?`<ul>${ms.filter(m=>m.state==='Complete').map(m=>`<li>${esc(nm2(m))} ${esc(m.start)}: ${m.aar?esc(m.aar.result):'AAR owed'}${casualtiesFor(m.id)?`, ${casualtiesFor(m.id)} cas`:''}</li>`).join('')}</ul>`:' none yet'}</div>
    <div><b>CYOA:</b> ${A.dayMs.filter(m=>m.cyoa).map(m=>`${esc(m.note||'CYOA')} ${esc(m.start)} (${m.go&&m.go.d?esc(m.go.d):'pending'})`).join('; ')||'none'}</div>
    <div><b>CCIRs</b>${cc.length?`<ul>${cc.map(l=>`<li>${fmtT(l.ts)} ${esc(l.text)}</li>`).join('')}</ul>`:' none'}</div>
@@ -997,6 +999,7 @@ function a3Text(A){const ms=A.dayMs.filter(isMission);const by=k=>ms.filter(m=>(
   const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
   const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
   return `A3 OPERATIONS (${dayObj(UI.day).name}, ${nowParts().hm} CST)
+Results to date: ${scoreSnap().tot.out} out | ${scoreSnap().tot.pass} passed | ${scoreSnap().tot.fail} failed
 Missions: ${by('Complete').length} complete | ${by('Out').length} out | ${by('RTB').length} RTB | ${by('Planned').length} planned | ${by('Scrubbed').length} scrubbed
 Completed:
 ${by('Complete').map(m=>`- ${nm2(m)} ${m.start}: ${m.aar?m.aar.result:'AAR owed'}${casualtiesFor(m.id)?', '+casualtiesFor(m.id)+' cas':''}${m.aar&&m.aar.improve?' | improve: '+m.aar.improve:''}`).join('\n')||'- None'}
@@ -1330,6 +1333,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
    <div class="ezlines">
    ${line('🟢',out.length?'<b>Out now:</b> '+out.map(m=>`${team(m)}${what(m)?' ('+what(m)+')':''}, back by ${ezHm(m.end)}`).join(' · '):'<b>No team is out right now.</b>')}
    ${line('⏭️',next?`<b>Next to leave:</b> ${team(next)} at ${ezHm(next.start)}${what(next)?' ('+what(next)+')':''}${next.go&&next.go.d==='GO'?' · already a GO':' · needs a Go'}`:'<b>No more missions planned today.</b>')}
+   ${(()=>{const t=scoreSnap().tot;return t.out?line('📊',`<b>Missions so far:</b> ${t.out} went out · <span class="ezok">${t.pass} passed</span> · <span class="ezbad">${t.fail} failed</span>`):''})()}
    ${late.length?line('⚠️',`<b>Late coming back:</b> ${late.map(team).join(', ')}`):''}
    ${line(hurt.length?'🩹':'✅',hurt.length?`<b>${hurt.length} not OK:</b> ${hurt.slice(0,6).map(p=>esc(short(p.pid))+' ('+esc(SLBL[person(p.pid).status])+')').join(', ')}${hurt.length>6?'…':''}`:`<b>Everyone is OK</b> (${ROSTER.length} people)`)}
    </div></div>
@@ -1345,6 +1349,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   <div class="tools"><button type="button" class="btn" data-act="addcyoa">+ Add a mission</button></div>
   <h2 class="ezh">Gear <span class="small muted">tap a row to change counts</span></h2>
   <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Item</th><th>Free now</th><th>We have</th><th>Who has it</th><th>Broken</th></tr></thead><tbody>${eqRows||'<tr><td colspan="6" class="muted">No gear counted yet. Go to A1/4 → Equipment.</td></tr>'}</tbody></table></div>
+  <h2 class="ezh">Passed &amp; failed</h2>${snapHtml()}
   <h2 class="ezh">Mission scorecard <span class="small muted">pick Passed / Failed / Not tried</span></h2>
   <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>#</th><th>Mission</th><th>Result</th><th>Notes</th></tr></thead><tbody>${FRAGOS.map((f,i)=>{const v=resOf()[f.id]||'';const r=readiness(f.id,null);return `<tr class="${v==='Passed'?'ez-Complete':''}"><td class="rn">${i+1}</td><td class="mono">${f.no}</td><td><a data-cymenu="${f.id}">${esc(f.name)}</a></td><td><select class="ezsel" data-res="${f.id}" style="${v==='Passed'?'color:#16a34a':v==='Failed'?'color:#dc2626':''}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select></td><td class="small">${(S.pirs._results&&S.pirs._results.tries||{})[f.id]?`Tried ${S.pirs._results.tries[f.id]} times on Day 1 · `:''}${v==='Passed'?'':r.blocked.length?esc(r.blocked[0]):v==='Failed'?'Can try again':'Can do'}</td></tr>`}).join('')}</tbody></table></div>
   <h2 class="ezh">Places &amp; grids <span class="small muted">tap a row to fix it</span></h2>
@@ -1373,6 +1378,16 @@ const PURPOSE={
  log:['Everything that happened, newest first.','Check the TOC box once you have told the TOC'],
  cub:['Slides for the briefing (CUB).','Tap Copy to grab a slide as text']};
 function purposeHtml(k){const p=PURPOSE[k];if(!p)return '';return `<div class="purpose"><b>${esc(p[0])}</b><span>${p[1].split(' · ').map((x,i)=>`<i>${i+1}</i>${esc(x)}`).join('')}</span></div>`}
+
+function scoreSnap(){const R=S.pirs._results||{};const rd=R.day||'1';const r=R.r||{},tr=R.tries||{};const days={};
+  const add=(d,k)=>{days[d]=days[d]||{out:0,pass:0,fail:0};days[d][k]++};
+  // baseline day from the scorecard
+  Object.entries(r).forEach(([fid,v])=>{if(v!=='Passed'&&v!=='Failed')return;const n=Number(tr[fid]||1);for(let i=0;i<n;i++)add(rd,'out');if(v==='Passed'){add(rd,'pass');for(let i=1;i<n;i++)add(rd,'fail')}else for(let i=0;i<n;i++)add(rd,'fail')});
+  // other days from mission reports
+  allMissions().filter(m=>isMission(m)&&m.day!==rd&&m.aar&&m.aar.result!=='Scrubbed').forEach(m=>{add(m.day,'out');add(m.day,/^Complete/.test(m.aar.result||'')?'pass':'fail')});
+  const tot={out:0,pass:0,fail:0};Object.values(days).forEach(d=>{tot.out+=d.out;tot.pass+=d.pass;tot.fail+=d.fail});return{days,tot}}
+function snapHtml(){const {days,tot}=scoreSnap();const ds=DAYS.filter(d=>days[d.id]);const pct=x=>x.out?Math.round(x.pass/x.out*100)+'%':'—';
+  return `<div class="tablewrap"><table class="xl" style="min-width:0"><thead><tr><th>Day</th><th>Out</th><th>Passed</th><th>Failed</th><th>Pass %</th></tr></thead><tbody class="tnum">${ds.map(d=>{const x=days[d.id];return `<tr><td><b>${esc(d.name)}</b></td><td>${x.out}</td><td class="ezok">${x.pass}</td><td class="ezbad">${x.fail}</td><td>${pct(x)}</td></tr>`}).join('')}<tr><td><b>Total</b></td><td><b>${tot.out}</b></td><td class="ezok">${tot.pass}</td><td class="ezbad">${tot.fail}</td><td><b>${pct(tot)}</b></td></tr></tbody></table></div><p class="small muted" style="margin:4px 0 0">Today's missions count here once their mission report is entered.</p>`}
 function renderGrids(A){const order=t=>LTYPES.indexOf(t);const L=locs().sort((a,b)=>order(a[1].type)-order(b[1].type)||String(a[1].name).localeCompare(b[1].name));
   const owed=L.filter(([,x])=>x.owed);
   return `<div class="tools"><button type="button" class="btn pri" data-act="addloc">+ Add site</button><span class="small muted">Every grid from intel and AARs. Missions pull their WOC inputs from here.</span></div>
