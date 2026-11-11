@@ -426,6 +426,7 @@ main>*{min-width:0}
 #slide-a3 .bl{padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}#slide-a3>div{margin:6px 0}#slide-a3 ul{margin:3px 0 0 18px;padding:0}
 .xtra{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.xtra summary{cursor:pointer}.xtra .picker{margin-top:8px}
 .roe{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:10px;background:var(--badbg);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);font-size:13.5px}.roe .lbl{font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--bad)}.roe span:nth-child(2){flex:1;min-width:200px}
+.havein{width:64px;text-align:right;padding:5px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--soft);color:var(--ink);font:600 14px var(--mono)}
 </style>
 </head>
 <body>
@@ -1513,6 +1514,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
    ${card('gear','Gear','Tap a row to change counts','',eqRows?`<div class="tw"><table class="nt"><tbody>${eqRows}</tbody></table></div>`:'<div class="clear muted">No gear counted yet. Go to Missions → Gear.</div>')}
    ${card('results','Passed &amp; failed','','',`<div class="tw"><table class="nt"><thead><tr><th>Day</th><th class="num">Out</th><th class="num">Passed</th><th class="num">Failed</th><th class="num">Rate</th></tr></thead><tbody class="tnum">${DAYS.filter(x=>sn.days[x.id]).map(x=>{const y=sn.days[x.id];return `<tr><td><b>${esc(x.name)}</b></td><td class="num">${y.out}</td><td class="num" style="color:var(--ok)">${y.pass}</td><td class="num" style="color:var(--bad)">${y.fail}</td><td class="num">${y.out?Math.round(y.pass/y.out*100):0}%</td></tr>`}).join('')}<tr class="tot"><td><b>Total</b></td><td class="num"><b>${t.out}</b></td><td class="num" style="color:var(--ok)"><b>${t.pass}</b></td><td class="num" style="color:var(--bad)"><b>${t.fail}</b></td><td class="num"><b>${pp}%</b></td></tr></tbody></table></div><p class="small muted foot">New missions count once their report is entered.</p>`)}
   </div>
+  ${card('medgear','Med chips, rucks, JFAKs &amp; litters','Who has what right now','',keyGearCard()||'<div class="clear muted">Load the gear list first: Missions → Gear.</div>')}
   ${card('score','Mission scorecard','Set each mission: Passed, Failed or Not tried','',`<div class="sgrid">${(()=>{const fd=fragoDone();return FRAGOS.map(f=>{const v=fd.has(f.id)?'Passed':(res[f.id]||'');const r=readiness(f.id,null);const note=(tries[f.id]?`Tried ${tries[f.id]}× on Day 1`:'')+(v==='Passed'?'':r.blocked.length?(tries[f.id]?' · ':'')+'Needs '+esc(r.blocked[0].replace(/ must be complete first$/,'')):'');
     return `<div class="sc ${v==='Passed'?'pass':v==='Failed'?'fail':''}"><div class="top"><span class="no mono">${f.no}</span><a class="lnk nm" data-cymenu="${f.id}">${esc(f.name)}</a></div><div class="bot"><select class="ressel" data-res="${f.id}" aria-label="Result for ${esc(f.name)}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select><span class="small muted">${note}</span></div></div>`}).join('')})()}</div>`)}
   ${card('places','Places &amp; grids','Tap a row to fix it',`<button type="button" class="btn sm" data-act="addloc">+ Add place</button>`,locRows?`<div class="tw"><table class="nt"><tbody>${locRows}</tbody></table></div>`:'<div class="clear muted">No places yet.</div>')}
@@ -1646,6 +1648,7 @@ function maybeSeed(){if(window.__seeded||!['missions','intel','pirs'].every(c=>L
   if(!S.pirs._roe){writeDoc('pirs','_roe',{frago:'01-01',dtg:'511200',text:'Lethal force and offensive operations are AUTHORIZED. Friendly forces may attack enemy forces based on METT-TC, as decided by the Mission Commander or higher competent command authority. LOAC still applies. Real-world ROE (Annex B safety brief) still apply.',why:'Escalation: USS Momsen shot down 4 PLAAF J-20s; a YJ-91A anti-ship missile was destroyed by Phalanx; an E-3 Sentry was shot down in the East China Sea between Kadena and China.'});
     writeDoc('log','seed12-frago0101',{type:'msn',toc:false,ts:Date.now(),text:'FRAGO #01-01 (change in ROEs), DTG 511200: lethal force and offensive operations AUTHORIZED. Friendly forces may attack enemy forces based on METT-TC as decided by the MC or higher. LOAC and real-world ROE still apply. Brief every team before launch.'})}
   if(S.pirs._results&&S.pirs._results.fix9&&!S.pirs._results.fix10&&S.intel['loc-village']){writeDoc('intel','loc-village',Object.assign({},S.intel['loc-village'],{owed:'1 med chip, 1 litter, 3 JFAKs'}));writeDoc('pirs','_results',Object.assign({},S.pirs._results,{fix10:true}));writeDoc('log','seed13-owed',{type:'msn',toc:false,ts:Date.now(),text:'Correction: New Village (Iron Chef) still owed 1 med chip, 1 litter, 3 JFAKs. No insulin (not asked of us).'})}
+  if(Object.keys(S.equip).length&&!(S.pirs._results||{}).fix11){[['eq-medchips','Med chips (poker chips)','Medical',/med chip|poker chip/i],['eq-rucks','Rucks','Mission gear',/^rucks?\b/i],['eq-jfak','Joint First Aid Kit (JFAK)','Medical',/jfak/i],['eq-litters','Litters with straps','Medical',/litter/i]].forEach(([id,name,cat,re])=>{if(!Object.values(S.equip).some(v=>re.test(v.name||'')))writeDoc('equip',id,{name,cat,fmc:'',pmc:'',nmc:'',loc:'WOC',note:'',chips:''})});writeDoc('pirs','_results',Object.assign({},S.pirs._results||{},{fix11:true}))}
   if(S.pirs._seed1)return;const now=Date.now();
   const L={'loc-runway':{name:'Runway area',grid:'N of 120 / W of 679',type:'Site',status:'Unverified',source:'Intel #1',frago:'globalhawk',notes:'Only area on the island able to support a runway. Enemy posturing to occupy it.'},
    'loc-village':{name:'Village (humanitarian aid)',grid:'6816/1216',type:'Civilian',status:'Visited',source:'Intel #2 · Day 1 Tiger 1 1300 AAR',frago:'ironchef',notes:'Locals need food and medical supplies. Same 100 m square as WGS tower 1.',left:'2 litters, 9 poker chips, 2 JFAKs (Day 1 Tiger 1)',owed:'1 litter, 3 JFAKs, 1 poker chip'},
@@ -1806,7 +1809,7 @@ const SEED=[
  {name:'M4 magazines',cat:'Ammunition',loc:'Individual issue'},
  {name:'Airsoft pellets',cat:'Ammunition',loc:'Armory'},{name:'Green gas',cat:'Ammunition',loc:'Armory'},
  {name:'Plastic clearing rods',cat:'Ammunition',loc:'Armory'},{name:'Speed loaders',cat:'Ammunition',loc:'Armory'},
- {name:'Joint First Aid Kit (JFAK)',cat:'Medical'},{name:'Litters with straps',cat:'Medical',fmc:4,note:'OPORD 4.a.4'},
+ {name:'Joint First Aid Kit (JFAK)',cat:'Medical'},{name:'Med chips (poker chips)',cat:'Medical'},{name:'Rucks',cat:'Mission gear'},{name:'Litters with straps',cat:'Medical',fmc:4,note:'OPORD 4.a.4'},
  {name:'Field medic pack 1',cat:'Medical',fmc:1,chips:12,note:'Ruck + 4 × 10 lb sandbags + 12 chips at STARTEX'},
  {name:'Field medic pack 2',cat:'Medical',fmc:1,chips:12,note:'Ruck + 4 × 10 lb sandbags + 12 chips at STARTEX'},
  {name:'Field medic pack 3',cat:'Medical',fmc:1,chips:12,note:'Ruck + 4 × 10 lb sandbags + 12 chips at STARTEX'},
@@ -1814,6 +1817,13 @@ const SEED=[
  {name:'LMR radios',cat:'Comms',loc:'Charging dock',note:'A2/6 issues at STARTEX and collects at ENDEX'},
  {name:'Two-way walkie-talkies',cat:'Comms',note:'On-base use only'},{name:'Maps',cat:'Mission gear',note:'Instructor provided'}];
 
+
+const KEYGEAR=[['chips','Med chips',/med chip|poker chip/i],['ruck','Rucks',/^rucks?\b/i],['jfak','JFAKs',/jfak/i],['litter','Litters',/litter/i]];
+function keyId(k){const g=KEYGEAR.find(x=>x[0]===k);const e=Object.entries(S.equip).find(([,v])=>g[2].test(v.name||''));return e?e[0]:null}
+function givenAway(eid){return allMissions().reduce((n,m)=>{if(!m.gearIn||!m.loadout||!m.loadout[eid])return n;return n+Math.max(0,Number(m.loadout[eid])-Number((m.gearIn.back||{})[eid]??m.loadout[eid]))},0)}
+function keyGearCard(){const rows=KEYGEAR.map(([k,label])=>{const id=keyId(k);if(!id)return '';const e=S.equip[id];const outW=allMissions().filter(m=>loPhys(m)&&m.loadout[id]);const o=outW.reduce((s,m)=>s+Number(m.loadout[id]),0);const have=eqAvail(id);const g=givenAway(id);
+   return `<tr><td><b>${esc(label)}</b></td><td class="num"><input type="number" min="0" inputmode="numeric" class="havein" data-eqhave="${esc(id)}" value="${e.fmc===''||e.fmc==null?'':esc(e.fmc)}" placeholder="?" aria-label="${esc(label)} we have"></td><td class="num">${o?`<b>${o}</b> <span class="small muted">${outW.map(m=>esc(m.lane==='CYOA'?'Extra':m.lane)).join(', ')}</span>`:'<span class="muted">0</span>'}</td><td class="num"><span class="tag ${have-o<=0&&have!==0?'bad':have-o<=0?'':'ok'}">${have?have-o:'?'}</span></td><td class="num">${g||'<span class="muted">0</span>'}</td></tr>`}).join('');
+  return rows?`<div class="tw"><table class="nt"><thead><tr><th>Item</th><th class="num">Have</th><th class="num">Out</th><th class="num">Free</th><th class="num">Given</th></tr></thead><tbody>${rows}</tbody></table></div><p class="small muted foot"><b>Have</b> = how many the WOC holds (type it in). <b>Out</b> = with teams now. <b>Given</b> = handed over and not returned. Set what each team takes with <b>+ Add</b> in the Gear column; check it back in when they return.</p>`:''}
 const GEAR_OUT=['Out','TIC','RTB','Complete'];
 function eqAvail(eid){const e=S.equip[eid]||{};return Number(e.fmc||0)+Number(e.pmc||0)}
 function eqName(eid){return (S.equip[eid]||{}).name||'Removed item'}
@@ -1829,7 +1839,7 @@ function loNeedsToolbox(m){return (BRING[m.frago]||[]).includes('Toolbox')}
 function loHasToolbox(lo){return Object.keys(lo||{}).some(eid=>/toolbox/i.test(eqName(eid)))}
 function loSuggest(m){const b=BRING[m.frago]||[];return Object.keys(S.equip).filter(eid=>{const n=eqName(eid).toLowerCase();return (b.includes('Toolbox')&&/toolbox/.test(n))||(m.frago==='ironchef'&&/(litter|jfak)/.test(n))})}
 function loadoutDlg(mid){const m=allMissions().find(x=>x.id===mid);if(!m)return;const lo=m.loadout||{};const sug=loSuggest(m);
-  const items=Object.entries(S.equip).sort((a,b)=>(sug.includes(b[0])-sug.includes(a[0]))||((a[1].cat||'').localeCompare(b[1].cat||''))||((a[1].name||'').localeCompare(b[1].name||'')));
+  const kg=KEYGEAR.map(g=>keyId(g[0])).filter(Boolean);const items=Object.entries(S.equip).sort((a,b)=>(sug.includes(b[0])-sug.includes(a[0]))||(kg.includes(b[0])-kg.includes(a[0]))||((a[1].cat||'').localeCompare(b[1].cat||''))||((a[1].name||'').localeCompare(b[1].name||'')));
   openDlg(`<form class="dlg" id="loform" data-mid="${esc(mid)}"><h3>Gear loadout · ${esc(mName(m))} <span class="mono small muted">${esc(m.start||'')}</span></h3>
   <p class="small muted" style="margin:0">What the team signs out from the WOC pool. Personal issue (M4s, mags) stays on the Personnel tab.${(BRING[m.frago]||[]).length?` <b style="color:var(--ink)">Team brings:</b> ${BRING[m.frago].map(esc).join(' · ')}`:''}</p>
   ${m.gearIn?`<div class="small"><span class="pill e-FMC">Checked in ${fmtT(m.gearIn.at)}</span>${m.gearIn.note?' · '+esc(m.gearIn.note):''}</div>`:''}
@@ -1844,13 +1854,15 @@ function checkInDlg(mid){const m=allMissions().find(x=>x.id===mid);if(!m)return;
   openDlg(`<form class="dlg" id="giform" data-mid="${esc(mid)}"><h3>Check gear in · ${esc(mName(m))} <span class="mono small muted">${esc(m.start||'')}</span></h3>
   <p class="small muted" style="margin:0">Enter what came back. Anything short is logged so A4 can update counts.</p>
   <div class="picker">${Object.entries(lo).map(([eid,q])=>`<label style="grid-template-columns:1fr 70px"><span>${esc(eqName(eid))} <span class="small muted">· took ${q}</span></span><input type="number" min="0" max="${q}" data-gi="${esc(eid)}" data-q="${q}" value="${q}" style="padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--soft)"></label>`).join('')}</div>
-  <div class="fields"><label class="wide">Where did the rest go? (given away, lost, damaged)<input name="note" autocomplete="off"></label></div></form>
+  <div class="fields"><label class="wide">Where did the rest go? (given away, lost, damaged)<input name="note" autocomplete="off"></label></div>
+  <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" name="deduct" checked> Take anything not returned off our count</label></form>
   <div class="dfoot"><div class="left"><button type="button" class="btn sm ghost" data-loadout="${esc(mid)}">Edit loadout</button></div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savegearin">Check in</button></div>`)}
 function saveGearIn(){const f=document.getElementById('giform');const id=f.dataset.mid;const m=allMissions().find(x=>x.id===id);const back={},short=[];
   f.querySelectorAll('[data-gi]').forEach(i=>{const q=Number(i.dataset.q);const b=Math.max(0,Math.min(q,parseInt(i.value,10)||0));back[i.dataset.gi]=b;if(b<q)short.push(`${q-b} ${eqName(i.dataset.gi)}`)});
   const note=String(new FormData(f).get('note')||'').trim();
   if(short.length&&!note&&!confirmOnce('ginote','Say where the missing gear went, or tap Check in again to skip.'))return;
   patchMission(id,{gearIn:{at:Date.now(),back,note}});
+  if(new FormData(f).get('deduct')==='on')Object.entries(back).forEach(([eid,b])=>{const q=Number((m.loadout||{})[eid]||0);const gone=q-b;const e=S.equip[eid];if(gone>0&&e&&e.fmc!==''&&e.fmc!=null)writeDoc('equip',eid,Object.assign({},e,{fmc:Math.max(0,Number(e.fmc)-gone)}))});
   logIt({type:'equip',mid:id,text:`Gear checked in from ${mName(m)} ${m.start||''}${short.length?' · NOT returned: '+short.join(', ')+(note?' ('+note+')':''):' · all returned'}`});
   closeDlg();toast(short.length?'Checked in. A4: update the counts on Equipment.':'All gear checked in')}
 function renderGearOut(){const ms=allMissions().filter(loPhys);if(!ms.length)return '';
@@ -2025,6 +2037,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
 });
 document.addEventListener('change',e=>{
+  if(e.target.dataset&&e.target.dataset.eqhave){const id=e.target.dataset.eqhave;const v=e.target.value===''?'':Math.max(0,parseInt(e.target.value,10)||0);setTimeout(()=>{writeDoc('equip',id,Object.assign({},S.equip[id],{fmc:v}));logIt({type:'equip',text:`${S.equip[id].name}: we have ${v===''?'not counted':v}`});toast('Count saved')},0);return}
   if(e.target.dataset&&e.target.dataset.res){const fid=e.target.dataset.res,v=e.target.value;const r=Object.assign({},resOf());if(v)r[fid]=v;else delete r[fid];writeDoc('pirs','_results',Object.assign({},S.pirs._results||{},{r}));logIt({type:'aar',text:`Scorecard: ${FR[fid].no} ${FR[fid].name} → ${v||'cleared'}`});toast(`${FR[fid].no} ${FR[fid].name}: ${v||'cleared'}`);return}
   if(e.target.dataset&&e.target.dataset.est){const id=e.target.dataset.est,v=e.target.value;const m=allMissions().find(x=>x.id===id);setMissionState(id,v);toast(`${mName(m)}: ${EZST.find(x=>x[0]===v)[1]}`);if(v==='RTB'&&m&&m.loadout&&Object.keys(m.loadout).length&&!m.gearIn)setTimeout(()=>checkInDlg(id),80);return}
   if(e.target.dataset.rep&&e.target.type==='checkbox'){const id=e.target.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:e.target.checked,repAt:Date.now()}));return}
