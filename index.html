@@ -423,6 +423,7 @@ main>*{min-width:0}
   .purpose{font-size:13.5px;padding:8px 11px}
   dialog .dlg{padding:14px}
 }
+#slide-a3 .bl{padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}#slide-a3>div{margin:6px 0}#slide-a3 ul{margin:3px 0 0 18px;padding:0}
 </style>
 </head>
 <body>
@@ -676,14 +677,7 @@ function renderCUB(A){
   </section>
   ${a2Slide()}${a6Slide()}
   <section class="slide" id="slide-a3"><h3><span>A3 · Operations</span><span class="mono small">${esc(dayObj(UI.day).name)}</span></h3>
-   ${(()=>{const ms=A.dayMs.filter(isMission);const k=s=>ms.filter(m=>(m.state||'Planned')===s).length;const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
-   const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
-   const sn=scoreSnap();
-   return `<div class="small"><b>Mission results to date:</b> ${sn.tot.out} out · ${sn.tot.pass} passed · ${sn.tot.fail} failed${Object.entries(sn.days).map(([d,x])=>` · ${esc(dayObj(d)?dayObj(d).name:'Day '+d)}: ${x.pass}/${x.out}`).join('')}</div><div class="big tnum"><div><b>${k('Complete')}</b>Complete</div><div><b>${k('Out')}</b>Out</div><div><b>${k('Planned')}</b>Planned</div><div><b>${ms.filter(aarOwed).length}</b>AARs owed</div></div>
-   <div><b>Results</b>${ms.filter(m=>m.state==='Complete').length?`<ul>${ms.filter(m=>m.state==='Complete').map(m=>`<li>${esc(nm2(m))} ${esc(m.start)}: ${m.aar?esc(m.aar.result):'AAR owed'}${casualtiesFor(m.id)?`, ${casualtiesFor(m.id)} cas`:''}</li>`).join('')}</ul>`:' none yet'}</div>
-   <div><b>CYOA:</b> ${A.dayMs.filter(m=>m.cyoa).map(m=>`${esc(m.note||'CYOA')} ${esc(m.start)} (${m.go&&m.go.d?esc(m.go.d):'pending'})`).join('; ')||'none'}</div>
-   <div><b>CCIRs</b>${cc.length?`<ul>${cc.map(l=>`<li>${fmtT(l.ts)} ${esc(l.text)}</li>`).join('')}</ul>`:' none'}</div>
-   <div><b>Next:</b> ${ms.filter(m=>(m.state||'Planned')==='Planned').slice(0,4).map(m=>`${esc(nm2(m))} ${esc(m.start)}`).join('; ')||'none planned'}</div>`})()}
+   ${a3SlideHtml(A)}
   </section></div>`}
 function cubText(which,A){
   if(which==='a1'){const {s,cas,ex}=a1Text(A);return `A1 PERSONNEL (${dayObj(UI.day).name}, ${nowParts().hm} CST)\nAssigned ${ROSTER.length} | Effective ${s.EFF} | WIA ${s.WIAY+s.WIAR+s.WIAB} (Y${s.WIAY}/R${s.WIAR}/B${s.WIAB}) | KIA ${s.KIA} | MIA ${s.MIA}\nCasualties:\n${cas.map(p=>{const x=person(p.pid);return `- ${p.name}: ${SLBL[x.status]}${x.source?' ('+x.source+')':''}${x.exercise?', '+x.exercise+' '+(x.exStatus||''):''}`}).join('\n')||'- None'}\nMission participation floor: ${A.fl}\nExercises owed/in progress: ${ex.length}`}
@@ -699,7 +693,7 @@ const SUBL={easy:'Right now',overview:'Big picture',a3:'To-do',missions:'Schedul
 const TABS=SECTIONS.map(s=>[s[2],s[1]]);
 function secOf(v){return SECTIONS.find(s=>s[3].includes(v))||SECTIONS[0]}
 const LASTV={};
-const TITLES_X=0;const TITLES={easy:['Right now',''],overview:['Big picture',''],personnel:['People','A1'],missions:['Schedule','A3'],a3:['Mission to-do','A3'],equipment:['Gear','A3 · A4'],resupply:['Supply requests','A4'],cyoa:['Mission menu','A3'],grids:['Places & grids','A2 · A3'],intel:['Intel','A2'],comms:['Radios','A6'],log:['Log',''],cub:['Briefing slides','CUB']};
+const TITLES_X=0;const TITLES={easy:['Right now',''],overview:['Big picture',''],personnel:['People','A1'],missions:['Schedule','A3'],a3:['Mission to-do','A3'],equipment:['Gear','A3 · A4'],resupply:['Supply requests','A4'],cyoa:['Mission menu','A3'],grids:['Places & grids','A2 · A3'],intel:['Intel','A2'],comms:['Radios','A6'],log:['Log',''],cub:['A3 briefing slide (CUB)','A3']};
 function utcHM(){const d=new Date();return String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
 function renderHeader(A){
   document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}" title="${esc(d.name+' · '+d.label)}"><b>D${d.id}</b>${esc(d.label.split(' ').slice(0,2).join(' '))}</button>`).join('');
@@ -1127,21 +1121,36 @@ function opsEvent(id,ev){const m=allMissions().find(x=>x.id===id);if(!m)return;
   else if(ev==='Complete')setMissionState(id,'Complete');
   else if(ev==='Scrub')setMissionState(id,'Scrubbed');
   else if(ev==='TIC')logIt({type:'ops',mid:id,ccir:true,text:`CCIR troops in contact: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start}`})}
-function a3Text(A){const ms=A.dayMs.filter(isMission);const by=k=>ms.filter(m=>(m.state||'Planned')===k);
-  const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);
-  const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
+
+function a3Brief(A){const ms=A.dayMs.filter(isMission).slice().sort((a,b)=>(a.start||'').localeCompare(b.start||''));const nowM=nowMinFor(UI.day);
+  const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;const fn=m=>m.frago&&FR[m.frago]?FR[m.frago].name:(m.lane==='CYOA'?'':'mission not picked');
+  const verdict=m=>!m.aar?'report owed':/^Complete/.test(m.aar.result||'')?'PASSED':/Not complete|Partial/.test(m.aar.result||'')?'FAILED':m.aar.result==='Scrubbed'?'cancelled':'see scorecard';
+  const done=ms.filter(m=>m.state==='Complete'||m.state==='RTB');const out=ms.filter(m=>m.state==='Out'||m.state==='TIC');
+  const plan=ms.filter(m=>(m.state||'Planned')==='Planned');const fut=plan.filter(m=>nowM==null||!m.start||toMin(m.start)>=nowM);const nextT=fut.length?fut[0].start:plan.length?plan[0].start:null;const nextW=plan.filter(m=>m.start===nextT);
+  const dPass=done.filter(m=>verdict(m)==='PASSED').length,dFail=done.filter(m=>verdict(m)==='FAILED').length;
+  const res=resOf();const passed=FRAGOS.filter(f=>res[f.id]==='Passed'||fragoDone().has(f.id));const failed=FRAGOS.filter(f=>!passed.includes(f)&&res[f.id]==='Failed');
+  const untried=FRAGOS.filter(f=>!passed.includes(f)&&!failed.includes(f));const blocked=FRAGOS.filter(f=>!passed.includes(f)&&readiness(f.id,null).blocked.length);
+  const cc=Object.values(S.log).filter(l=>l.ccir&&dayOfTs(l.ts)===UI.day).sort((a,b)=>a.ts-b.ts);const nogo=ms.filter(m=>m.go&&m.go.d==='NOGO');
+  const rec=((S.pirs._a3rec||{}).d||{})[UI.day]||'';const sn=scoreSnap();
+  return {ms,nm2,fn,verdict,done,out,plan,nextT,nextW,dPass,dFail,passed,failed,untried,blocked,cc,nogo,rec,sn,owed:ms.filter(aarOwed)}}
+function a3SlideHtml(A){const b=a3Brief(A);const L=(m)=>`${esc(b.nm2(m))} ${esc(m.start)}`;const fnm=m=>b.fn(m)?' · '+esc(b.fn(m)):'';
+  return `<div class="bl"><b>Bottom line:</b> Today ${b.done.length+b.out.length} out · <span style="color:var(--ok)">${b.dPass} passed</span> · <span style="color:var(--bad)">${b.dFail} failed</span>${b.out.length?` · ${b.out.length} still out`:''}. To date ${b.sn.tot.out} out · ${b.sn.tot.pass} passed (${b.sn.tot.out?Math.round(b.sn.tot.pass/b.sn.tot.out*100):0}%).</div>
+  <div><b>1. Completed today</b>${b.done.length?`<ul>${b.done.map(m=>{const v=b.verdict(m);const c=casualtiesFor(m.id);return `<li>${L(m)}${fnm(m)}: <b style="color:${v==='PASSED'?'var(--ok)':v==='FAILED'?'var(--bad)':'inherit'}">${esc(v)}</b>${c?`, ${c} hurt`:''}${m.aar&&m.aar.improve?` <span class="muted">· ${esc(m.aar.improve)}</span>`:''}</li>`}).join('')}</ul>`:' none yet'}</div>
+  <div><b>2. Out now:</b> ${b.out.map(m=>`${L(m)}${fnm(m)}, back ${esc(m.end)}`).join('; ')||'none'}</div>
+  <div><b>3. Next window${b.nextT?' '+esc(b.nextT):''}:</b> ${b.nextW.map(m=>`${esc(b.nm2(m))}${fnm(m)} (${m.go&&m.go.d==='GO'?'GO':m.go&&m.go.d==='NOGO'?'NO-GO':'Go pending'})`).join('; ')||'no more windows today'}${A.dayMs.filter(m=>m.cyoa&&(m.state||'Planned')==='Planned').length?`<br><span class="small">CYOA: ${A.dayMs.filter(m=>m.cyoa&&(m.state||'Planned')==='Planned').map(m=>`${esc(m.note||'CYOA')} ${esc(m.start)}`).join('; ')}</span>`:''}</div>
+  <div><b>4. Scorecard:</b> ${b.passed.length} of 19 passed.${b.failed.length?` Failed, retry: ${b.failed.map(f=>esc(f.no+' '+f.name)).join(', ')}.`:''} ${b.untried.length} not tried yet.${b.blocked.length?` Blocked: ${b.blocked.map(f=>esc(f.name)+' (needs '+esc(readiness(f.id,null).blocked[0].replace(/ must be complete first$/,''))+')').join(', ')}.`:''}</div>
+  <div><b>5. CCIRs &amp; NO-GOs:</b> ${b.cc.length||b.nogo.length?`<ul>${b.cc.map(l=>`<li>${fmtT(l.ts)} ${esc(l.text)}</li>`).join('')}${b.nogo.map(m=>`<li>NO-GO ${L(m)}: ${esc(m.go.reason||'')}</li>`).join('')}</ul>`:'none'}</div>
+  <div><b>6. Issues &amp; recommendations</b><textarea id="a3rec" rows="2" placeholder="e.g. Recommend Iron Chef at 1300 with the full supply list from the TOC sheet" style="width:100%;margin-top:4px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font:inherit">${esc(b.rec)}</textarea><div class="tools" style="margin-top:4px"><button type="button" class="btn sm" data-act="savea3rec">Save</button>${b.owed.length?`<span class="small" style="color:var(--warn)">Reports still owed: ${b.owed.map(L).join(', ')}</span>`:''}</div></div>`}
+function a3Text(A){const b=a3Brief(A);const L=m=>`${b.nm2(m)} ${m.start}`;const fnm=m=>b.fn(m)?' - '+b.fn(m):'';
   return `A3 OPERATIONS (${dayObj(UI.day).name}, ${nowParts().hm} CST)
-Results to date: ${scoreSnap().tot.out} out | ${scoreSnap().tot.pass} passed | ${scoreSnap().tot.fail} failed
-Missions: ${by('Complete').length} complete | ${by('Out').length} out | ${by('RTB').length} RTB | ${by('Planned').length} planned | ${by('Scrubbed').length} scrubbed
-Completed:
-${by('Complete').map(m=>`- ${nm2(m)} ${m.start}: ${m.aar?m.aar.result:'AAR owed'}${casualtiesFor(m.id)?', '+casualtiesFor(m.id)+' cas':''}${m.aar&&m.aar.improve?' | improve: '+m.aar.improve:''}`).join('\n')||'- None'}
-Out now: ${by('Out').map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None'}
-CYOA: ${A.dayMs.filter(m=>m.cyoa).map(m=>`${m.note||'CYOA'} ${m.start} (${m.go&&m.go.d?m.go.d:'Go/No-Go pending'})`).join('; ')||'None'}
-NO-GO decisions: ${ms.filter(m=>m.go&&m.go.d==='NOGO').map(m=>`${nm2(m)} ${m.start} (${m.go.reason})`).join('; ')||'None'}
-CCIRs today:
-${cc.map(l=>`- ${fmtT(l.ts)} ${l.text}`).join('\n')||'- None'}
-AARs owed: ${ms.filter(aarOwed).map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None'}
-Next: ${by('Planned').slice(0,4).map(m=>`${nm2(m)} ${m.start}`).join('; ')||'None planned'}`}
+BOTTOM LINE: Today ${b.done.length+b.out.length} out | ${b.dPass} passed | ${b.dFail} failed${b.out.length?' | '+b.out.length+' still out':''}. To date ${b.sn.tot.out} out | ${b.sn.tot.pass} passed (${b.sn.tot.out?Math.round(b.sn.tot.pass/b.sn.tot.out*100):0}%).
+1. COMPLETED TODAY:
+${b.done.map(m=>`- ${L(m)}${fnm(m)}: ${b.verdict(m)}${casualtiesFor(m.id)?', '+casualtiesFor(m.id)+' hurt':''}${m.aar&&m.aar.improve?' | '+m.aar.improve:''}`).join('\n')||'- None yet'}
+2. OUT NOW: ${b.out.map(m=>`${L(m)}${fnm(m)}, back ${m.end}`).join('; ')||'None'}
+3. NEXT WINDOW${b.nextT?' '+b.nextT:''}: ${b.nextW.map(m=>`${b.nm2(m)}${fnm(m)} (${m.go&&m.go.d==='GO'?'GO':m.go&&m.go.d==='NOGO'?'NO-GO':'Go pending'})`).join('; ')||'No more windows today'}${A.dayMs.filter(m=>m.cyoa&&(m.state||'Planned')==='Planned').length?'\n   CYOA: '+A.dayMs.filter(m=>m.cyoa&&(m.state||'Planned')==='Planned').map(m=>`${m.note||'CYOA'} ${m.start}`).join('; '):''}
+4. SCORECARD: ${b.passed.length} of 19 passed.${b.failed.length?' Failed, retry: '+b.failed.map(f=>f.no+' '+f.name).join(', ')+'.':''} ${b.untried.length} not tried yet.${b.blocked.length?' Blocked: '+b.blocked.map(f=>f.name).join(', ')+'.':''}
+5. CCIRs & NO-GOs: ${b.cc.length||b.nogo.length?'\n'+b.cc.map(l=>`- ${fmtT(l.ts)} ${l.text}`).concat(b.nogo.map(m=>`- NO-GO ${L(m)}: ${m.go.reason||''}`)).join('\n'):'None'}
+6. ISSUES & RECOMMENDATIONS: ${b.rec||'None'}`}
 function turnoverText(A){const ms=A.dayMs.filter(isMission);const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;
   const open=Object.values(S.log).filter(l=>!l.toc&&l.ccir).sort((a,b)=>a.ts-b.ts);
   return `A3 TURNOVER · ${dayObj(UI.day).name} ${dayObj(UI.day).label} · ${nowParts().hm} CST
@@ -1928,6 +1937,7 @@ document.addEventListener('click',e=>{
   if(a==='close')closeDlg();
   else if(a==='saveperson')savePerson();
   else if(a==='issue')issueGear();
+  else if(a==='savea3rec'){const v=document.getElementById('a3rec').value.trim();const d=Object.assign({},((S.pirs._a3rec||{}).d)||{});d[UI.day]=v;writeDoc('pirs','_a3rec',{d});toast('Saved to the A3 slide')}
   else if(a==='saveloadout')saveLoadout();
   else if(a==='savegearin')saveGearIn();
   else if(a==='reopengear'){const id=document.getElementById('loform').dataset.mid;patchMission(id,{gearIn:null});logIt({type:'equip',mid:id,text:'Gear check-in reopened'});closeDlg();toast('Check-in reopened')}
