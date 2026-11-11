@@ -390,6 +390,39 @@ table.nt tr.tot td{background:var(--panel2)}
 .purpose{border-left-width:3px;border-color:var(--line);border-left-color:var(--accent);background:var(--panel2);border-radius:10px;padding:10px 14px}
 @media (max-width:640px){.sgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px}.sc{padding:9px 10px;gap:6px}.sc .top{flex-direction:column;gap:1px}.sc .nm{white-space:normal;font-size:13px}.sc .bot .small{display:none}table.nt td.grid{white-space:normal;max-width:110px}}
 .how .ccir{margin:0 16px 14px;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:13px}.how .ccir ul{margin:4px 0 8px 18px;padding:0}.how .ccir li{margin:2px 0}
+
+/* ---- phone polish ---- */
+main{grid-template-columns:minmax(0,1fr)}
+main>*{min-width:0}
+@media (max-width:860px){
+  .bnav{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:1fr}
+  .quickbar{position:static;box-shadow:none;bottom:auto}
+}
+@media (max-width:640px){
+  html,body{font-size:14px}
+  .topbar{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:6px 8px;padding:6px 10px}.topbar>.brand{grid-column:1;grid-row:1}.topbar>.seg{grid-column:2;grid-row:1}.topbar>.clock{grid-column:4;grid-row:1}
+  .topbar::after{height:1px}
+  .brand .bt{display:none}.patch{width:28px;height:28px;font-size:11px;box-shadow:none}
+  .seg{justify-self:start;padding:2px}.seg button{font-size:0;padding:5px 9px}.seg button b{font-size:13px;margin:0}
+  .clock{font-size:15px;justify-self:end}.clock small{display:none}
+  .hbtns{grid-column:3;grid-row:1;justify-self:end;min-width:0;overflow:hidden;display:flex;gap:4px}.hbtns .iconbtn{padding:4px 7px;font-size:12px}.hbtns [data-act=help]{display:none}
+  .ticker{grid-column:1/-1;grid-row:2;flex-basis:auto;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;gap:5px;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  .ticker::-webkit-scrollbar{display:none}
+  .ticker>*{flex:none;font-size:12px;padding:3px 9px}
+  main{padding:10px 10px 92px;gap:12px}
+  .card{padding:11px 12px;border-radius:12px}
+  .pagehead{gap:6px}.pagehead h1{font-size:18px}
+  .pagehead .right{width:100%;margin-left:0}.pagehead .right .btn{flex:1}
+  .mrow{grid-template-columns:52px minmax(0,1fr);gap:8px;padding:9px}
+  .mrow .tm{font-size:13px}.mrow .nm{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+  .mrow .steps{display:none}
+  .mrow .acts{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px}
+  .mrow .acts>.pill{justify-self:start}
+  .bnav button{padding:6px 0 4px}
+  .subtabs{width:100%}.subtabs button{padding:6px 10px;font-size:11.5px}
+  .purpose{font-size:13.5px;padding:8px 11px}
+  dialog .dlg{padding:14px}
+}
 </style>
 </head>
 <body>
@@ -767,8 +800,8 @@ function actionQueue(A){const nowM=nowMinFor(UI.day);const out=[];
   A.dayMs.filter(m=>m.cyoa&&m.cyoa.toc&&m.state!=='Scrubbed').forEach(m=>{(cyoaSteps(m,nowM)||[]).filter(s=>!s.done).forEach(s=>push({dueM:toMin(m.cyoa.toc)-s.off,title:s.l,short:`CYOA ${s.k==='decided'?'decision':s.k==='cabs'?'to TOC':'handoff'}`,sub:`CYOA · ${mName(m)} ${m.start}${m.cyoa.resupply?' · resupply: '+m.cyoa.resupply:''}`,btns:`<button type="button" class="btn sm pri" data-cydone="${esc(m.id)}|${s.k}">Done</button>`}))});
   A.dayMs.filter(isMission).forEach(m=>{const st=m.state||'Planned';const g=m.go&&m.go.d;const id=esc(m.id);const S0=toMin(m.start),E0=toMin(m.end);
     if(st==='Planned'&&/^Tiger /.test(m.lane)&&!m.cyoa&&(nowM==null||S0-nowM<=150)){const T=S0-45;
-      if(!m.frago)push({dueM:T-20,title:`Pick a mission: ${mName(m)} ${m.start}`,short:`Pick ${mName(m)}`,sub:`Decide at the WOC and tell the ATF/CC instructor by ${fromMin(T-20)} · TOC planning starts ${fromMin(T)}`,btns:`<button type="button" class="btn sm pri" data-assign="${id}">Pick mission</button>`});
-      else if(!m.toToc)push({dueM:T-10,title:`Tell TOC: ${mName(m)} ${m.start} = ${FR[m.frago]?FR[m.frago].name:'mission'}`,short:`To TOC ${mName(m)}`,sub:`Pass to CABS/CC and their instructor by ${fromMin(T-10)}, with any resupply items`,btns:`<button type="button" class="btn sm pri" data-toctold="${id}">TOC told</button>`})}
+      if(!m.frago)push({dueM:T-20,title:`Pick a mission: ${mName(m)} ${m.start}`,short:`Pick ${mName(m)}`,sub:`Decide at the WOC, tell the ATF/CC instructor · TOC plans at ${fromMin(T)}`,btns:`<button type="button" class="btn sm pri" data-assign="${id}">Pick mission</button>`});
+      else if(!m.toToc)push({dueM:T-10,title:`Tell TOC: ${mName(m)} ${m.start} = ${FR[m.frago]?FR[m.frago].name:'mission'}`,short:`To TOC ${mName(m)}`,sub:`CABS/CC + their instructor, with any resupply items`,btns:`<button type="button" class="btn sm pri" data-toctold="${id}">TOC told</button>`})}
     if(st==='Planned'&&m.frago&&(nowM==null||S0-nowM<=120)){const r=readiness(m.frago,m);if(r.state==='blocked')push({dueM:S0-45,k:'bad',title:`Blocked: ${mName(m)} ${m.start}`,short:`Blocked ${mName(m)}`,sub:r.blocked.join(' · '),btns:`<button type="button" class="btn sm" data-assign="${id}">Change FRAGO</button>`});else if(r.state==='input')push({dueM:S0-45,title:`WOC input for ${mName(m)} ${m.start}`,short:`Input ${mName(m)}`,sub:'Need: '+r.missing.join('; '),btns:`<button type="button" class="btn sm pri" data-go="${id}">Enter</button>`})}
     if(st==='Planned'&&!g&&(nowM==null||S0-nowM<=75))push({dueM:S0-15,title:`Go / No-Go: ${mName(m)} ${m.start}`,short:`Go/No-Go ${mName(m)}`,sub:`MC ${m.mc?short(m.mc):'not assigned'} · ${crew(m).length} pax · launches ${m.start}`,btns:`<button type="button" class="btn sm" data-go="${id}">Checklist</button><button type="button" class="btn sm okb" data-quickgo="${id}">GO</button>`});
     else if(st==='Planned'&&g==='GO'&&(nowM==null||S0-nowM<=10))push({dueM:S0,title:`Launch ${mName(m)}`,short:`Launch ${mName(m)}`,sub:`GO given ${fmtT(m.go.at)} · ${crew(m).length} pax`,btns:`<button type="button" class="btn sm pri" data-ops="${id}|Out">Mark out</button>`});
