@@ -1551,7 +1551,6 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   </div>
   ${card('score','Mission scorecard','Set each mission: Passed, Failed or Not tried','',`<div class="sgrid">${(()=>{const fd=fragoDone();return FRAGOS.map(f=>{const v=fd.has(f.id)?'Passed':(res[f.id]||'');const r=readiness(f.id,null);const note=(tries[f.id]?`Tried ${tries[f.id]}× on Day 1`:'')+(v==='Passed'?'':r.blocked.length?(tries[f.id]?' · ':'')+'Needs '+esc(r.blocked[0].replace(/ must be complete first$/,'')):'');
     return `<div class="sc ${v==='Passed'?'pass':v==='Failed'?'fail':''}"><div class="top"><span class="no mono">${f.no}</span><a class="lnk nm" data-cymenu="${f.id}">${esc(f.name)}</a></div><div class="bot"><select class="ressel" data-res="${f.id}" aria-label="Result for ${esc(f.name)}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select><span class="small muted">${note}</span></div></div>`}).join('')})()}</div>`)}
-  ${card('places','Places &amp; grids','Tap a row to fix it',`<button type="button" class="btn sm" data-act="addloc">+ Add place</button>`,locRows?`<div class="tw"><table class="nt"><tbody>${locRows}</tbody></table></div>`:'<div class="clear muted">No places yet.</div>')}
   </div>`}
 
 /* ---------- Plain words ---------- */
