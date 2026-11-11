@@ -788,6 +788,8 @@ function a3Alerts(A){const out=[];const nowM=nowMinFor(UI.day);
   return out}
 function extrasOf(m){return (m.extra||[]).filter(f=>FR[f]&&f!==m.frago)}
 function resFor(m,f){const a=m.aar;if(a){if(f===m.frago&&a.result)return a.result;if(a.extra&&a.extra[f])return a.extra[f]}const p=(m.prog||{})[f];return p?p.r:''}
+function extrasPicker(m){return `<details class="xtra wide" ${extrasOf(m).length?'open':''}><summary><b>Also doing on this trip${extrasOf(m).length?' ('+extrasOf(m).length+')':''}</b> <span class="small muted">tick a 2nd or 3rd mission</span></summary><div class="picker" style="max-height:240px">${FRAGOS.map(f=>`<label><input type="checkbox" name="extra" value="${f.id}" ${extrasOf(m).includes(f.id)?'checked':''}><span><span class="mono small muted">${f.no}</span> ${esc(f.name)}${resOf()[f.id]==='Passed'||fragoDone().has(f.id)?' <span class="small muted">· passed</span>':''}</span></label>`).join('')}</div></details>`}
+function readExtras(form,main){return [...form.querySelectorAll('[name=extra]:checked')].map(i=>i.value).filter(x=>x&&x!==main)}
 function fragoNames(m){return [m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>FR[f].name).join(' + ')}
 function mName(m){return m.lane==='CYOA'?(m.note||fragoNames(m)||'CYOA'):m.lane+(fragoNames(m)?' · '+fragoNames(m):'')}
 function rel(left){if(left==null)return'';if(left<0)return `${-left}m late`;if(left===0)return'now';return left<60?`in ${left}m`:`in ${Math.floor(left/60)}h${String(left%60).padStart(2,'0')}`}
@@ -1074,7 +1076,7 @@ function fragoCard0(f){return f?`<div class="fragobox"><div><b>${f.no} ${esc(f.n
 
 function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:'',end:'',cyoa:{toc:'',resupply:'',offbase:false}};const cy=m.cyoa||{};
   openDlg(`<form class="dlg" id="cyform" data-mid="${esc(id||'')}"><h3>${id?'Edit CYOA mission':'Add CYOA mission'} <span class="small muted">${esc(dayObj(id?m.day:UI.day).name)}</span></h3>
-  <div class="fields"><label class="wide">FRAGO chosen<select name="frago" id="cyfrago">${fragoOpts(m.frago||'')}</select></label></div>
+  <div class="fields"><label class="wide">FRAGO chosen<select name="frago" id="cyfrago">${fragoOpts(m.frago||'')}</select></label>${extrasPicker(m)}</div>
   ${m.retryOf?(()=>{const o=allMissions().find(x=>x.id===m.retryOf);return o?`<div class="banner">Attempt ${m.attempt||2} of ${esc(mName(o))} ${esc(o.start)} (${esc(o.aar?o.aar.result:o.state)}).${o.aar&&o.aar.improve?' Lesson: '+esc(o.aar.improve):''}</div>`:''})():''}
   <div id="cyfragocard">${fragoCard(fragoOf(m),m)}</div>
   <div class="fields"><label class="wide">Name on the board (optional)<input name="note" value="${esc(m.note||'')}" placeholder="Defaults to the FRAGO name"></label>
@@ -1088,12 +1090,12 @@ function cyoaDlg(id){const m=id?allMissions().find(x=>x.id===id):{note:'',start:
 function saveCyoa(){const f=document.getElementById('cyform');if(!f.reportValidity())return;const fd=new FormData(f);let id=f.dataset.mid;const isNew=!id;id=id||('c'+uid());
   const fr=FR[fd.get('frago')];const note=String(fd.get('note')||'').trim()||(fr?fr.name:'');if(!note){toast('Pick a FRAGO or type a name.');return}
   const old=S.missions[id]||{};const cy=Object.assign({},old.cyoa||{},{toc:hhmm(fd.get('toc')),resupply:fd.get('resupply'),offbase:fd.get('offbase')==='on'});
-  const n=Object.assign({},old,{day:old.day||UI.day,lane:'CYOA',frago:fr?fr.id:'',note,start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),state:old.state||'Planned',mc:old.mc||'',members:old.members||[],cyoa:cy});
+  const n=Object.assign({},old,{day:old.day||UI.day,lane:'CYOA',frago:fr?fr.id:'',extra:readExtras(f,fr?fr.id:''),note,start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),state:old.state||'Planned',mc:old.mc||'',members:old.members||[],cyoa:cy});
   writeDoc('missions',id,n);logIt({type:'cyoa',mid:id,text:`CYOA ${isNew?'added':'updated'}: ${note}${fr?' ('+fr.type+')':''} ${n.start}–${n.end}, TOC planning ${cy.toc}${cy.resupply?', resupply: '+cy.resupply:''}${cy.offbase?', leaves perimeter':''}`});closeDlg()}
 function assignDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;
   openDlg(`<form class="dlg" id="asform" data-mid="${esc(id)}"><h3>Assign FRAGO · ${esc(m.lane)} ${esc(m.start)}</h3><div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax</div>
   <div class="fields"><label class="wide">FRAGO<select name="frago" id="asfrago">${fragoOpts(m.frago||'')}</select></label></div><div id="asfragocard">${fragoCard(fragoOf(m),m)}</div>
-  <details class="xtra" ${extrasOf(m).length?'open':''}><summary><b>Also doing on this trip</b> <span class="small muted">optional: add more missions for this team</span></summary><div class="picker" style="max-height:240px">${FRAGOS.map(f=>`<label><input type="checkbox" name="extra" value="${f.id}" ${extrasOf(m).includes(f.id)?'checked':''}><span><span class="mono small muted">${f.no}</span> ${esc(f.name)}${resOf()[f.id]==='Passed'?' <span class="small muted">· passed</span>':''}</span></label>`).join('')}</div></details></form>
+  ${extrasPicker(m)}</form>
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveassign">Assign</button></div>`)}
 function durMin(a,b){return a&&b?Math.round((b-a)/60000):null}
 function aarField(k,label,type,val){const nmk='d_'+k;
@@ -1776,7 +1778,8 @@ function missionDlg(mid,isNew){
     <label>Actually back (CST)<input name="rtbT" inputmode="numeric" pattern="[0-9]{4}" placeholder="e.g. 1005" value="${esc(m.rtbAt?fmtT(m.rtbAt):'')}"></label>
     <label>Status<select name="state">${opt(EZST,m.state)}</select></label>
     <label class="wide">MC / lead<select name="mc">${opt([['','Not assigned'],...ROSTER.map(p=>[p.pid,`${p.name} (${A.c[p.pid]})`])],m.mc)}</select></label>
-    <label class="wide">FRAGO<select name="frago">${fragoOpts(m.frago||'')}</select></label>
+    <label class="wide">Main mission<select name="frago">${fragoOpts(m.frago||'')}</select></label>
+    ${extrasPicker(m)}
     <label class="wide">Note (MTO, route, ISR, etc.)<input name="note" value="${esc(m.note||'')}"></label>
    </div>
    <div class="fl">Crew <b id="crewct" class="tnum" style="${sel.size>10?'color:var(--bad)':''}">${sel.size} / 10</b> <span class="muted">incl. MC · number = completed missions, floor ${A.fl}${tn?` · Tiger ${tn} listed first`:''}</span></div>
@@ -1791,7 +1794,7 @@ function saveMission(){
   const isNew=!!f.dataset.new;const id=isNew?('x'+uid()):f.dataset.mid;const old=isNew?null:allMissions().find(m=>m.id===id);
   const mc=fd.get('mc');const crewSel=fd.getAll('crew');
   {const L=fd.get('lane');const c=new Set(crewSel.concat(mc?[mc]:[])).size;if(L!=='WOC'&&L!=='TOC'&&c>10&&!confirmOnce('crew10',`${c} pax. FRAGO max is 10 including the MC. Tap Save again to keep it.`))return}
-  const n=Object.assign({},S.missions[id]||{},{day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note'),frago:fd.get('frago')||''});
+  const n=Object.assign({},S.missions[id]||{},{day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note'),frago:fd.get('frago')||'',extra:readExtras(f,fd.get('frago')||'')});
   {const o=String(fd.get('outT')||'').trim(),r=String(fd.get('rtbT')||'').trim();const oo=old&&old.outAt?fmtT(old.outAt):'',ro=old&&old.rtbAt?fmtT(old.rtbAt):'';
    if(o!==oo){if(o){n.outAt=tsAt(n.day,hhmm(o));}else delete n.outAt}if(r!==ro){if(r){n.rtbAt=tsAt(n.day,hhmm(r));}else delete n.rtbAt}
    if(o!==oo||r!==ro)setTimeout(()=>logIt({type:'msn',mid:id,text:`${n.lane} ${n.start} actual times: left ${o||'—'}, back ${r||'—'}`}),0)}
@@ -2025,7 +2028,7 @@ document.addEventListener('click',e=>{
   else if(a==='addloc')locDlg(null);else if(a==='saveloc')saveLoc();
   else if(a==='delloc'){deleteDoc('intel',document.getElementById('locform').dataset.id);closeDlg()}
   else if(a==='savestaff')saveStaff();else if(a==='clearstaff')saveStaff(true);
-  else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);const ex=[...f.querySelectorAll('[name=extra]:checked')].map(i=>i.value).filter(x=>x!==v);patchMission(id,{frago:v,extra:ex});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${[v,...ex].filter(Boolean).map(x=>FR[x].name).join(' + ')||'FRAGO cleared'}`});closeDlg()}
+  else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);const ex=readExtras(f,v);patchMission(id,{frago:v,extra:ex});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${[v,...ex].filter(Boolean).map(x=>FR[x].name).join(' + ')||'FRAGO cleared'}`});closeDlg()}
   else if(a==='logops')quickLog();
   else if(a==='more')moreSheet();
   else if(a==='partgo'){UI.partOpen=true;setTab('personnel');setTimeout(()=>{const el=document.getElementById('participation');if(el)el.scrollIntoView({block:'start'})},50)}
