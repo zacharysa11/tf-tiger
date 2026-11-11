@@ -711,7 +711,7 @@ function renderHeader(A){
     `<span class="tick ${late?'bad':nx&&nx.k==='warn'?'warn':''}" data-tab="a3" title="Next A3 action">${late?`${late} late`:nx?`Next <span class="mono">${esc(nx.due)}</span> ${esc(nx.short||nx.title).slice(0,34)}`:'Nothing due'}</span>`+
     `<span class="tick ${out?'':'ok'}" data-tab="a3">Teams out <span class="mono">${out}</span></span>`+
     `<span class="tick ${ccir?'bad':''}" data-tab="a3"title="CCIR: things the boss must hear">Tell boss <span class="mono">${ccir}</span></span>`+
-    (()=>{const pc=peopleCount(A);return `<span class="tick" data-tab="easy" title="People on missions right now / on base">People out <span class="mono">${pc.out}</span> · base <span class="mono">${pc.base}</span></span>`})();
+    (()=>{const pc=peopleCount(A);return `<span class="tick" data-tab="easy" title="People on missions / on base at the ICL (WOC staff not counted)">People out <span class="mono">${pc.out}</span> · base <span class="mono">${pc.base}</span></span>`})();
   document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
 }
 function renderTabs(A){
@@ -1473,7 +1473,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
     ${stat(out.length?(late.length?'bad':'warn'):'idle','Out now',out.length?`${out.length} team${out.length>1?'s':''}`:'None',out.length?out.map(m=>`${team(m)} · back ${ezHm(m.end)}`).join('<br>')+(late.length?`<br><b style="color:var(--bad)">${late.map(team).join(', ')} late</b>`:''):'All teams on base')}
     ${stat(next?(next.go&&next.go.d==='GO'?'ok':'info'):'idle','Next to leave',next?`${team(next)} <span class="mono">${ezHm(next.start)}</span>`:'Done for today',next?(what(next)||'Mission not picked')+(next.go&&next.go.d==='GO'?' · Go ✓':' · needs a Go'):'No more launches')}
     ${stat('res','Results so far',`<span style="color:var(--ok)">${t.pass}</span><span class="muted"> / </span><span style="color:var(--bad)">${t.fail}</span>`,`<span class="bar"><i style="width:${pp}%"></i></span>${t.out} out · ${pp}% passed`)}
-    ${(()=>{const pc=peopleCount(A);return stat(pc.big.length?'bad':pc.hurt||pc.gone?'warn':'ok','People',`${pc.out} <span class="muted small" style="font-weight:600">out</span> · ${pc.base} <span class="muted small" style="font-weight:600">on base</span>`,(pc.big.length?`<b style="color:var(--bad)">Report to ATF/CC: ${pc.big.map(m=>esc(team(m))).join(', ')} has 5+ hurt</b><br>`:'')+(pc.outMs.length?pc.outMs.map(m=>`${team(m)} ${crew(m).length}`).join(' · ')+'<br>':'')+`<span style="${pc.hurt||pc.gone?'color:var(--warn)':''}">Hurt ${pc.hurt}${pc.gone?` · KIA/MIA ${pc.gone}`:''}</span>`)})()}
+    ${(()=>{const pc=peopleCount(A);return stat(pc.big.length?'bad':pc.hurt||pc.gone?'warn':'ok','People',`${pc.out} <span class="muted small" style="font-weight:600">out</span> · ${pc.base} <span class="muted small" style="font-weight:600">on base</span>`,(pc.big.length?`<b style="color:var(--bad)">Report to ATF/CC: ${pc.big.map(m=>esc(team(m))).join(', ')} has 5+ hurt</b><br>`:'')+(pc.outMs.length?pc.outMs.map(m=>`${team(m)} ${crew(m).length}`).join(' · ')+'<br>':'')+`${pc.woc?`At WOC ${pc.woc} · `:''}<span style="${pc.hurt||pc.gone?'color:var(--warn)':''}">Hurt ${pc.hurt}${pc.gone?` · KIA/MIA ${pc.gone}`:''}</span>`)})()}
    </div>
    ${cs.length?`<div class="radio"><span class="lbl">Radio</span>${cs.map(c=>`<span class="rc"><span>${esc(c.who)}</span><b>${esc(c.cs)}</b></span>`).join('')}</div>`:''}
   </section>
@@ -1524,8 +1524,8 @@ function purposeHtml(k){const p=PURPOSE[k];if(!p)return '';return `<div class="p
 
 function csOf(who){const c=Object.values(S.comms).find(x=>x.kind==='callsign'&&String(x.who).toLowerCase()===String(who).toLowerCase());return c?c.cs:''}
 function peopleCount(A){const outMs=A.dayMs.filter(m=>isMission(m)&&(m.state==='Out'||m.state==='TIC'));const outSet=new Set();outMs.forEach(m=>crew(m).forEach(p=>outSet.add(p)));
-  const gone=ROSTER.filter(p=>['KIA','MIA'].includes(person(p.pid).status)&&!outSet.has(p.pid)).length;const hurt=ROSTER.filter(p=>/^WIA/.test(person(p.pid).status)).length;
-  const big=A.dayMs.filter(m=>isMission(m)&&casualtiesFor(m.id)>5);return{out:outSet.size,base:ROSTER.length-outSet.size-gone,gone,hurt,big,outMs}}
+  const wocSet=new Set();A.dayMs.filter(m=>m.lane==='WOC').forEach(m=>crew(m).forEach(p=>{if(!outSet.has(p))wocSet.add(p)}));const gone=ROSTER.filter(p=>['KIA','MIA'].includes(person(p.pid).status)&&!outSet.has(p.pid)&&!wocSet.has(p.pid)).length;const hurt=ROSTER.filter(p=>/^WIA/.test(person(p.pid).status)).length;
+  const big=A.dayMs.filter(m=>isMission(m)&&casualtiesFor(m.id)>5);return{out:outSet.size,woc:wocSet.size,base:ROSTER.length-outSet.size-wocSet.size-gone,gone,hurt,big,outMs}}
 function scoreSnap(){const R=S.pirs._results||{};const rd=R.day||'1';const r=R.r||{},tr=R.tries||{};const days={};
   const add=(d,k)=>{days[d]=days[d]||{out:0,pass:0,fail:0};days[d][k]++};
   // baseline day from the scorecard
