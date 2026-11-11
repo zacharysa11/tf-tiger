@@ -469,7 +469,8 @@ const MSTATES=['Planned','Out','RTB','Complete','Scrubbed'];
 const ECATS=['Weapons','Ammunition','Medical','Comms','Mission gear','Other'];
 const P={}; BASE.roster.forEach(p=>P[p.pid]=p);
 const DEFAULT_ROLES={'2-WOC-0700':{'payne-mason':'ATF/CC','moushon-jacob':'Deputy CC','rios-david':'A1','magtoto-nathan':'A2','stratton-zachary':'A3','mcdonald-david':'A4','feng-gabriel':'A6'}};
-const ROSTER=BASE.roster.slice().sort((a,b)=>a.name.localeCompare(b.name));
+const REMOVED=new Set(['freeman-emmanual']);
+const ROSTER=BASE.roster.filter(p=>!REMOVED.has(p.pid)).slice().sort((a,b)=>a.name.localeCompare(b.name));
 const DAYS=BASE.days;
 const FB=window.FB;
 const S={people:{},missions:{},equip:{},resupply:{},log:{},intel:{},pirs:{},comms:{}};
@@ -495,8 +496,8 @@ function dayObj(id){return DAYS.find(d=>d.id===id)}
 function person(pid){return Object.assign({status:'EFF',adj:0,exHist:[],role:P[pid]?.role||''},P[pid],S.people[pid]||{})}
 function allMissions(){
   const out=[];const seen=new Set();
-  BASE.slots.forEach(b=>{seen.add(b.id);const o=S.missions[b.id];const m=Object.assign({state:'Planned',note:'',base:true},b,o||{});m.id=b.id;m.members=(m.members||[]).filter(x=>x&&x!==m.mc);if(!m.deleted)out.push(m)});
-  for(const id in S.missions){if(seen.has(id))continue;const m=Object.assign({state:'Planned',members:[]},S.missions[id]);m.id=id;m.members=(m.members||[]).filter(x=>x&&x!==m.mc);if(!m.deleted)out.push(m)}
+  BASE.slots.forEach(b=>{seen.add(b.id);const o=S.missions[b.id];const m=Object.assign({state:'Planned',note:'',base:true},b,o||{});m.id=b.id;if(REMOVED.has(m.mc))m.mc='';m.members=(m.members||[]).filter(x=>x&&x!==m.mc&&!REMOVED.has(x));if(!m.deleted)out.push(m)});
+  for(const id in S.missions){if(seen.has(id))continue;const m=Object.assign({state:'Planned',members:[]},S.missions[id]);m.id=id;if(REMOVED.has(m.mc))m.mc='';m.members=(m.members||[]).filter(x=>x&&x!==m.mc&&!REMOVED.has(x));if(!m.deleted)out.push(m)}
   return out.sort((a,b)=>a.day.localeCompare(b.day)||hhmm(a.start).localeCompare(hhmm(b.start))||String(a.lane).localeCompare(String(b.lane)));
 }
 function crew(m){return [m.mc,...m.members].filter(Boolean)}
@@ -628,7 +629,7 @@ function renderPersonnel(A){
     ${prevStaff.length?`<div class="tools" style="margin-top:8px"><button type="button" class="btn sm pri" data-act="equalize">Set ${prevStaff.length} of ${esc(prev.name)}'s WOC/TOC staff to floor (${A.fl})</button></div>`:''}
 `+`</div></details>`;
   return partCard+`<div class="tools"><input type="search" id="q" placeholder="Type a name to find someone" value="${esc(UI.q)}" aria-label="Search personnel">
-  <select id="pf" aria-label="Filter"><option value="all">Everyone (68)</option><option value="cas">Not OK</option><option value="toc">Not OK, TOC not told yet</option><option value="ex">Owes a make-up exercise</option><option value="floor">Fewest missions so far</option>${[1,2,3,4].map(t=>`<option value="t${t}">Tiger ${t}</option>`).join('')}</select>
+  <select id="pf" aria-label="Filter"><option value="all">Everyone (${ROSTER.length})</option><option value="cas">Not OK</option><option value="toc">Not OK, TOC not told yet</option><option value="ex">Owes a make-up exercise</option><option value="floor">Fewest missions so far</option>${[1,2,3,4].map(t=>`<option value="t${t}">Tiger ${t}</option>`).join('')}</select>
   <span class="small muted tnum">${rows.length} shown</span></div>
   <div class="tablewrap"><table id="roster"><thead><tr><th>Name</th><th>OK?</th><th>Where today</th><th>Team</th><th>Missions done</th><th>Make-up exercise</th><th>Gear</th><th>Flight</th><th>Updated</th></tr></thead><tbody class="tnum">
   ${rows.map(({p,x})=>{const ex=exempt(p.pid,UI.day,A.ms);const tl=x.exercise==='60-min timeout'&&x.exStatus==='In progress'&&x.exStart?Math.max(0,60-Math.floor((Date.now()-x.exStart)/60000)):null;
