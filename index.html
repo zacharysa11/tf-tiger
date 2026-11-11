@@ -295,6 +295,11 @@ table.xl tr.ez-Out td:not(.rn),table.xl tr.ez-TIC td:not(.rn){background:color-m
 .tablewrap table th,.tablewrap table td{border:1px solid var(--line)}
 .tablewrap table thead th{background:var(--soft)}
 .tablewrap table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--soft) 35%,transparent)}
+
+.ezdo h2{display:flex;align-items:center}.ezdorow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ezdorow:first-of-type{border-top:0}.ezdorow .tt{font-weight:700;font-size:15px}.ezdorow .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ezn{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--soft);font-size:13px}.ezdorow.bad .ezn{background:var(--bad);color:#fff}.ezdorow.warn .ezn{background:var(--warn);color:#111}
+@media (max-width:600px){.ezdorow{grid-template-columns:28px minmax(0,1fr)}.ezdorow .act{grid-column:2;justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -565,12 +570,12 @@ function cubText(which,A){
 /* ---------- render ---------- */
 const ICONS={a26:'<path d="M12 12v9M8 21h8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 5.8a6 6 0 0 0 0 8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 3a10 10 0 0 0 0 14M19 3a10 10 0 0 1 0 14"/>',a14:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 11l3-2 3 2v5l-3 2-3-2z"/>',overview:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',personnel:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.4c3 0 5.4 2.2 5.4 5.6"/>',missions:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',a3:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',equipment:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',resupply:'<path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',log:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',cub:'<path d="M3 4h18v12H3zM12 16v4M8 20h8"/>',more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 function ic(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`}
-const SECTIONS=[['overview','Home','overview',['easy','overview']],['a14','A1/4','personnel',['personnel','equipment','resupply']],['a26','A2/6','intel',['intel','comms']],['a3','A3','a3',['a3','cyoa','grids','missions']],['log','Log','log',['log']],['cub','CUB','cub',['cub']]];
-const SUBL={easy:'Simple',overview:'Dashboard',personnel:'People',equipment:'Equipment',resupply:'Resupply',intel:'A2 · Intel',comms:'A6 · Comms',a3:'Ops',cyoa:'CYOA menu',grids:'Grids & sites',missions:'Schedule'};
+const SECTIONS=[['overview','Now','easy',['easy','overview']],['a3','Missions','a3',['a3','missions','cyoa','grids']],['a14','People','personnel',['personnel','equipment','resupply']],['a26','Intel','intel',['intel','comms']],['log','Log','log',['log']],['cub','Briefing','cub',['cub']]];
+const SUBL={easy:'Right now',overview:'Big picture',a3:'To-do',missions:'Schedule',cyoa:'Mission menu',grids:'Places',personnel:'People',equipment:'Gear',resupply:'Supply requests',intel:'Intel',comms:'Radios'};
 const TABS=SECTIONS.map(s=>[s[2],s[1]]);
 function secOf(v){return SECTIONS.find(s=>s[3].includes(v))||SECTIONS[0]}
 const LASTV={};
-const TITLES={easy:['Simple view','Everything on one page, in plain words'],overview:['Overview','Task force status at a glance'],personnel:['A1/4 · People','Accountability, casualties, exercises, gear'],missions:['A3 · Schedule & crews','MCE schedule and crew assignments'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['A1/4 · Equipment','Status, issue and serials'],resupply:['A1/4 · Resupply','A1/4 approves'],cyoa:['A3 · CYOA menu','All missions, prerequisites and EXORD overviews'],grids:['A3 · Grids & sites','Every location from intel and AARs'],intel:['A2/6 · Intel','PIRs, reports, ISR, assessment'],comms:['A2/6 · Comms','Comms plan, callsigns, LMRs, comm checks'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A2, A3, A4 and A6 slides']};
+const TITLES={easy:['Right now',''],overview:['Big picture',''],personnel:['People','A1'],missions:['Schedule','A3'],a3:['Mission to-do','A3'],equipment:['Gear','A4'],resupply:['Supply requests','A4'],cyoa:['Mission menu','A3'],grids:['Places & grids','A2 · A3'],intel:['Intel','A2'],comms:['Radios','A6'],log:['Log',''],cub:['Briefing slides','CUB']};
 function utcHM(){const d=new Date();return String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
 function renderHeader(A){
   document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}" title="${esc(d.name+' · '+d.label)}"><b>D${d.id}</b>${esc(d.label.split(' ').slice(0,2).join(' '))}</button>`).join('');
@@ -579,10 +584,10 @@ function renderHeader(A){
   const ccir=Object.values(S.log).filter(l=>l.ccir&&!l.rep).length;const s=statusCounts();
   const late=q.filter(x=>x.k==='bad').length;
   document.getElementById('ticker').innerHTML=
-    `<span class="tick ${late?'bad':nx&&nx.k==='warn'?'warn':''}" data-tab="a3" title="Next A3 action">${late?`${late} overdue`:nx?`Next <span class="mono">${esc(nx.due)}</span> ${esc(nx.short||nx.title).slice(0,34)}`:'A3 queue clear'}</span>`+
-    `<span class="tick ${out?'':'ok'}" data-tab="a3">Out <span class="mono">${out}</span></span>`+
-    `<span class="tick ${ccir?'bad':''}" data-tab="a3">CCIR <span class="mono">${ccir}</span></span>`+
-    `<span class="tick" data-tab="personnel">PAX <span class="mono">${s.EFF}/${ROSTER.length}</span></span>`;
+    `<span class="tick ${late?'bad':nx&&nx.k==='warn'?'warn':''}" data-tab="a3" title="Next A3 action">${late?`${late} late`:nx?`Next <span class="mono">${esc(nx.due)}</span> ${esc(nx.short||nx.title).slice(0,34)}`:'Nothing due'}</span>`+
+    `<span class="tick ${out?'':'ok'}" data-tab="a3">Teams out <span class="mono">${out}</span></span>`+
+    `<span class="tick ${ccir?'bad':''}" data-tab="a3"title="CCIR: things the boss must hear">Tell boss <span class="mono">${ccir}</span></span>`+
+    `<span class="tick" data-tab="personnel">People OK <span class="mono">${s.EFF}/${ROSTER.length}</span></span>`;
   document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
 }
 function renderTabs(A){
@@ -619,11 +624,11 @@ function render(){
   const banner=MODE==='setup'?'<div class="banner">Not connected to Firebase yet. Add the project keys to config.js.</div>':MODE==='error'?'<div class="banner">Live sync stopped. Check your connection, then reload the page.</div>':'';
   const [t,sub]=TITLES[UI.tab];const d=dayObj(UI.day);
   const sec=secOf(UI.tab);const subs=sec[3].length>1?`<div class="subtabs" role="tablist">${sec[3].map(v=>`<button type="button" role="tab" data-tab="${v}" aria-selected="${UI.tab===v}">${esc(SUBL[v])}</button>`).join('')}</div>`:'';
-  const head=subs+(UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`);
+  const head=subs+(UI.tab==='a3'||UI.tab==='easy'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${sub?esc(sub)+' runs this · ':''}${esc(d.name)} ${esc(d.label)}</span></div>`);
   const body={easy:renderEasy,overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,cyoa:renderCyoaMenu,grids:renderGrids,intel:renderIntel,comms:renderComms,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
   let seen='1';try{seen=localStorage.getItem('tftiger-toured')}catch(e){}
   const welcome=!seen&&!TOUR?'<div class="welcome"><b>New to the board?</b><span class="small">A 2-minute guided tour shows you where everything is.</span><span style="margin-left:auto"></span><button type="button" class="btn sm ghost" data-act="welcomeno">No thanks</button><button type="button" class="btn sm pri" data-act="welcomego">Start tour</button></div>':'';
-  let pb=head+purposeHtml(UI.tab)+body;if(UI.tab==='a3'){const k=body.indexOf('</div>')+6;pb=head+body.slice(0,k)+purposeHtml('a3')+body.slice(k)}
+  let pb=head+(UI.tab==='easy'?'':purposeHtml(UI.tab))+body;if(UI.tab==='a3'){const k=body.indexOf('</div>')+6;pb=head+body.slice(0,k)+purposeHtml('a3')+body.slice(k)}
   main.innerHTML=banner+welcome+pb;
   if(UI.tab!=='cub')plainify(main);plainify(document.querySelector('header'));
   if(TOUR)setTimeout(tourPlace,0);
@@ -1337,6 +1342,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
    ${late.length?line('⚠️',`<b>Late coming back:</b> ${late.map(team).join(', ')}`):''}
    ${line(hurt.length?'🩹':'✅',hurt.length?`<b>${hurt.length} not OK:</b> ${hurt.slice(0,6).map(p=>esc(short(p.pid))+' ('+esc(SLBL[person(p.pid).status])+')').join(', ')}${hurt.length>6?'…':''}`:`<b>Everyone is OK</b> (${ROSTER.length} people)`)}
    </div></div>
+  ${(()=>{const q=actionQueue(A).slice(0,3);return `<section class="card ezdo"><h2>Do this now <span class="right"><button type="button" class="btn sm" data-tab="a3">Full to-do list</button></span></h2>${q.length?q.map((x,i)=>`<div class="ezdorow ${x.k||''}"><b class="ezn">${i+1}</b><div><div class="tt">${esc(x.title)}</div><div class="small muted">${x.due?(x.left!=null&&x.left<0?'Late · was due '+esc(x.due):'Due '+esc(x.due)):'Now'}${x.sub?' · '+esc(x.sub):''}</div></div><div class="act">${x.btns||''}</div></div>`).join(''):'<div class="allclear">✓ Nothing to do right now.</div>'}</section>`})()}
   ${(()=>{const cs=Object.values(S.comms).filter(x=>x.kind==='callsign');const order=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4'];cs.sort((a,b)=>(order.indexOf(a.who)+99)%99-(order.indexOf(b.who)+99)%99);return cs.length?`<div class="tablewrap"><table class="xl" style="min-width:0"><thead><tr><th>📻 Radio name</th>${cs.map(c=>`<th>${esc(c.who)}</th>`).join('')}</tr></thead><tbody><tr><td class="muted small">Say this on the radio</td>${cs.map(c=>`<td><b>${esc(c.cs)}</b></td>`).join('')}</tr></tbody></table></div>`:''})()}
   <details class="card ezhow" ${ME?'':'open'}><summary><b>New in the seat? Do these 5 things</b></summary><ol>
    <li>Look at <b>Today's missions</b>. Find the next team to leave.</li>
@@ -1349,13 +1355,13 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Leave</th><th>Team</th><th>Status</th><th>Go?</th><th>Back by</th><th>Mission</th><th>Leader</th><th>People</th><th>Gear</th></tr></thead><tbody>${rows||'<tr><td colspan="10" class="muted">No missions today.</td></tr>'}</tbody></table></div>
   <div class="tools"><button type="button" class="btn" data-act="addcyoa">+ Add a mission</button></div>
   <h2 class="ezh">Gear <span class="small muted">tap a row to change counts</span></h2>
-  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Item</th><th>Free now</th><th>We have</th><th>Who has it</th><th>Broken</th></tr></thead><tbody>${eqRows||'<tr><td colspan="6" class="muted">No gear counted yet. Go to A1/4 → Equipment.</td></tr>'}</tbody></table></div>
+  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Item</th><th>Free now</th><th>We have</th><th>Who has it</th><th>Broken</th></tr></thead><tbody>${eqRows||'<tr><td colspan="6" class="muted">No gear counted yet. Go to People → Gear.</td></tr>'}</tbody></table></div>
   <h2 class="ezh">Passed &amp; failed</h2>${snapHtml()}
   <h2 class="ezh">Mission scorecard <span class="small muted">pick Passed / Failed / Not tried</span></h2>
-  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>#</th><th>Mission</th><th>Result</th><th>Notes</th></tr></thead><tbody>${FRAGOS.map((f,i)=>{const v=resOf()[f.id]||'';const r=readiness(f.id,null);return `<tr class="${v==='Passed'?'ez-Complete':''}"><td class="rn">${i+1}</td><td class="mono">${f.no}</td><td><a data-cymenu="${f.id}">${esc(f.name)}</a></td><td><select class="ezsel" data-res="${f.id}" style="${v==='Passed'?'color:#16a34a':v==='Failed'?'color:#dc2626':''}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select></td><td class="small">${(S.pirs._results&&S.pirs._results.tries||{})[f.id]?`Tried ${S.pirs._results.tries[f.id]} times on Day 1 · `:''}${v==='Passed'?'':r.blocked.length?esc(r.blocked[0]):v==='Failed'?'Can try again':'Can do'}</td></tr>`}).join('')}</tbody></table></div>
+  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>#</th><th>Mission</th><th>Result</th><th>Notes</th></tr></thead><tbody>${FRAGOS.map((f,i)=>{const v=resOf()[f.id]||'';const r=readiness(f.id,null);return `<tr class="${v==='Passed'?'ez-Complete':''}"><td class="rn">${i+1}</td><td class="mono">${f.no}</td><td><a data-cymenu="${f.id}">${esc(f.name)}</a></td><td><select class="ezsel" data-res="${f.id}" style="${v==='Passed'?'color:#16a34a':v==='Failed'?'color:#dc2626':''}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select></td><td class="small">${(S.pirs._results&&S.pirs._results.tries||{})[f.id]?`Tried ${S.pirs._results.tries[f.id]} times on Day 1${v==='Passed'?'':' · '}`:''}${v==='Passed'?'':r.blocked.length?esc(r.blocked[0]):v==='Failed'?'Can try again':'Can do'}</td></tr>`}).join('')}</tbody></table></div>
   <h2 class="ezh">Places &amp; grids <span class="small muted">tap a row to fix it</span></h2>
   <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Grid</th><th>Place</th><th>Notes</th></tr></thead><tbody>${locRows||'<tr><td colspan="4" class="muted">No places yet.</td></tr>'}</tbody></table></div>
-  <div class="tools"><button type="button" class="btn" data-act="addloc">+ Add a place</button><span style="margin-left:auto"></span><button type="button" class="btn ghost" data-tab="overview">Full dashboard →</button></div>
+  <div class="tools"><button type="button" class="btn" data-act="addloc">+ Add a place</button><span style="margin-left:auto"></span><button type="button" class="btn ghost" data-tab="overview">Big picture →</button></div>
   </div>`}
 
 /* ---------- Plain words ---------- */
@@ -1429,7 +1435,7 @@ function renderA3(A){
   const missOpts=[['','General'],...ms.filter(m=>m.state!=='Scrubbed').map(m=>[m.id,`${mName(m)} ${m.start}${m.state==='Out'?' · OUT':''}`])];
   const defMid=UI.opsMid!=null?UI.opsMid:(out[0]||{}).id||'';
   const feed=Object.entries(S.log).filter(([,l])=>['ops','go','aar','cyoa','msn'].includes(l.type)||l.ccir).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).slice(0,15);
-  return `<div class="pagehead"><h1>A3 Ops</h1><span class="sub">${esc(d.name)} ${esc(d.label)}</span>
+  return `<div class="pagehead"><h1>Mission to-do</h1><span class="sub">${esc(d.name)} ${esc(d.label)}</span>
    <span class="right"><button type="button" class="btn sm pri" data-act="addcyoa">+ CYOA</button><button type="button" class="btn sm" data-act="copya3">A3 slide</button><button type="button" class="btn sm" data-act="turnover">Turnover</button></span></div>
   <div class="tools tnum"><span class="tick ${late?'bad':'ok'}">Overdue <span class="mono">${late}</span></span><span class="tick">Out <span class="mono">${out.length}</span></span><span class="tick ${owed?'warn':''}">AARs owed <span class="mono">${owed}</span></span>${upcoming?`<span class="tick">Next launch <span class="mono">${esc(upcoming.start)}</span> ${esc(mName(upcoming))}</span>`:''}</div>
   <section class="card" id="queue"><h2>Next up</h2>
