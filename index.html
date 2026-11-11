@@ -301,6 +301,94 @@ table.xl tr.ez-Out td:not(.rn),table.xl tr.ez-TIC td:not(.rn){background:color-m
 .ezn{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--soft);font-size:13px}.ezdorow.bad .ezn{background:var(--bad);color:#fff}.ezdorow.warn .ezn{background:var(--warn);color:#111}
 @media (max-width:600px){.ezdorow{grid-template-columns:28px minmax(0,1fr)}.ezdorow .act{grid-column:2;justify-content:flex-start}}
 #slide-a1,#slide-a2,#slide-a4,#slide-a6,#main [data-act=copya1],#main [data-act=copya2],#main [data-act=copya4],#main [data-act=copya6]{display:none!important}
+/* ---- Now page (polished) ---- */
+.nw{display:flex;flex-direction:column;gap:16px;max-width:1240px;width:100%;margin:0 auto;min-width:0}
+.nw>*{min-width:0}
+.nw .two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:980px){.nw .two{grid-template-columns:minmax(0,1fr)}}
+.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px 24px;padding:18px 20px;border-radius:16px;border:1px solid var(--line);background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--accent) 9%,var(--panel)) 0%,var(--panel) 55%);box-shadow:var(--shadow)}
+.hero .clk{display:flex;flex-direction:column;justify-content:center;gap:2px;padding-right:24px;border-right:1px solid var(--line)}
+.hero .clk .big{font-size:52px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.hero .dim{color:var(--dim)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);position:relative;overflow:hidden;min-width:0}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line2)}
+.stat.ok::before{background:var(--ok)}.stat.warn::before{background:var(--warn)}.stat.bad::before{background:var(--bad)}.stat.info::before{background:var(--info)}.stat.res::before{background:linear-gradient(var(--ok),var(--bad))}
+.stat .lbl,.radio .lbl{font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat b{font:700 22px/1.15 var(--body);letter-spacing:-.01em}
+.stat .sub{font-size:12.5px;color:var(--muted);line-height:1.35}
+.stat .bar{display:block;height:5px;border-radius:9px;background:var(--badbg);margin:3px 0 4px;overflow:hidden}.stat .bar i{display:block;height:100%;background:var(--ok);border-radius:9px}
+.radio{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--line)}
+.radio .rc{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--soft);border:1px solid var(--line);font-size:12.5px}
+.radio .rc span{color:var(--muted)}.radio .rc b{font-weight:700}
+@media (max-width:1100px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.hero{grid-template-columns:minmax(0,1fr);padding:14px}.hero .clk{border-right:0;padding-right:0;flex-direction:row;align-items:baseline;gap:10px;flex-wrap:wrap}.hero .clk .big{font-size:40px}.stats{gap:8px}.stat{padding:10px 12px}.stat b{font-size:18px}.radio{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.radio .rc{flex:none}}
+.nwc{padding:0;overflow:hidden;border-radius:14px}
+.nwc>header,.nwc>summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--line)}
+.nwc>summary{cursor:pointer;list-style:none}.nwc>summary::-webkit-details-marker{display:none}
+.nwc:not([open])>summary{border-bottom:0}
+.nwc h2{margin:0;font:700 14px var(--display);letter-spacing:.06em;text-transform:uppercase}
+.nwc h2::before{display:none}
+.nwc .hint{font-size:12.5px;color:var(--muted)}
+.nwc .right{margin-left:auto;display:flex;gap:6px}
+.nwc .foot{margin:0;padding:8px 16px 12px}
+.nwc .clear{padding:16px;font-weight:600;color:var(--ok)}
+.how ol{margin:0;padding:12px 16px 4px 34px;display:grid;gap:7px;font-size:14px;line-height:1.45}
+.how p{margin:0;padding:4px 16px 14px}
+.dolist{display:flex;flex-direction:column}
+.do{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line)}
+.do:first-child{border-top:0}.do .tt{font-weight:700;font-size:14.5px}
+.do .n{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--soft);font-size:13px;border:1px solid var(--line2)}
+.do.bad .n{background:var(--bad);border-color:var(--bad);color:#fff}.do.warn .n{background:var(--warn);border-color:var(--warn);color:#111}
+.do .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:640px){.do{grid-template-columns:30px minmax(0,1fr)}.do .act{grid-column:2;justify-content:flex-start}}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.nt{width:100%;min-width:0;border-collapse:collapse;font-size:14px}
+table.nt th{font:700 11px var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 12px;background:var(--panel2);border-bottom:1px solid var(--line);white-space:nowrap}
+table.nt td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.nt tbody tr:last-child td{border-bottom:0}
+table.nt tbody tr{transition:background .12s}
+table.nt tbody tr:hover td{background:color-mix(in srgb,var(--soft) 55%,transparent)}
+table.nt tr.click{cursor:pointer}
+table.nt .num{text-align:right;white-space:nowrap}
+table.nt .rn{width:34px;text-align:center;color:var(--dim);font-size:12px}
+table.nt td.t{white-space:nowrap;font-weight:700}
+table.nt td.grid{white-space:nowrap;font-weight:700}
+table.nt .tm{font-weight:700;white-space:nowrap}table.nt .cs{font-size:11.5px;color:var(--muted);white-space:nowrap}
+table.nt tr.now td{background:color-mix(in srgb,var(--info) 9%,transparent)}
+table.nt tr.now td.rn{box-shadow:inset 3px 0 0 var(--info);color:var(--info);font-weight:700}
+table.nt tr.r-Out td,table.nt tr.r-TIC td{background:color-mix(in srgb,var(--warn) 10%,transparent)}
+table.nt tr.r-Out td.rn{box-shadow:inset 3px 0 0 var(--warn)}
+table.nt tr.r-Complete td:not(:nth-child(4)){opacity:.62}
+table.nt tr.r-Scrubbed td:not(:nth-child(4)){opacity:.42;text-decoration:line-through}
+table.nt tr.tot td{background:var(--panel2)}
+#today table.nt{min-width:820px}
+@media (max-width:640px){#today table.nt{min-width:720px}table.nt td,table.nt th{padding:9px 9px}}
+.lnk{color:var(--info);cursor:pointer;text-decoration:none;font-weight:600;border-bottom:1px dashed color-mix(in srgb,var(--info) 50%,transparent)}
+.lnk:hover{border-bottom-style:solid}.lnk.add{color:var(--muted);border-bottom-color:var(--line2);font-weight:500}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.tag.ok{background:var(--okbg);color:var(--ok)}.tag.bad{background:var(--badbg);color:var(--bad)}
+.gobtns{display:inline-flex;gap:6px}
+.stsel,.ressel{appearance:none;-webkit-appearance:none;border:1px solid var(--line2);border-radius:999px;padding:5px 28px 5px 12px;font-weight:700;font-size:13px;cursor:pointer;background:var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238597a8' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center;color:var(--ink);transition:border-color .15s,background-color .15s}
+.stsel:hover,.ressel:hover{border-color:var(--muted)}
+.stsel.s-Out,.stsel.s-TIC{background-color:var(--warnbg);border-color:color-mix(in srgb,var(--warn) 45%,transparent);color:var(--warn)}
+.stsel.s-RTB{background-color:var(--infobg);border-color:color-mix(in srgb,var(--info) 45%,transparent);color:var(--info)}
+.stsel.s-Complete{background-color:var(--okbg);border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
+.stsel.s-Scrubbed{color:var(--muted)}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;padding:14px 16px 16px}
+.sc{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);transition:border-color .15s}
+.sc .top{display:flex;gap:8px;align-items:baseline;min-width:0}.sc .no{color:var(--muted);font-size:12px;flex:none}.sc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sc .bot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sc.pass{border-color:color-mix(in srgb,var(--ok) 40%,var(--line));background:color-mix(in srgb,var(--ok) 6%,var(--panel2))}
+.sc.fail{border-color:color-mix(in srgb,var(--bad) 40%,var(--line));background:color-mix(in srgb,var(--bad) 6%,var(--panel2))}
+.sc.pass .ressel{color:var(--ok);background-color:var(--okbg)}.sc.fail .ressel{color:var(--bad);background-color:var(--badbg)}
+.ressel{padding:3px 26px 3px 10px;font-size:12px}
+/* softer tables everywhere */
+.tablewrap table th,.tablewrap table td{border:0;border-bottom:1px solid var(--line)}
+.tablewrap table tbody tr:nth-child(even) td{background:transparent}
+.tablewrap table tbody tr:hover td{background:color-mix(in srgb,var(--soft) 55%,transparent)}
+.purpose{border-left-width:3px;border-color:var(--line);border-left-color:var(--accent);background:var(--panel2);border-radius:10px;padding:10px 14px}
+@media (max-width:640px){.sgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px}.sc{padding:9px 10px;gap:6px}.sc .top{flex-direction:column;gap:1px}.sc .nm{white-space:normal;font-size:13px}.sc .bot .small{display:none}table.nt td.grid{white-space:normal;max-width:110px}}
 </style>
 </head>
 <body>
@@ -1322,48 +1410,53 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   const next=ms.filter(m=>(m.state||'Planned')==='Planned'&&m.start&&(nowM==null||toMin(m.start)>=nowM-5))[0];
   const late=out.filter(m=>nowM!=null&&m.end&&toMin(m.end)<nowM);
   const hurt=ROSTER.filter(p=>person(p.pid).status!=='EFF');
-  const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);const teamCs=m=>{const c=csOf(m.lane);return team(m)+(c?`<div class="small muted" style="font-weight:500">📻 ${esc(c)}</div>`:'')};
+  const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);
   const what=m=>m.frago&&FR[m.frago]?esc(FR[m.frago].name):m.lane==='CYOA'?esc(m.note||'Extra mission'):'';
-  const stSel=m=>`<select class="ezsel st-${esc(m.state||'Planned')}" data-est="${esc(m.id)}">${EZST.map(([v,l])=>`<option value="${v}" ${(m.state||'Planned')===v?'selected':''}>${l}</option>`).join('')}</select>`;
-  const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="ezok">✓ Yes</span>';if(g==='NOGO')return '<span class="ezbad">✗ No</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button> <button type="button" class="btn sm" data-go="${esc(m.id)}">Check</button>`};
-  const gearCell=m=>m.loadout&&Object.keys(m.loadout).length?`<a data-loadout="${esc(m.id)}">${loText(m.loadout)}</a>${loPhys(m)?` <button type="button" class="btn sm" data-gearin="${esc(m.id)}">Got it back</button>`:m.gearIn?' <span class="ezok">✓ back</span>':''}`:`<a data-loadout="${esc(m.id)}" class="muted">+ add</a>`;
+  const stSel=m=>{const st=m.state||'Planned';return `<select class="stsel s-${esc(st)}" data-est="${esc(m.id)}" aria-label="Status">${EZST.map(([v,l])=>`<option value="${v}" ${st===v?'selected':''}>${l}</option>`).join('')}</select>`};
+  const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="tag ok">✓ Go</span>';if(g==='NOGO')return '<span class="tag bad">✗ No-go</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<span class="gobtns"><button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button><button type="button" class="btn sm ghost" data-go="${esc(m.id)}">Check</button></span>`};
+  const gearCell=m=>m.loadout&&Object.keys(m.loadout).length?`<a class="lnk" data-loadout="${esc(m.id)}">${loText(m.loadout)}</a>${loPhys(m)?` <button type="button" class="btn sm" data-gearin="${esc(m.id)}">Got it back</button>`:m.gearIn?' <span class="tag ok">back</span>':''}`:`<a class="lnk add" data-loadout="${esc(m.id)}">+ Add</a>`;
   const isNow=m=>nowM!=null&&m.start&&m.end&&toMin(m.start)<=nowM&&nowM<toMin(m.end)&&m.state!=='Scrubbed';
-  const rows=ms.map((m,i)=>`<tr class="ez-${esc(m.state||'Planned')}${isNow(m)?' eznow':''}"><td class="rn">${i+1}</td><td class="mono"><b>${ezHm(m.start)||'—'}</b></td><td><b>${teamCs(m)}</b></td><td>${stSel(m)}</td><td>${goCell(m)}</td><td class="mono">${ezHm(m.end)||'—'}</td><td><a data-msheet="${esc(m.id)}">${what(m)||'<span class="muted">+ pick</span>'}</a></td><td><a data-mission="${esc(m.id)}">${m.mc?esc(short(m.mc)):'<span class="muted">+ pick</span>'}</a></td><td class="tnum"><a data-mission="${esc(m.id)}" style="${crew(m).length>10?'color:var(--bad);font-weight:700':''}">${crew(m).length}</a></td><td>${gearCell(m)}</td></tr>`).join('');
-  const eq=Object.entries(S.equip).filter(([id,e])=>eqAvail(id)||allMissions().some(m=>loHolding(m)&&m.loadout[id])).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
-  const eqRows=eq.map(([id,e],i)=>{const outW=allMissions().filter(m=>loPhys(m)&&m.loadout[id]);const o=outW.reduce((s,m)=>s+Number(m.loadout[id]),0);const av=eqAvail(id);
-    return `<tr data-equip="${esc(id)}" style="cursor:pointer"><td class="rn">${i+1}</td><td><b>${esc(e.name)}</b></td><td class="tnum"><b style="${av-o<=0?'color:var(--bad)':''}">${av-o}</b></td><td class="tnum">${av}</td><td>${outW.map(m=>esc(team(m))+' ('+m.loadout[id]+')').join(', ')}</td><td class="tnum">${Number(e.nmc||0)||''}</td></tr>`}).join('');
+  const rows=ms.map((m,i)=>{const cs=csOf(m.lane);return `<tr class="r-${esc(m.state||'Planned')}${isNow(m)?' now':''}"><td class="rn">${i+1}</td><td class="t mono">${ezHm(m.start)||'—'}${m.end?`<div class="cs">back ${ezHm(m.end)}</div>`:''}</td><td><div class="tm">${team(m)}</div>${cs?`<div class="cs">${esc(cs)}</div>`:''}</td><td>${stSel(m)}</td><td>${goCell(m)}</td><td><a class="lnk${what(m)?'':' add'}" data-msheet="${esc(m.id)}">${what(m)||'+ Pick'}</a></td><td><a class="lnk${m.mc?'':' add'}" data-mission="${esc(m.id)}">${m.mc?esc(short(m.mc)):'+ Pick'}</a></td><td class="tnum"><a class="lnk" data-mission="${esc(m.id)}" style="${crew(m).length>10?'color:var(--bad);font-weight:700':''}">${crew(m).length}</a></td><td>${gearCell(m)}</td></tr>`}).join('');
+  const eq=Object.entries(S.equip).filter(([id])=>eqAvail(id)||allMissions().some(m=>loHolding(m)&&m.loadout[id])).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
+  const eqRows=eq.map(([id,e])=>{const outW=allMissions().filter(m=>loPhys(m)&&m.loadout[id]);const o=outW.reduce((s,m)=>s+Number(m.loadout[id]),0);const av=eqAvail(id);const fr=av-o;
+    return `<tr data-equip="${esc(id)}" class="click"><td><b>${esc(e.name)}</b>${outW.length?`<div class="small muted">With ${outW.map(m=>esc(team(m))+' ('+m.loadout[id]+')').join(', ')}</div>`:''}</td><td class="tnum num"><span class="tag ${fr<=0?'bad':'ok'}">${fr} free</span></td><td class="tnum num muted">${av}${Number(e.nmc||0)?` · <span style="color:var(--bad)">${e.nmc} broken</span>`:''}</td></tr>`}).join('');
   const L=locs().sort((a,b)=>String(a[1].name).localeCompare(b[1].name));
-  const locRows=L.map(([id,x],i)=>`<tr data-loc="${esc(id)}" style="cursor:pointer"><td class="rn">${i+1}</td><td class="mono"><b>${esc(x.grid||'?')}</b></td><td><b>${esc(x.name)}</b></td><td class="small">${esc(x.notes||x.owed||'')}</td></tr>`).join('');
-  const line=(ic,t)=>`<div class="ezline"><span class="ezic">${ic}</span><span>${t}</span></div>`;
-  return `<div class="ezwrap">
-  <div class="ezhead"><div><div class="ezclock mono">${nowM!=null?ezHm(fromMin(nowM)):esc(d.label)}</div><div class="small muted">${esc(d.name)} · ${esc(d.label)} · times are Central</div></div>
-   <div class="ezlines">
-   ${line('🟢',out.length?'<b>Out now:</b> '+out.map(m=>`${team(m)}${what(m)?' ('+what(m)+')':''}, back by ${ezHm(m.end)}`).join(' · '):'<b>No team is out right now.</b>')}
-   ${line('⏭️',next?`<b>Next to leave:</b> ${team(next)} at ${ezHm(next.start)}${what(next)?' ('+what(next)+')':''}${next.go&&next.go.d==='GO'?' · already a GO':' · needs a Go'}`:'<b>No more missions planned today.</b>')}
-   ${(()=>{const t=scoreSnap().tot;return t.out?line('📊',`<b>Missions so far:</b> ${t.out} went out · <span class="ezok">${t.pass} passed</span> · <span class="ezbad">${t.fail} failed</span>`):''})()}
-   ${late.length?line('⚠️',`<b>Late coming back:</b> ${late.map(team).join(', ')}`):''}
-   ${line(hurt.length?'🩹':'✅',hurt.length?`<b>${hurt.length} not OK:</b> ${hurt.slice(0,6).map(p=>esc(short(p.pid))+' ('+esc(SLBL[person(p.pid).status])+')').join(', ')}${hurt.length>6?'…':''}`:`<b>Everyone is OK</b> (${ROSTER.length} people)`)}
-   </div></div>
-  ${(()=>{const q=actionQueue(A).slice(0,3);return `<section class="card ezdo"><h2>Do this now <span class="right"><button type="button" class="btn sm" data-tab="a3">Full to-do list</button></span></h2>${q.length?q.map((x,i)=>`<div class="ezdorow ${x.k||''}"><b class="ezn">${i+1}</b><div><div class="tt">${esc(x.title)}</div><div class="small muted">${x.due?(x.left!=null&&x.left<0?'Late · was due '+esc(x.due):'Due '+esc(x.due)):'Now'}${x.sub?' · '+esc(x.sub):''}</div></div><div class="act">${x.btns||''}</div></div>`).join(''):'<div class="allclear">✓ Nothing to do right now.</div>'}</section>`})()}
-  ${(()=>{const cs=Object.values(S.comms).filter(x=>x.kind==='callsign');const order=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4'];cs.sort((a,b)=>(order.indexOf(a.who)+99)%99-(order.indexOf(b.who)+99)%99);return cs.length?`<div class="tablewrap"><table class="xl" style="min-width:0"><thead><tr><th>📻 Radio name</th>${cs.map(c=>`<th>${esc(c.who)}</th>`).join('')}</tr></thead><tbody><tr><td class="muted small">Say this on the radio</td>${cs.map(c=>`<td><b>${esc(c.cs)}</b></td>`).join('')}</tr></tbody></table></div>`:''})()}
-  <details class="card ezhow" ${ME?'':'open'}><summary><b>New in the seat? Do these 5 things</b></summary><ol>
-   <li>Look at <b>Today's missions</b>. Find the next team to leave.</li>
-   <li>15 minutes before they leave, ask the leader: right people? gear? instructor coming? If yes, tap <b>Yes</b> under <b>Go?</b></li>
-   <li>When they walk out, change <b>Status</b> to <b>Out</b>.</li>
-   <li>When they walk back in, change it to <b>Back</b>. Count their gear. Tap the mission name and write what happened.</li>
-   <li>Someone hurt or enemy contact? Tell the boss (ATF/CC) right away and add it to the <b>Log</b>.</li></ol>
-   <p class="small muted">Tap any blue word to change it. Changes save by themselves and everyone sees them.</p></details>
-  <h2 class="ezh">Today's missions <span class="small muted">tap a cell to change it</span></h2>
-  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Leave</th><th>Team</th><th>Status</th><th>Go?</th><th>Back by</th><th>Mission</th><th>Leader</th><th>People</th><th>Gear</th></tr></thead><tbody>${rows||'<tr><td colspan="10" class="muted">No missions today.</td></tr>'}</tbody></table></div>
-  <div class="tools"><button type="button" class="btn" data-act="addcyoa">+ Add a mission</button></div>
-  <h2 class="ezh">Gear <span class="small muted">tap a row to change counts</span></h2>
-  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Item</th><th>Free now</th><th>We have</th><th>Who has it</th><th>Broken</th></tr></thead><tbody>${eqRows||'<tr><td colspan="6" class="muted">No gear counted yet. Go to Missions → Gear.</td></tr>'}</tbody></table></div>
-  <h2 class="ezh">Passed &amp; failed</h2>${snapHtml()}
-  <h2 class="ezh">Mission scorecard <span class="small muted">pick Passed / Failed / Not tried</span></h2>
-  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>#</th><th>Mission</th><th>Result</th><th>Notes</th></tr></thead><tbody>${FRAGOS.map((f,i)=>{const v=resOf()[f.id]||'';const r=readiness(f.id,null);return `<tr class="${v==='Passed'?'ez-Complete':''}"><td class="rn">${i+1}</td><td class="mono">${f.no}</td><td><a data-cymenu="${f.id}">${esc(f.name)}</a></td><td><select class="ezsel" data-res="${f.id}" style="${v==='Passed'?'color:#16a34a':v==='Failed'?'color:#dc2626':''}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select></td><td class="small">${(S.pirs._results&&S.pirs._results.tries||{})[f.id]?`Tried ${S.pirs._results.tries[f.id]} times on Day 1${v==='Passed'?'':' · '}`:''}${v==='Passed'?'':r.blocked.length?esc(r.blocked[0]):v==='Failed'?'Can try again':'Can do'}</td></tr>`}).join('')}</tbody></table></div>
-  <h2 class="ezh">Places &amp; grids <span class="small muted">tap a row to fix it</span></h2>
-  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Grid</th><th>Place</th><th>Notes</th></tr></thead><tbody>${locRows||'<tr><td colspan="4" class="muted">No places yet.</td></tr>'}</tbody></table></div>
-  <div class="tools"><button type="button" class="btn" data-act="addloc">+ Add a place</button><span style="margin-left:auto"></span><button type="button" class="btn ghost" data-tab="cyoa">Mission menu →</button></div>
+  const locRows=L.map(([id,x])=>`<tr data-loc="${esc(id)}" class="click"><td class="mono grid">${esc(x.grid||'?')}</td><td><b>${esc(x.name)}</b>${x.notes?`<div class="small muted">${esc(x.notes)}</div>`:''}</td></tr>`).join('');
+  const sn=scoreSnap();const t=sn.tot;const pp=t.out?Math.round(t.pass/t.out*100):0;
+  const cs=Object.values(S.comms).filter(x=>x.kind==='callsign');const order=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4'];cs.sort((a,b)=>(order.indexOf(a.who)+99)%99-(order.indexOf(b.who)+99)%99);
+  const q=actionQueue(A).slice(0,3);
+  const res=resOf();const tries=(S.pirs._results&&S.pirs._results.tries)||{};
+  const stat=(k,label,big,sub,act)=>`<div class="stat ${k}" ${act||''}><span class="lbl">${label}</span><b>${big}</b><span class="sub">${sub}</span></div>`;
+  const card=(id,title,hint,right,body)=>`<section class="card nwc" id="${id}"><header><h2>${title}</h2>${hint?`<span class="hint">${hint}</span>`:''}${right?`<span class="right">${right}</span>`:''}</header>${body}</section>`;
+  return `<div class="nw">
+  <section class="hero">
+   <div class="clk"><div class="mono big">${nowM!=null?ezHm(fromMin(nowM)):esc(d.label)}</div><div class="muted">${esc(d.name)} · ${esc(d.label)}</div><div class="dim small">Central time</div></div>
+   <div class="stats">
+    ${stat(out.length?(late.length?'bad':'warn'):'idle','Out now',out.length?`${out.length} team${out.length>1?'s':''}`:'None',out.length?out.map(m=>`${team(m)} · back ${ezHm(m.end)}`).join('<br>')+(late.length?`<br><b style="color:var(--bad)">${late.map(team).join(', ')} late</b>`:''):'All teams on base')}
+    ${stat(next?(next.go&&next.go.d==='GO'?'ok':'info'):'idle','Next to leave',next?`${team(next)} <span class="mono">${ezHm(next.start)}</span>`:'Done for today',next?(what(next)||'Mission not picked')+(next.go&&next.go.d==='GO'?' · Go ✓':' · needs a Go'):'No more launches')}
+    ${stat('res','Results so far',`<span style="color:var(--ok)">${t.pass}</span><span class="muted"> / </span><span style="color:var(--bad)">${t.fail}</span>`,`<span class="bar"><i style="width:${pp}%"></i></span>${t.out} out · ${pp}% passed`)}
+    ${stat(hurt.length?'bad':'ok','People',`${ROSTER.length-hurt.length}<span class="muted">/${ROSTER.length}</span>`,hurt.length?`Not OK: ${hurt.slice(0,3).map(p=>esc(short(p.pid))).join(', ')}${hurt.length>3?'…':''}`:'Everyone OK')}
+   </div>
+   ${cs.length?`<div class="radio"><span class="lbl">Radio</span>${cs.map(c=>`<span class="rc"><span>${esc(c.who)}</span><b>${esc(c.cs)}</b></span>`).join('')}</div>`:''}
+  </section>
+  <div class="two">
+   ${card('do','Do this now','',`<button type="button" class="btn sm ghost" data-tab="a3">All tasks →</button>`,q.length?`<div class="dolist">${q.map((x,i)=>`<div class="do ${x.k||''}"><b class="n">${i+1}</b><div class="txt"><div class="tt">${esc(x.title)}</div><div class="small muted">${x.due?(x.left!=null&&x.left<0?'Late · was due '+esc(x.due):'Due '+esc(x.due)):'Now'}${x.sub?' · '+esc(x.sub):''}</div></div><div class="act">${x.btns||''}</div></div>`).join('')}</div>`:'<div class="clear">✓ Nothing to do right now.</div>')}
+   <details class="card nwc how" ${ME?'':'open'}><summary><h2>New in the seat?</h2><span class="hint">5 steps</span></summary><ol>
+    <li>Find the next team to leave in <b>Today's missions</b>.</li>
+    <li>15 min before: right people, gear, instructor? Tap <b>Yes</b>.</li>
+    <li>They walk out → set <b>Status</b> to <b>Out</b>.</li>
+    <li>They walk in → set <b>Back</b>, count gear, write what happened.</li>
+    <li>Someone hurt or enemy contact → tell the ATF/CC and log it.</li></ol>
+    <p class="small muted">Blue text can be tapped. Changes save by themselves.</p></details>
+  </div>
+  ${card('today',"Today's missions",'Tap blue text to change it',`<button type="button" class="btn sm" data-act="addcyoa">+ Add mission</button>`,`<div class="tw"><table class="nt"><thead><tr><th class="rn">#</th><th>Time</th><th>Team</th><th>Status</th><th>Go?</th><th>Mission</th><th>Leader</th><th>People</th><th>Gear</th></tr></thead><tbody>${rows||'<tr><td colspan="9" class="muted">No missions today.</td></tr>'}</tbody></table></div>`)}
+  <div class="two">
+   ${card('gear','Gear','Tap a row to change counts','',eqRows?`<div class="tw"><table class="nt"><tbody>${eqRows}</tbody></table></div>`:'<div class="clear muted">No gear counted yet. Go to Missions → Gear.</div>')}
+   ${card('results','Passed &amp; failed','','',`<div class="tw"><table class="nt"><thead><tr><th>Day</th><th class="num">Out</th><th class="num">Passed</th><th class="num">Failed</th><th class="num">Rate</th></tr></thead><tbody class="tnum">${DAYS.filter(x=>sn.days[x.id]).map(x=>{const y=sn.days[x.id];return `<tr><td><b>${esc(x.name)}</b></td><td class="num">${y.out}</td><td class="num" style="color:var(--ok)">${y.pass}</td><td class="num" style="color:var(--bad)">${y.fail}</td><td class="num">${y.out?Math.round(y.pass/y.out*100):0}%</td></tr>`}).join('')}<tr class="tot"><td><b>Total</b></td><td class="num"><b>${t.out}</b></td><td class="num" style="color:var(--ok)"><b>${t.pass}</b></td><td class="num" style="color:var(--bad)"><b>${t.fail}</b></td><td class="num"><b>${pp}%</b></td></tr></tbody></table></div><p class="small muted foot">New missions count once their report is entered.</p>`)}
+  </div>
+  ${card('score','Mission scorecard','Set each mission: Passed, Failed or Not tried','',`<div class="sgrid">${FRAGOS.map(f=>{const v=res[f.id]||'';const r=readiness(f.id,null);const note=(tries[f.id]?`Tried ${tries[f.id]}× on Day 1`:'')+(v==='Passed'?'':r.blocked.length?(tries[f.id]?' · ':'')+'Needs '+esc(r.blocked[0].replace(/ must be complete first$/,'')):'');
+    return `<div class="sc ${v==='Passed'?'pass':v==='Failed'?'fail':''}"><div class="top"><span class="no mono">${f.no}</span><a class="lnk nm" data-cymenu="${f.id}">${esc(f.name)}</a></div><div class="bot"><select class="ressel" data-res="${f.id}" aria-label="Result for ${esc(f.name)}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select><span class="small muted">${note}</span></div></div>`}).join('')}</div>`)}
+  ${card('places','Places &amp; grids','Tap a row to fix it',`<button type="button" class="btn sm" data-act="addloc">+ Add place</button>`,locRows?`<div class="tw"><table class="nt"><tbody>${locRows}</tbody></table></div>`:'<div class="clear muted">No places yet.</div>')}
   </div>`}
 
 /* ---------- Plain words ---------- */
