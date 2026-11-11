@@ -425,6 +425,7 @@ main>*{min-width:0}
 }
 #slide-a3 .bl{padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}#slide-a3>div{margin:6px 0}#slide-a3 ul{margin:3px 0 0 18px;padding:0}
 .xtra{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.xtra summary{cursor:pointer}.xtra .picker{margin-top:8px}
+.roe{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:10px;background:var(--badbg);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);font-size:13.5px}.roe .lbl{font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--bad)}.roe span:nth-child(2){flex:1;min-width:200px}
 </style>
 </head>
 <body>
@@ -1431,7 +1432,7 @@ function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)retur
   <div class="gochk">${auto.map(([l,s,t])=>`<div class="gor ${s}"><span class="gi">${s==='ok'?'✓':s==='warn'?'!':'✗'}</span><b>${esc(l)}</b><span>${esc(t)}</span></div>`).join('')}</div>
   ${need.length?`<div class="fields">${need.map(([k,l])=>`<label class="wide">${esc(l)}<input name="inp_${k}" placeholder="Enter grid / detail"></label>`).join('')}</div>`:''}
   <div class="tools"><button type="button" class="btn sm" data-mission="${esc(id)}">Change crew</button><button type="button" class="btn sm" data-loadout="${esc(id)}">Set gear loadout</button></div>
-  <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief?'checked':''}><span>MC briefed the plan to CABS/CC and the OTS instructor</span></label>
+  <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief?'checked':''}><span>MC briefed the plan to CABS/CC and the OTS instructor${S.pirs._roe?` <b>and the team knows the current ROE</b> (FRAGO ${esc(S.pirs._roe.frago)}: lethal force authorized)`:''}</span></label>
   <label><input type="checkbox" name="ck_instr" ${ck.instr?'checked':''}><span>OTS instructor is going with the team</span></label>
   <label><input type="checkbox" name="ck_cc" ${ck.cc?'checked':''}><span>Coordinated with the ATF/CC (team is leaving the base). The GO is still yours.</span></label></div>
   <div class="small"><b>Team brings:</b> ${bring.map(esc).join(' · ')}</div>
@@ -1491,6 +1492,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
     ${stat('res','Results so far',`<span style="color:var(--ok)">${t.pass}</span><span class="muted"> / </span><span style="color:var(--bad)">${t.fail}</span>`,`<span class="bar"><i style="width:${pp}%"></i></span>${t.out} out · ${pp}% passed`)}
     ${(()=>{const pc=peopleCount(A);return stat(pc.big.length?'bad':pc.hurt||pc.gone?'warn':'ok','People',`${pc.out} <span class="muted small" style="font-weight:600">out</span> · ${pc.base} <span class="muted small" style="font-weight:600">on base</span>`,(pc.big.length?`<b style="color:var(--bad)">Report to ATF/CC: ${pc.big.map(m=>esc(team(m))).join(', ')} has 5+ hurt</b><br>`:'')+(pc.outMs.length?pc.outMs.map(m=>`${team(m)} ${crew(m).length}`).join(' · ')+'<br>':'')+`${pc.woc?`At WOC ${pc.woc} · `:''}<span style="${pc.hurt||pc.gone?'color:var(--warn)':''}">Hurt ${pc.hurt}${pc.gone?` · KIA/MIA ${pc.gone}`:''}</span>`)})()}
    </div>
+   ${S.pirs._roe?`<div class="roe"><span class="lbl">ROE · FRAGO ${esc(S.pirs._roe.frago)}</span><span><b>Lethal force &amp; offense authorized.</b> MC decides (METT-TC). LOAC + real-world ROE still apply.</span><button type="button" class="btn sm ghost" data-act="roeinfo">Details</button></div>`:''}
    ${cs.length?`<div class="radio"><span class="lbl">Radio</span>${cs.map(c=>`<span class="rc"><span>${esc(c.who)}</span><b>${esc(c.cs)}</b></span>`).join('')}</div>`:''}
   </section>
   <div class="two">
@@ -1641,6 +1643,8 @@ function maybeSeed(){if(window.__seeded||!['missions','intel','pirs'].every(c=>L
     up('loc-uxo',{notes:'Green and yellow, "CAR" written on it, about 6 in × 3 ft, tube-shaped. ~100 m from the backup site, edge of the runway area. No radios within 25 ft. EOD via Leader → CABS/CC → WOC → HHQ. TOC sheet lists 617 118: likely 677/118, verify.',source:'Intel #4 · '+src});
     writeDoc('pirs','_results',Object.assign({},S.pirs._results,{fix9:true}));
     writeDoc('log','seed11-tocintel',{type:'intel',toc:true,ts:t,text:'TOC Day 1 intel: Comm towers 681/121 + 6836/1198 (~233 m apart). Old Village 6816/1216 abandoned, recon map on whiteboard. New Village 6773/1207 (our comm relay): chief wants to talk, priest engaged, PRC handguns low on ammo, no weapons in med building; still needs 1 med chip, 1 litter, 2 JFAKs, 7 insulin. Raider: possible TOC 68030/11740, comm tower 68050/116 (incomplete), porta-potties 680/11640, contingency airfield Leech Field 679/120. UXO: green/yellow, "CAR", 6 in × 3 ft, tubular.'})}
+  if(!S.pirs._roe){writeDoc('pirs','_roe',{frago:'01-01',dtg:'511200',text:'Lethal force and offensive operations are AUTHORIZED. Friendly forces may attack enemy forces based on METT-TC, as decided by the Mission Commander or higher competent command authority. LOAC still applies. Real-world ROE (Annex B safety brief) still apply.',why:'Escalation: USS Momsen shot down 4 PLAAF J-20s; a YJ-91A anti-ship missile was destroyed by Phalanx; an E-3 Sentry was shot down in the East China Sea between Kadena and China.'});
+    writeDoc('log','seed12-frago0101',{type:'msn',toc:false,ts:Date.now(),text:'FRAGO #01-01 (change in ROEs), DTG 511200: lethal force and offensive operations AUTHORIZED. Friendly forces may attack enemy forces based on METT-TC as decided by the MC or higher. LOAC and real-world ROE still apply. Brief every team before launch.'})}
   if(S.pirs._seed1)return;const now=Date.now();
   const L={'loc-runway':{name:'Runway area',grid:'N of 120 / W of 679',type:'Site',status:'Unverified',source:'Intel #1',frago:'globalhawk',notes:'Only area on the island able to support a runway. Enemy posturing to occupy it.'},
    'loc-village':{name:'Village (humanitarian aid)',grid:'6816/1216',type:'Civilian',status:'Visited',source:'Intel #2 · Day 1 Tiger 1 1300 AAR',frago:'ironchef',notes:'Locals need food and medical supplies. Same 100 m square as WGS tower 1.',left:'2 litters, 9 poker chips, 2 JFAKs (Day 1 Tiger 1)',owed:'1 litter, 3 JFAKs, 1 poker chip'},
@@ -1945,6 +1949,7 @@ document.addEventListener('click',e=>{
   else if(a==='saveperson')savePerson();
   else if(a==='issue')issueGear();
   else if(a==='savea3rec'){const v=document.getElementById('a3rec').value.trim();const d=Object.assign({},((S.pirs._a3rec||{}).d)||{});d[UI.day]=v;writeDoc('pirs','_a3rec',{d});toast('Saved to the A3 slide')}
+  else if(a==='roeinfo'){const r=S.pirs._roe||{};openDlg(`<div class="dlg"><h3>Current ROE · FRAGO #${esc(r.frago||'')} <span class="mono small muted">DTG ${esc(r.dtg||'')}</span></h3><p><b>${esc(r.text||'')}</b></p><p class="small muted">${esc(r.why||'')}</p><p class="small">Brief this to every team before they leave (Go/No-Go box 1). Breaking the ROE is a CCIR: tell the ATF/CC right away.</p></div><div class="dfoot"><button type="button" class="btn pri" data-act="close">Got it</button></div>`)}
   else if(a==='saveloadout')saveLoadout();
   else if(a==='savegearin')saveGearIn();
   else if(a==='reopengear'){const id=document.getElementById('loform').dataset.mid;patchMission(id,{gearIn:null});logIt({type:'equip',mid:id,text:'Gear check-in reopened'});closeDlg();toast('Check-in reopened')}
