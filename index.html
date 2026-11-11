@@ -1578,7 +1578,7 @@ function dayResults(day){const rows=[];allMissions().filter(m=>m.day===day&&isMi
    rows.push({m,f,v})})});return rows}
 function scoreSnap(){const R=S.pirs._results||{};const rd=R.day||'1';const r=R.r||{},tr=R.tries||{};const days={};
   DAYS.forEach(d=>{const rs=dayResults(d.id);const pass=rs.filter(x=>x.v==='PASSED').length,fail=rs.filter(x=>x.v==='FAILED').length;if(pass+fail)days[d.id]={out:pass+fail,pass,fail}});
-  {const sc={out:0,pass:0,fail:0};const add=(k)=>{sc[k]++};Object.entries(r).forEach(([fid,v])=>{if(v!=='Passed'&&v!=='Failed')return;const n=Number(tr[fid]||1);for(let i=0;i<n;i++)add('out');if(v==='Passed'){add('pass');for(let i=1;i<n;i++)add('fail')}else for(let i=0;i<n;i++)add('fail')});if(sc.out>((days[rd]||{}).out||0))days[rd]=sc}
+  {const sc={out:0,pass:0,fail:0};const add=(k)=>{sc[k]++};Object.entries(r).forEach(([fid,v])=>{if(v!=='Passed'&&v!=='Failed')return;const n=Number(tr[fid]||1);for(let i=0;i<n;i++)add('out');if(v==='Passed'){add('pass');for(let i=1;i<n;i++)add('fail')}else for(let i=0;i<n;i++)add('fail')});if(allMissions().filter(m=>m.day===rd&&isMission(m)&&m.frago).length<6&&sc.out>((days[rd]||{}).out||0))days[rd]=sc}
   const tot={out:0,pass:0,fail:0};Object.values(days).forEach(d=>{tot.out+=d.out;tot.pass+=d.pass;tot.fail+=d.fail});return{days,tot}}
 const RCOL={PASSED:'ok',FAILED:'bad',OUT:'info'};
 function resultsList(day){const rs=dayResults(day);if(!rs.length)return '<div class="clear muted">No missions this day.</div>';
