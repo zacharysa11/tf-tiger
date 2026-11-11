@@ -991,7 +991,7 @@ const PREREQ={
  tidalwave:{inputs:[['rhexists','Enemy Red Horse present? (if yes, destroy it before GTAS)']]}
 };
 function resOf(){return (S.pirs._results&&S.pirs._results.r)||{}}
-function fragoDone(){const s=new Set(Object.entries(resOf()).filter(([,v])=>v==='Passed').map(([k])=>k));allMissions().forEach(m=>{if(m.frago&&m.state==='Complete'&&!(m.aar&&/Not complete|Failed/.test(m.aar.result||'')))s.add(m.frago)});return s}
+function fragoDone(){const s=new Set(Object.entries(resOf()).filter(([,v])=>v==='Passed').map(([k])=>k));allMissions().forEach(m=>{if(m.frago&&m.state==='Complete'&&m.aar&&/^Complete/.test(m.aar.result||''))s.add(m.frago)});return s}
 function failedMissions(){return allMissions().filter(m=>m.state==='Scrubbed'||(m.aar&&/Not complete|Failed|Partial/.test(m.aar.result||'')))}
 function readiness(fid,m){const p=PREREQ[fid]||{};const done=fragoDone();const out={blocked:[],missing:[],soft:[],ok:true};
   (p.needs||[]).forEach(k=>{if(!done.has(k))out.blocked.push(`${FR[k].no} ${FR[k].name} must be complete first`)});
@@ -1124,7 +1124,8 @@ function opsEvent(id,ev){const m=allMissions().find(x=>x.id===id);if(!m)return;
 
 function a3Brief(A){const ms=A.dayMs.filter(isMission).slice().sort((a,b)=>(a.start||'').localeCompare(b.start||''));const nowM=nowMinFor(UI.day);
   const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;const fn=m=>m.frago&&FR[m.frago]?FR[m.frago].name:(m.lane==='CYOA'?'':'mission not picked');
-  const verdict=m=>!m.aar?'report owed':/^Complete/.test(m.aar.result||'')?'PASSED':/Not complete|Partial/.test(m.aar.result||'')?'FAILED':m.aar.result==='Scrubbed'?'cancelled':'see scorecard';
+  const fromCard=m=>{const r=resOf()[m.frago];if(!m.frago||!r)return 'see scorecard';if(r==='Failed')return 'FAILED';if(r!=='Passed')return 'see scorecard';const same=allMissions().filter(x=>x.day===m.day&&x.frago===m.frago&&x.state==='Complete').sort((a,b)=>(a.start||'').localeCompare(b.start||''));return same[same.length-1].id===m.id?'PASSED':'FAILED'};
+  const verdict=m=>!m.aar?'report owed':/^Complete/.test(m.aar.result||'')?'PASSED':/Not complete|Partial/.test(m.aar.result||'')?'FAILED':m.aar.result==='Scrubbed'?'cancelled':fromCard(m);
   const done=ms.filter(m=>m.state==='Complete'||m.state==='RTB');const out=ms.filter(m=>m.state==='Out'||m.state==='TIC');
   const plan=ms.filter(m=>(m.state||'Planned')==='Planned');const fut=plan.filter(m=>nowM==null||!m.start||toMin(m.start)>=nowM);const nextT=fut.length?fut[0].start:plan.length?plan[0].start:null;const nextW=plan.filter(m=>m.start===nextT);
   const dPass=done.filter(m=>verdict(m)==='PASSED').length,dFail=done.filter(m=>verdict(m)==='FAILED').length;
