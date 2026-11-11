@@ -442,7 +442,7 @@ function renderPersonnel(A){
   else if(f==='ex')rows=rows.filter(r=>r.x.exStatus==='Owed'||r.x.exStatus==='In progress');
   else if(f==='floor')rows=rows.filter(r=>!exempt(r.p.pid,UI.day,A.ms)&&A.c[r.p.pid]===A.fl);
   else if(f==='toc')rows=rows.filter(r=>r.x.status!=='EFF'&&!r.x.tocNotified);
-  else if(/^t\d$/.test(f))rows=rows.filter(r=>'t'+r.p.team===f);
+  else if(/^t\d$/.test(f))rows=rows.filter(r=>'t'+r.x.team===f);
   const where=pid=>{const sm=A.dayMs.find(m=>!isMission(m)&&crew(m).includes(pid));if(sm)return `<span class="pill st-Out">${esc(sm.lane)}${staffRoleOf(sm,pid)?' · '+esc(staffRoleOf(sm,pid)):''}</span>`;const w=whereNow(pid,A.ms);if(w.now)return `<span class="pill st-Out">${esc(w.m.lane)} now</span>`;return w.list.map(m=>`<span class="mono small">${esc(m.lane.replace('Tiger ','T'))} ${esc(m.start)}</span>`).join(' ')||'<span class="muted small">Unassigned</span>'};
   const dist={};ROSTER.forEach(p=>{if(exempt(p.pid,UI.day,A.ms))return;dist[A.c[p.pid]]=(dist[A.c[p.pid]]||0)+1});
   const max=Math.max(1,...Object.values(dist));
@@ -669,7 +669,7 @@ function missionSheet(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!
   <div class="sheetbtns">
    <button type="button" class="btn" data-go="${i}">Go/No-Go checklist</button>
    <button type="button" class="btn" data-aar="${i}">${m.aar?'View / edit AAR':'Enter AAR'}</button>
-   <button type="button" class="btn" data-mission="${i}">Crew &amp; times</button>
+   <button type="button" class="btn" data-mission="${i}">Change crew / times</button>
    <button type="button" class="btn" data-loadout="${i}">Gear loadout</button>
    ${loPhys(m)?`<button type="button" class="btn warnb" data-gearin="${i}">Check gear in</button>`:''}
    ${m.lane!=='CYOA'?`<button type="button" class="btn" data-assign="${i}">${m.frago?'Change FRAGO':'Assign FRAGO'}</button>`:''}
@@ -1250,7 +1250,7 @@ function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)retur
   <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'}${f?` · <b style="color:var(--ink)">Done when:</b> ${esc(f.complete)}`:''}</div>
   <div class="gochk">${auto.map(([l,s,t])=>`<div class="gor ${s}"><span class="gi">${s==='ok'?'✓':s==='warn'?'!':'✗'}</span><b>${esc(l)}</b><span>${esc(t)}</span></div>`).join('')}</div>
   ${need.length?`<div class="fields">${need.map(([k,l])=>`<label class="wide">${esc(l)}<input name="inp_${k}" placeholder="Enter grid / detail"></label>`).join('')}</div>`:''}
-  <div><button type="button" class="btn sm" data-loadout="${esc(id)}">Set gear loadout</button></div>
+  <div class="tools"><button type="button" class="btn sm" data-mission="${esc(id)}">Change crew</button><button type="button" class="btn sm" data-loadout="${esc(id)}">Set gear loadout</button></div>
   <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief?'checked':''}><span>MC briefed the plan to CABS/CC and the OTS instructor</span></label>
   <label><input type="checkbox" name="ck_instr" ${ck.instr?'checked':''}><span>OTS instructor is going with the team</span></label></div>
   <div class="small"><b>Team brings:</b> ${bring.map(esc).join(' · ')}</div>
@@ -1365,7 +1365,7 @@ function personDlg(pid){
   const his=(x.exHist||[]).slice().reverse();
   const mine=A.ms.filter(m=>crew(m).includes(pid));
   openDlg(`<form class="dlg" id="pform" data-pid="${pid}">
-   <h3>${esc(x.name)} <span class="pill s-${x.status}">${esc(SLBL[x.status])}</span><span class="small muted">Flt ${esc(x.flt)} · Team ${x.team} · ${A.c[pid]} missions${exempt(pid,UI.day,A.ms)?' · exempt today':''}</span></h3>
+   <h3>${esc(x.name)} <span class="pill s-${x.status}">${esc(SLBL[x.status])}</span><span class="small muted">Flt ${esc(x.flt)} · Tiger ${x.team} · ${A.c[pid]} missions${exempt(pid,UI.day,A.ms)?' · exempt today':''}</span></h3>
    <div class="tools">${STATUS.map(([v,l])=>`<button type="button" class="btn sm ${x.status===v?'pri':''}" data-setstatus="${v}">${esc(l)}</button>`).join('')}</div>
    <div class="fields">
     <label>Status<select name="status">${opt(STATUS,x.status)}</select></label>
@@ -1374,6 +1374,7 @@ function personDlg(pid){
     <label>Exercise chosen<select name="exercise">${opt(['',...EXERCISES],x.exercise)}</select></label>
     <label>Exercise status<select name="exStatus">${opt(['','Owed','In progress','Complete'],x.exStatus)}</select></label>
     <label>Role (manual)<select name="role">${opt(ROLES,x.role)}</select></label>
+    <label>Tiger team<select name="team">${opt([['1','Tiger 1'],['2','Tiger 2'],['3','Tiger 3'],['4','Tiger 4']],String(x.team))}</select></label>
     <label>Mission count adjust<input name="adj" type="number" step="1" value="${Number(x.adj||0)}"></label>
     <label style="align-self:end;flex-direction:row;display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" name="tocNotified" ${x.tocNotified?'checked':''}> Passed to TOC</label>
     <label class="wide">Note<textarea name="note" rows="2">${esc(x.note||'')}</textarea></label>
@@ -1386,7 +1387,7 @@ function personDlg(pid){
 }
 function savePerson(extra){
   const f=document.getElementById('pform');const pid=f.dataset.pid;const old=person(pid);const fd=new FormData(f);
-  const n={status:fd.get('status'),source:fd.get('source'),mid:fd.get('mid'),exercise:fd.get('exercise'),exStatus:fd.get('exStatus'),role:fd.get('role'),adj:Number(fd.get('adj')||0),tocNotified:fd.get('tocNotified')==='on',note:fd.get('note')};
+  const n={status:fd.get('status'),source:fd.get('source'),mid:fd.get('mid'),exercise:fd.get('exercise'),exStatus:fd.get('exStatus'),role:fd.get('role'),adj:Number(fd.get('adj')||0),tocNotified:fd.get('tocNotified')==='on',note:fd.get('note')};if(fd.get('team')){n.team=Number(fd.get('team'));if(n.team!==Number(old.team))logIt({type:'pers',pid,text:`${nm(pid)} moved Tiger ${old.team} → Tiger ${n.team}`})}
   Object.assign(n,extra||{});n.gear=gearOf(pid);
   const ms=allMissions();const mm=ms.find(m=>m.id===n.mid);const mlabel=mm?`Day ${mm.day} ${mm.lane} ${mm.start}`:'';
   if(n.status!==old.status){n.tocNotified=false;if(n.status!=='EFF'&&old.status==='EFF'&&(!n.exStatus||n.exStatus==='Complete')&&n.exercise===(old.exercise||'')){n.exStatus='Owed';n.exercise=''}}
@@ -1409,7 +1410,7 @@ function missionDlg(mid,isNew){
   const others=A.ms.filter(o=>o.id!==m.id&&o.day===m.day&&o.state!=='Scrubbed');
   const busy=pid=>{const o=others.find(o=>overlap(o,m)&&crew(o).includes(pid));return o?`${o.lane} ${o.start}`:''};
   const sel=new Set(crew(m));
-  const lanes=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4','CYOA','Base defense','Other'];
+  const lanes=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4','CYOA','Base defense','Other'];const tn=(String(m.lane).match(/^Tiger (\d)/)||[])[1]||'';
   openDlg(`<form class="dlg" id="mform" data-mid="${esc(m.id)}" data-new="${isNew?1:''}">
    <h3>${isNew?'Add mission':esc(m.lane)+' · '+esc(m.start)+'–'+esc(m.end)} <span class="small muted">Day ${esc(m.day)}${m.base?' · from Team Assignments v3':''}</span></h3>
    <div class="fields">
@@ -1421,10 +1422,10 @@ function missionDlg(mid,isNew){
     <label class="wide">FRAGO<select name="frago">${fragoOpts(m.frago||'')}</select></label>
     <label class="wide">Note (MTO, route, ISR, etc.)<input name="note" value="${esc(m.note||'')}"></label>
    </div>
-   <div class="fl">Crew <span class="muted" id="crewct">${sel.size} selected</span> · number = completed missions, floor ${A.fl}</div>
+   <div class="fl">Crew <b id="crewct" class="tnum" style="${sel.size>10?'color:var(--bad)':''}">${sel.size} / 10</b> <span class="muted">incl. MC · number = completed missions, floor ${A.fl}${tn?` · Tiger ${tn} listed first`:''}</span></div>
    <input type="search" id="crewq" placeholder="Filter names" aria-label="Filter names" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--soft)">
-   <div class="picker" id="picker">${ROSTER.map(p=>{const b=busy(p.pid);const x=person(p.pid);const over=!exempt(p.pid,m.day,A.ms)&&A.c[p.pid]>A.fl;
-     return `<label class="${b?'busy':''}" data-n="${esc(p.name.toLowerCase())}"><input type="checkbox" name="crew" value="${p.pid}" ${sel.has(p.pid)?'checked':''}><span>${esc(p.name)} ${x.status!=='EFF'?`<span class="pill s-${x.status}">${esc(SLBL[x.status])}</span>`:''}${b?` <span class="small muted">on ${esc(b)}</span>`:''}</span><span class="tnum small ${over?'':'muted'}" style="${over?'color:var(--warn);font-weight:700':''}">${A.c[p.pid]}</span></label>`}).join('')}</div>
+   <div class="picker" id="picker">${ROSTER.slice().sort((a,b)=>(sel.has(b.pid)-sel.has(a.pid))||((person(b.pid).team==tn)-(person(a.pid).team==tn))||a.name.localeCompare(b.name)).map(p=>{const b=busy(p.pid);const x=person(p.pid);const over=!exempt(p.pid,m.day,A.ms)&&A.c[p.pid]>A.fl;
+     return `<label class="${b?'busy':''}" data-n="${esc(p.name.toLowerCase())}"><input type="checkbox" name="crew" value="${p.pid}" ${sel.has(p.pid)?'checked':''}><span>${esc(p.name)}${tn&&x.team!=tn?` <span class="small muted">T${x.team}</span>`:''} ${x.status!=='EFF'?`<span class="pill s-${x.status}">${esc(SLBL[x.status])}</span>`:''}${b?` <span class="small muted">on ${esc(b)}</span>`:''}</span><span class="tnum small ${over?'':'muted'}" style="${over?'color:var(--warn);font-weight:700':''}">${A.c[p.pid]}</span></label>`}).join('')}</div>
   </form>
   <div class="dfoot"><div class="left">${!isNew?(m.base?`<button type="button" class="btn sm ghost" data-act="resetmission">Reset to plan</button>`:`<button type="button" class="btn sm badb" data-act="delmission">Delete</button>`):''}</div><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="savemission">Save</button></div>`);
 }
@@ -1432,6 +1433,7 @@ function saveMission(){
   const f=document.getElementById('mform');if(!f.reportValidity())return;const fd=new FormData(f);
   const isNew=!!f.dataset.new;const id=isNew?('x'+uid()):f.dataset.mid;const old=isNew?null:allMissions().find(m=>m.id===id);
   const mc=fd.get('mc');const crewSel=fd.getAll('crew');
+  {const L=fd.get('lane');const c=new Set(crewSel.concat(mc?[mc]:[])).size;if(L!=='WOC'&&L!=='TOC'&&c>10&&!confirmOnce('crew10',`${c} pax. FRAGO max is 10 including the MC. Tap Save again to keep it.`))return}
   const n=Object.assign({},S.missions[id]||{},{day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note'),frago:fd.get('frago')||''});
   writeDoc('missions',id,n);
   const lbl=`Day ${n.day} ${n.lane} ${n.start}`;
@@ -1717,7 +1719,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='cyfrago'){const c=document.getElementById('cyfragocard');if(c)c.innerHTML=fragoCard(FR[e.target.value])}
   if(e.target.id==='pf'){UI.pf=e.target.value;render()}
   if(e.target.id==='lf'){UI.lf=e.target.value;render()}
-  if(e.target.name==='crew'){const c=document.querySelectorAll('#picker input:checked').length;const s=document.getElementById('crewct');if(s)s.textContent=c+' selected'}
+  if(e.target.name==='crew'||(e.target.name==='mc'&&document.getElementById('mform'))){const f=document.getElementById('mform');const set=new Set([...f.querySelectorAll('#picker input:checked')].map(i=>i.value));const mc=f.querySelector('[name=mc]').value;if(mc)set.add(mc);const c=set.size;const s=document.getElementById('crewct');if(s){s.textContent=c+' / 10';s.style.color=c>10?'var(--bad)':''}}
   if(e.target.dataset.toc){const id=e.target.dataset.toc;const l=S.log[id];if(l){writeDoc('log',id,Object.assign({},l,{toc:e.target.checked}));
     if(l.type==='cas'&&l.pid&&e.target.checked){const latest=Object.values(S.log).filter(x=>x.type==='cas'&&x.pid===l.pid).sort((a,b)=>b.ts-a.ts)[0];if(latest===S.log[id]||latest.ts===l.ts){writeDoc('people',l.pid,Object.assign({},S.people[l.pid]||{},{tocNotified:true}))}}}}
   if(e.target.name==='status'&&e.target.form&&e.target.form.id==='pform'){dlg.querySelectorAll('[data-setstatus]').forEach(b=>b.classList.toggle('pri',b.dataset.setstatus===e.target.value))}
