@@ -269,6 +269,25 @@ main,.card,.tablewrap{max-width:100%}
 .cyc{border:1px solid var(--line2);background:var(--soft);border-radius:6px;padding:2px 7px;font:600 11px var(--mono);cursor:pointer}
 .cyc.done{background:var(--okbg);color:var(--ok);border-color:transparent}.cyc.soon{background:var(--warnbg);color:var(--warn);border-color:var(--warn)}.cyc.late{background:var(--badbg);color:var(--bad);border-color:var(--bad)}
 @media (max-width:560px){.gor{grid-template-columns:20px 1fr}.gor>span:last-child{grid-column:2}}
+
+.ezwrap{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}.ezwrap>*{min-width:0;max-width:100%}
+.ezhead{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;background:var(--panel,var(--soft));border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.ezclock{font-size:44px;font-weight:800;line-height:1}
+.ezlines{display:flex;flex-direction:column;gap:6px;flex:1;min-width:240px;font-size:16px}
+.ezline{display:flex;gap:8px}.ezic{width:22px;flex:none}
+.ezhow ol{margin:8px 0 4px 20px;padding:0;font-size:15px;line-height:1.55}.ezhow summary{cursor:pointer;font-size:15px}
+.ezh{font-size:17px;margin:6px 0 0}
+table.xl{border-collapse:collapse;width:100%;min-width:720px;font-size:14px;background:var(--bg)}
+table.xl th,table.xl td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle;white-space:nowrap}
+table.xl thead th{background:var(--soft);font-weight:700;position:sticky;top:0;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+table.xl td.rn,table.xl th.rn{background:var(--soft);color:var(--muted);text-align:center;width:28px;font-size:12px}
+table.xl a{color:#3b82f6;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+table.xl tr:hover td{background:color-mix(in srgb,var(--soft) 60%,transparent)}
+table.xl tr.eznow td{background:color-mix(in srgb,#3b82f6 14%,transparent)}
+table.xl tr.ez-Complete td{opacity:.7}table.xl tr.ez-Scrubbed td{opacity:.45;text-decoration:line-through}
+table.xl tr.ez-Out td:not(.rn),table.xl tr.ez-TIC td:not(.rn){background:color-mix(in srgb,#f59e0b 14%,transparent)}
+.ezsel{padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--soft);color:var(--ink);font-weight:600}
+.ezok{color:#16a34a;font-weight:700}.ezbad{color:#dc2626;font-weight:700}
 </style>
 </head>
 <body>
@@ -537,12 +556,12 @@ function cubText(which,A){
 /* ---------- render ---------- */
 const ICONS={a26:'<path d="M12 12v9M8 21h8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 5.8a6 6 0 0 0 0 8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 3a10 10 0 0 0 0 14M19 3a10 10 0 0 1 0 14"/>',a14:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 11l3-2 3 2v5l-3 2-3-2z"/>',overview:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',personnel:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.6 14.4c3 0 5.4 2.2 5.4 5.6"/>',missions:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',a3:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',equipment:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',resupply:'<path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',log:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',cub:'<path d="M3 4h18v12H3zM12 16v4M8 20h8"/>',more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 function ic(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`}
-const SECTIONS=[['overview','Overview','overview',['overview']],['a14','A1/4','personnel',['personnel','equipment','resupply']],['a26','A2/6','intel',['intel','comms']],['a3','A3','a3',['a3','cyoa','grids','missions']],['log','Log','log',['log']],['cub','CUB','cub',['cub']]];
-const SUBL={personnel:'People',equipment:'Equipment',resupply:'Resupply',intel:'A2 · Intel',comms:'A6 · Comms',a3:'Ops',cyoa:'CYOA menu',grids:'Grids & sites',missions:'Schedule'};
+const SECTIONS=[['overview','Home','overview',['easy','overview']],['a14','A1/4','personnel',['personnel','equipment','resupply']],['a26','A2/6','intel',['intel','comms']],['a3','A3','a3',['a3','cyoa','grids','missions']],['log','Log','log',['log']],['cub','CUB','cub',['cub']]];
+const SUBL={easy:'Simple',overview:'Dashboard',personnel:'People',equipment:'Equipment',resupply:'Resupply',intel:'A2 · Intel',comms:'A6 · Comms',a3:'Ops',cyoa:'CYOA menu',grids:'Grids & sites',missions:'Schedule'};
 const TABS=SECTIONS.map(s=>[s[2],s[1]]);
 function secOf(v){return SECTIONS.find(s=>s[3].includes(v))||SECTIONS[0]}
 const LASTV={};
-const TITLES={overview:['Overview','Task force status at a glance'],personnel:['A1/4 · People','Accountability, casualties, exercises, gear'],missions:['A3 · Schedule & crews','MCE schedule and crew assignments'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['A1/4 · Equipment','Status, issue and serials'],resupply:['A1/4 · Resupply','A1/4 approves'],cyoa:['A3 · CYOA menu','All missions, prerequisites and EXORD overviews'],grids:['A3 · Grids & sites','Every location from intel and AARs'],intel:['A2/6 · Intel','PIRs, reports, ISR, assessment'],comms:['A2/6 · Comms','Comms plan, callsigns, LMRs, comm checks'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A2, A3, A4 and A6 slides']};
+const TITLES={easy:['Simple view','Everything on one page, in plain words'],overview:['Overview','Task force status at a glance'],personnel:['A1/4 · People','Accountability, casualties, exercises, gear'],missions:['A3 · Schedule & crews','MCE schedule and crew assignments'],a3:['A3 Operations','Your live queue, timeline and log'],equipment:['A1/4 · Equipment','Status, issue and serials'],resupply:['A1/4 · Resupply','A1/4 approves'],cyoa:['A3 · CYOA menu','All missions, prerequisites and EXORD overviews'],grids:['A3 · Grids & sites','Every location from intel and AARs'],intel:['A2/6 · Intel','PIRs, reports, ISR, assessment'],comms:['A2/6 · Comms','Comms plan, callsigns, LMRs, comm checks'],log:['Log','Every change, time-stamped'],cub:['CUB slides','Live A1, A2, A3, A4 and A6 slides']};
 function utcHM(){const d=new Date();return String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
 function renderHeader(A){
   document.getElementById('days').innerHTML=DAYS.map(d=>`<button type="button" data-day="${d.id}" aria-pressed="${UI.day===d.id}" title="${esc(d.name+' · '+d.label)}"><b>D${d.id}</b>${esc(d.label.split(' ').slice(0,2).join(' '))}</button>`).join('');
@@ -574,7 +593,7 @@ document.documentElement.dataset.mode=THEME;
 function setTab(k){if(!TITLES[k])return;UI.tab=k;LASTV[secOf(k)[0]]=k;try{history.replaceState(null,'','#'+k);localStorage.setItem('tftiger-tab',k)}catch(e){}if(dlg.open)closeDlg();render();window.scrollTo(0,0)}
 const ROLE_HOME={'ATF/CC':'overview','Deputy CC':'overview','A1':'personnel','A2':'intel','A3':'a3','A4':'equipment','A6':'comms','A1/4':'personnel','A2/6':'intel','CABS/CC':'a3'};
 let ROLE='';try{ROLE=localStorage.getItem('tftiger-role')||''}catch(e){}
-(function(){const h=(location.hash||'').slice(1);let k=TITLES[h]?h:null;if(!k&&ROLE_HOME[ROLE])k=ROLE_HOME[ROLE];if(!k){try{k=localStorage.getItem('tftiger-tab')}catch(e){}}if(k&&TITLES[k])UI.tab=k})();
+(function(){const h=(location.hash||'').slice(1);let k=TITLES[h]?h:'easy';if(k&&TITLES[k])UI.tab=k})();
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TITLES[h]&&h!==UI.tab){UI.tab=h;render()}});
 document.addEventListener('keydown',e=>{const tg=e.target;const typing=tg&&(/INPUT|TEXTAREA|SELECT/.test(tg.tagName)||tg.isContentEditable);
   if(e.key==='Enter'&&tg&&tg.id==='opstxt'){e.preventDefault();quickLog();return}
@@ -592,7 +611,7 @@ function render(){
   const [t,sub]=TITLES[UI.tab];const d=dayObj(UI.day);
   const sec=secOf(UI.tab);const subs=sec[3].length>1?`<div class="subtabs" role="tablist">${sec[3].map(v=>`<button type="button" role="tab" data-tab="${v}" aria-selected="${UI.tab===v}">${esc(SUBL[v])}</button>`).join('')}</div>`:'';
   const head=subs+(UI.tab==='a3'?'':`<div class="pagehead"><h1>${esc(t)}</h1><span class="sub">${esc(sub)} · ${esc(d.name)} ${esc(d.label)}</span></div>`);
-  const body={overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,cyoa:renderCyoaMenu,grids:renderGrids,intel:renderIntel,comms:renderComms,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
+  const body={easy:renderEasy,overview:renderOverview,personnel:renderPersonnel,missions:renderMissions,a3:renderA3,cyoa:renderCyoaMenu,grids:renderGrids,intel:renderIntel,comms:renderComms,equipment:renderEquipment,resupply:renderResupply,log:renderLog,cub:renderCUB}[UI.tab](A);
   let seen='1';try{seen=localStorage.getItem('tftiger-toured')}catch(e){}
   const welcome=!seen&&!TOUR?'<div class="welcome"><b>New to the board?</b><span class="small">A 2-minute guided tour shows you where everything is.</span><span style="margin-left:auto"></span><button type="button" class="btn sm ghost" data-act="welcomeno">No thanks</button><button type="button" class="btn sm pri" data-act="welcomego">Start tour</button></div>':'';
   main.innerHTML=banner+welcome+head+body;
@@ -1273,6 +1292,53 @@ function locs(){return Object.entries(S.intel).filter(([,x])=>x.kind==='loc')}
 function locGrid(id){const x=S.intel[id];return x&&x.grid&&!/unknown|\?/i.test(x.grid)?x.grid:''}
 function inputsOf(fid,m){const o={};const mp=LOCMAP[fid]||{};for(const k in mp){const g=locGrid(mp[k]);if(g)o[k]=g}const mi=(m&&m.inputs)||{};for(const k in mi)if(String(mi[k]||'').trim())o[k]=mi[k];return o}
 function locPill(s){return `<span class="pill ${/Cleared|Built|Secured|Confirmed/.test(s||'')?'e-FMC':/Unsecured|Unknown|Destroyed/.test(s||'')?'e-NMC':'e-PMC'}">${esc(s||'Unverified')}</span>`}
+
+/* ---------- Simple view ---------- */
+const EZST=[['Planned','Not yet'],['Out','Out'],['RTB','Back'],['Complete','Done'],['Scrubbed','Cancelled']];
+function ezHm(m){return m?m.slice(0,2)+':'+m.slice(2):''}
+function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
+  const ms=A.dayMs.filter(isMission).slice().sort((a,b)=>(a.start?toMin(a.start):9999)-(b.start?toMin(b.start):9999));
+  const out=ms.filter(m=>m.state==='Out'||m.state==='TIC');
+  const next=ms.filter(m=>(m.state||'Planned')==='Planned'&&m.start&&(nowM==null||toMin(m.start)>=nowM-5))[0];
+  const late=out.filter(m=>nowM!=null&&m.end&&toMin(m.end)<nowM);
+  const hurt=ROSTER.filter(p=>person(p.pid).status!=='EFF');
+  const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);
+  const what=m=>m.frago&&FR[m.frago]?esc(FR[m.frago].name):m.lane==='CYOA'?esc(m.note||'Extra mission'):'';
+  const stSel=m=>`<select class="ezsel st-${esc(m.state||'Planned')}" data-est="${esc(m.id)}">${EZST.map(([v,l])=>`<option value="${v}" ${(m.state||'Planned')===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="ezok">✓ Yes</span>';if(g==='NOGO')return '<span class="ezbad">✗ No</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button> <button type="button" class="btn sm" data-go="${esc(m.id)}">Check</button>`};
+  const gearCell=m=>m.loadout&&Object.keys(m.loadout).length?`<a data-loadout="${esc(m.id)}">${loText(m.loadout)}</a>${loPhys(m)?` <button type="button" class="btn sm" data-gearin="${esc(m.id)}">Got it back</button>`:m.gearIn?' <span class="ezok">✓ back</span>':''}`:`<a data-loadout="${esc(m.id)}" class="muted">+ add</a>`;
+  const isNow=m=>nowM!=null&&m.start&&m.end&&toMin(m.start)<=nowM&&nowM<toMin(m.end)&&m.state!=='Scrubbed';
+  const rows=ms.map((m,i)=>`<tr class="ez-${esc(m.state||'Planned')}${isNow(m)?' eznow':''}"><td class="rn">${i+1}</td><td class="mono"><b>${ezHm(m.start)||'—'}</b></td><td><b>${team(m)}</b></td><td>${stSel(m)}</td><td>${goCell(m)}</td><td class="mono">${ezHm(m.end)||'—'}</td><td><a data-msheet="${esc(m.id)}">${what(m)||'<span class="muted">+ pick</span>'}</a></td><td><a data-mission="${esc(m.id)}">${m.mc?esc(short(m.mc)):'<span class="muted">+ pick</span>'}</a></td><td class="tnum"><a data-mission="${esc(m.id)}" style="${crew(m).length>10?'color:var(--bad);font-weight:700':''}">${crew(m).length}</a></td><td>${gearCell(m)}</td></tr>`).join('');
+  const eq=Object.entries(S.equip).filter(([id,e])=>eqAvail(id)||allMissions().some(m=>loHolding(m)&&m.loadout[id])).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
+  const eqRows=eq.map(([id,e],i)=>{const outW=allMissions().filter(m=>loPhys(m)&&m.loadout[id]);const o=outW.reduce((s,m)=>s+Number(m.loadout[id]),0);const av=eqAvail(id);
+    return `<tr data-equip="${esc(id)}" style="cursor:pointer"><td class="rn">${i+1}</td><td><b>${esc(e.name)}</b></td><td class="tnum"><b style="${av-o<=0?'color:var(--bad)':''}">${av-o}</b></td><td class="tnum">${av}</td><td>${outW.map(m=>esc(team(m))+' ('+m.loadout[id]+')').join(', ')}</td><td class="tnum">${Number(e.nmc||0)||''}</td></tr>`}).join('');
+  const L=locs().sort((a,b)=>String(a[1].name).localeCompare(b[1].name));
+  const locRows=L.map(([id,x],i)=>`<tr data-loc="${esc(id)}" style="cursor:pointer"><td class="rn">${i+1}</td><td class="mono"><b>${esc(x.grid||'?')}</b></td><td><b>${esc(x.name)}</b></td><td class="small">${esc(x.notes||x.owed||'')}</td></tr>`).join('');
+  const line=(ic,t)=>`<div class="ezline"><span class="ezic">${ic}</span><span>${t}</span></div>`;
+  return `<div class="ezwrap">
+  <div class="ezhead"><div><div class="ezclock mono">${nowM!=null?ezHm(fromMin(nowM)):esc(d.label)}</div><div class="small muted">${esc(d.name)} · ${esc(d.label)} · times are Central</div></div>
+   <div class="ezlines">
+   ${line('🟢',out.length?'<b>Out now:</b> '+out.map(m=>`${team(m)}${what(m)?' ('+what(m)+')':''}, back by ${ezHm(m.end)}`).join(' · '):'<b>No team is out right now.</b>')}
+   ${line('⏭️',next?`<b>Next to leave:</b> ${team(next)} at ${ezHm(next.start)}${what(next)?' ('+what(next)+')':''}${next.go&&next.go.d==='GO'?' · already a GO':' · needs a Go'}`:'<b>No more missions planned today.</b>')}
+   ${late.length?line('⚠️',`<b>Late coming back:</b> ${late.map(team).join(', ')}`):''}
+   ${line(hurt.length?'🩹':'✅',hurt.length?`<b>${hurt.length} not OK:</b> ${hurt.slice(0,6).map(p=>esc(short(p.pid))+' ('+esc(SLBL[person(p.pid).status])+')').join(', ')}${hurt.length>6?'…':''}`:`<b>Everyone is OK</b> (${ROSTER.length} people)`)}
+   </div></div>
+  <details class="card ezhow" ${ME?'':'open'}><summary><b>New in the seat? Do these 5 things</b></summary><ol>
+   <li>Look at <b>Today's missions</b>. Find the next team to leave.</li>
+   <li>15 minutes before they leave, ask the leader: right people? gear? instructor coming? If yes, tap <b>Yes</b> under <b>Go?</b></li>
+   <li>When they walk out, change <b>Status</b> to <b>Out</b>.</li>
+   <li>When they walk back in, change it to <b>Back</b>. Count their gear. Tap the mission name and write what happened.</li>
+   <li>Someone hurt or enemy contact? Tell the boss (ATF/CC) right away and add it to the <b>Log</b>.</li></ol>
+   <p class="small muted">Tap any blue word to change it. Changes save by themselves and everyone sees them.</p></details>
+  <h2 class="ezh">Today's missions <span class="small muted">tap a cell to change it</span></h2>
+  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Leave</th><th>Team</th><th>Status</th><th>Go?</th><th>Back by</th><th>Mission</th><th>Leader</th><th>People</th><th>Gear</th></tr></thead><tbody>${rows||'<tr><td colspan="10" class="muted">No missions today.</td></tr>'}</tbody></table></div>
+  <div class="tools"><button type="button" class="btn" data-act="addcyoa">+ Add a mission</button></div>
+  <h2 class="ezh">Gear <span class="small muted">tap a row to change counts</span></h2>
+  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Item</th><th>Free now</th><th>We have</th><th>Who has it</th><th>Broken</th></tr></thead><tbody>${eqRows||'<tr><td colspan="6" class="muted">No gear counted yet. Go to A1/4 → Equipment.</td></tr>'}</tbody></table></div>
+  <h2 class="ezh">Places &amp; grids <span class="small muted">tap a row to fix it</span></h2>
+  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Grid</th><th>Place</th><th>Notes</th></tr></thead><tbody>${locRows||'<tr><td colspan="4" class="muted">No places yet.</td></tr>'}</tbody></table></div>
+  <div class="tools"><button type="button" class="btn" data-act="addloc">+ Add a place</button><span style="margin-left:auto"></span><button type="button" class="btn ghost" data-tab="overview">Full dashboard →</button></div>
+  </div>`}
 function renderGrids(A){const order=t=>LTYPES.indexOf(t);const L=locs().sort((a,b)=>order(a[1].type)-order(b[1].type)||String(a[1].name).localeCompare(b[1].name));
   const owed=L.filter(([,x])=>x.owed);
   return `<div class="tools"><button type="button" class="btn pri" data-act="addloc">+ Add site</button><span class="small muted">Every grid from intel and AARs. Missions pull their WOC inputs from here.</span></div>
@@ -1711,6 +1777,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
 });
 document.addEventListener('change',e=>{
+  if(e.target.dataset&&e.target.dataset.est){const id=e.target.dataset.est,v=e.target.value;const m=allMissions().find(x=>x.id===id);setMissionState(id,v);toast(`${mName(m)}: ${EZST.find(x=>x[0]===v)[1]}`);if(v==='RTB'&&m&&m.loadout&&Object.keys(m.loadout).length&&!m.gearIn)setTimeout(()=>checkInDlg(id),80);return}
   if(e.target.dataset.rep&&e.target.type==='checkbox'){const id=e.target.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:e.target.checked,repAt:Date.now()}));return}
   if(e.target.id==='opsmid'){UI.opsMid=e.target.value;return}
   if(e.target.id==='chknet'){UI.chknet=e.target.value;return}
