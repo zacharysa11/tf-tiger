@@ -1534,15 +1534,13 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   </section>
   <div class="two">
    ${card('do','Do this now','',`<button type="button" class="btn sm ghost" data-tab="a3">All tasks →</button>`,q.length?`<div class="dolist">${q.map((x,i)=>`<div class="do ${x.k||''}"><b class="n">${i+1}</b><div class="txt"><div class="tt">${esc(x.title)}</div><div class="small muted">${x.due?(x.left!=null&&x.left<0?'Late · was due '+esc(x.due):'Due '+esc(x.due)):'Now'}${x.sub?' · '+esc(x.sub):''}</div></div><div class="act">${x.btns||''}</div></div>`).join('')}</div>`:'<div class="clear">✓ Nothing to do right now.</div>')}
-   <details class="card nwc how" ${ME?'':'open'}><summary><h2>New in the seat?</h2><span class="hint">5 steps</span></summary><ol>
+   <details class="card nwc how" ${ME?'':'open'}><summary><h2>New in the seat?</h2><span class="hint">4 steps</span></summary><ol>
     <li>Find the next team to leave in <b>Today's missions</b>.</li>
     <li>15 min before: right people, instructor, gear OK with A4? Tap <b>Yes</b>.</li>
     <li>They walk out → set <b>Status</b> to <b>Out</b>.</li>
-    <li>They walk in → set <b>Back</b> and write what happened.</li>
-    <li>Someone hurt or enemy contact → tell the ATF/CC and log it.</li></ol>
+    <li>They walk in → set <b>Back</b> and write what happened.</li></ol>
     <p class="small muted">Blue text can be tapped. Changes save by themselves.</p>
-    <div class="ccir"><b>Tell the ATF/CC right away (CCIRs)</b><ul><li>Enemy contact (troops in contact)</li><li>A mission with more than 5 hurt</li><li>Anyone breaks the ROE</li><li>Any change in gear status</li><li>Real-world injury, safety hazard, code-of-conduct issue or unknown person in the compound → tell an instructor now</li></ul>
-    <b>Your deadlines for each mission window</b><ul><li>TOC planning starts 45 min before launch</li><li>Pick the mission at the WOC 20 min before that and tell the ATF/CC instructor</li><li>Tell the TOC (CABS/CC + instructor) 10 min before that, with resupply items</li></ul>
+    <div class="ccir"><b>Your deadlines for each mission window</b><ul><li>TOC planning starts 45 min before launch</li><li>Pick the mission at the WOC 20 min before that and tell the ATF/CC instructor</li><li>Tell the TOC (CABS/CC + instructor) 10 min before that, with resupply items</li></ul>
     <b>If the ATF/CC is gone</b><ul><li>You (WOC A3) are next in command</li></ul></div></details>
   </div>
   ${card('tline','Timeline','Who is out and when · tap a bar for details','',`<div class="tlwrap">${timelineHtml(A,true)}<div class="tlkey"><span><i class="k0"></i>Not yet</span><span><i class="k1"></i>Out</span><span><i class="k2"></i>Back</span><span><i class="k3"></i>Done</span><span><i class="k4"></i>GO given</span><span><i class="k5"></i>Now</span></div></div>`)}
