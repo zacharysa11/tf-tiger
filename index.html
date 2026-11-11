@@ -1315,13 +1315,13 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   const next=ms.filter(m=>(m.state||'Planned')==='Planned'&&m.start&&(nowM==null||toMin(m.start)>=nowM-5))[0];
   const late=out.filter(m=>nowM!=null&&m.end&&toMin(m.end)<nowM);
   const hurt=ROSTER.filter(p=>person(p.pid).status!=='EFF');
-  const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);
+  const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);const teamCs=m=>{const c=csOf(m.lane);return team(m)+(c?`<div class="small muted" style="font-weight:500">📻 ${esc(c)}</div>`:'')};
   const what=m=>m.frago&&FR[m.frago]?esc(FR[m.frago].name):m.lane==='CYOA'?esc(m.note||'Extra mission'):'';
   const stSel=m=>`<select class="ezsel st-${esc(m.state||'Planned')}" data-est="${esc(m.id)}">${EZST.map(([v,l])=>`<option value="${v}" ${(m.state||'Planned')===v?'selected':''}>${l}</option>`).join('')}</select>`;
   const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="ezok">✓ Yes</span>';if(g==='NOGO')return '<span class="ezbad">✗ No</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button> <button type="button" class="btn sm" data-go="${esc(m.id)}">Check</button>`};
   const gearCell=m=>m.loadout&&Object.keys(m.loadout).length?`<a data-loadout="${esc(m.id)}">${loText(m.loadout)}</a>${loPhys(m)?` <button type="button" class="btn sm" data-gearin="${esc(m.id)}">Got it back</button>`:m.gearIn?' <span class="ezok">✓ back</span>':''}`:`<a data-loadout="${esc(m.id)}" class="muted">+ add</a>`;
   const isNow=m=>nowM!=null&&m.start&&m.end&&toMin(m.start)<=nowM&&nowM<toMin(m.end)&&m.state!=='Scrubbed';
-  const rows=ms.map((m,i)=>`<tr class="ez-${esc(m.state||'Planned')}${isNow(m)?' eznow':''}"><td class="rn">${i+1}</td><td class="mono"><b>${ezHm(m.start)||'—'}</b></td><td><b>${team(m)}</b></td><td>${stSel(m)}</td><td>${goCell(m)}</td><td class="mono">${ezHm(m.end)||'—'}</td><td><a data-msheet="${esc(m.id)}">${what(m)||'<span class="muted">+ pick</span>'}</a></td><td><a data-mission="${esc(m.id)}">${m.mc?esc(short(m.mc)):'<span class="muted">+ pick</span>'}</a></td><td class="tnum"><a data-mission="${esc(m.id)}" style="${crew(m).length>10?'color:var(--bad);font-weight:700':''}">${crew(m).length}</a></td><td>${gearCell(m)}</td></tr>`).join('');
+  const rows=ms.map((m,i)=>`<tr class="ez-${esc(m.state||'Planned')}${isNow(m)?' eznow':''}"><td class="rn">${i+1}</td><td class="mono"><b>${ezHm(m.start)||'—'}</b></td><td><b>${teamCs(m)}</b></td><td>${stSel(m)}</td><td>${goCell(m)}</td><td class="mono">${ezHm(m.end)||'—'}</td><td><a data-msheet="${esc(m.id)}">${what(m)||'<span class="muted">+ pick</span>'}</a></td><td><a data-mission="${esc(m.id)}">${m.mc?esc(short(m.mc)):'<span class="muted">+ pick</span>'}</a></td><td class="tnum"><a data-mission="${esc(m.id)}" style="${crew(m).length>10?'color:var(--bad);font-weight:700':''}">${crew(m).length}</a></td><td>${gearCell(m)}</td></tr>`).join('');
   const eq=Object.entries(S.equip).filter(([id,e])=>eqAvail(id)||allMissions().some(m=>loHolding(m)&&m.loadout[id])).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
   const eqRows=eq.map(([id,e],i)=>{const outW=allMissions().filter(m=>loPhys(m)&&m.loadout[id]);const o=outW.reduce((s,m)=>s+Number(m.loadout[id]),0);const av=eqAvail(id);
     return `<tr data-equip="${esc(id)}" style="cursor:pointer"><td class="rn">${i+1}</td><td><b>${esc(e.name)}</b></td><td class="tnum"><b style="${av-o<=0?'color:var(--bad)':''}">${av-o}</b></td><td class="tnum">${av}</td><td>${outW.map(m=>esc(team(m))+' ('+m.loadout[id]+')').join(', ')}</td><td class="tnum">${Number(e.nmc||0)||''}</td></tr>`}).join('');
@@ -1337,6 +1337,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
    ${late.length?line('⚠️',`<b>Late coming back:</b> ${late.map(team).join(', ')}`):''}
    ${line(hurt.length?'🩹':'✅',hurt.length?`<b>${hurt.length} not OK:</b> ${hurt.slice(0,6).map(p=>esc(short(p.pid))+' ('+esc(SLBL[person(p.pid).status])+')').join(', ')}${hurt.length>6?'…':''}`:`<b>Everyone is OK</b> (${ROSTER.length} people)`)}
    </div></div>
+  ${(()=>{const cs=Object.values(S.comms).filter(x=>x.kind==='callsign');const order=['WOC','TOC','Tiger 1','Tiger 2','Tiger 3','Tiger 4'];cs.sort((a,b)=>(order.indexOf(a.who)+99)%99-(order.indexOf(b.who)+99)%99);return cs.length?`<div class="tablewrap"><table class="xl" style="min-width:0"><thead><tr><th>📻 Radio name</th>${cs.map(c=>`<th>${esc(c.who)}</th>`).join('')}</tr></thead><tbody><tr><td class="muted small">Say this on the radio</td>${cs.map(c=>`<td><b>${esc(c.cs)}</b></td>`).join('')}</tr></tbody></table></div>`:''})()}
   <details class="card ezhow" ${ME?'':'open'}><summary><b>New in the seat? Do these 5 things</b></summary><ol>
    <li>Look at <b>Today's missions</b>. Find the next team to leave.</li>
    <li>15 minutes before they leave, ask the leader: right people? gear? instructor coming? If yes, tap <b>Yes</b> under <b>Go?</b></li>
@@ -1379,6 +1380,7 @@ const PURPOSE={
  cub:['Slides for the briefing (CUB).','Tap Copy to grab a slide as text']};
 function purposeHtml(k){const p=PURPOSE[k];if(!p)return '';return `<div class="purpose"><b>${esc(p[0])}</b><span>${p[1].split(' · ').map((x,i)=>`<i>${i+1}</i>${esc(x)}`).join('')}</span></div>`}
 
+function csOf(who){const c=Object.values(S.comms).find(x=>x.kind==='callsign'&&String(x.who).toLowerCase()===String(who).toLowerCase());return c?c.cs:''}
 function scoreSnap(){const R=S.pirs._results||{};const rd=R.day||'1';const r=R.r||{},tr=R.tries||{};const days={};
   const add=(d,k)=>{days[d]=days[d]||{out:0,pass:0,fail:0};days[d][k]++};
   // baseline day from the scorecard
@@ -1463,6 +1465,8 @@ function maybeSeed(){if(window.__seeded||!['missions','intel','pirs'].every(c=>L
   if(S.pirs._results&&!S.pirs._results.fix7){const t=Date.now();BASE.slots.filter(b=>b.day==='1'&&isMission(b)).forEach(b=>{const cur=S.missions[b.id]||{};const m=allMissions().find(x=>x.id===b.id)||b;
       writeDoc('missions',b.id,Object.assign({},cur,{day:'1',lane:b.lane,start:m.start,end:m.end,mc:m.mc,members:m.members,note:m.note||'',frago:m.frago||'',state:'Complete',go:(m.go&&m.go.d==='GO')?m.go:{d:'GO',at:t,by:ME||null,checks:{},quick:true,reason:''},aar:m.aar||{result:'See scorecard',from:'A3',summary:'Day 1 result is on the mission scorecard.',at:t,by:ME||null,cas:0,pax:crew(m).length}}))});
     writeDoc('pirs','_results',Object.assign({},S.pirs._results,{fix1:true,fix2:true,fix3:true,fix4:true,fix5:true,fix6:true,fix7:true}));writeDoc('log','seed9-day1done',{type:'msn',toc:false,ts:t,text:'Day 1 closed out: all 12 Tiger missions marked GO and Done.'})}
+  if(S.pirs._results&&!S.pirs._results.fix8){[['woc','WOC','Tiger 1'],['toc','TOC','Mufasa 1'],['t1','Tiger 1','Simba 1'],['t2','Tiger 2','Nala 1'],['t3','Tiger 3','Scar 1'],['t4','Tiger 4','Pumba 1']].forEach(([k,who,cs])=>writeDoc('comms','cs-'+k,{kind:'callsign',who,cs}));
+    writeDoc('pirs','_results',Object.assign({},S.pirs._results,{fix8:true}));writeDoc('log','seed10-cs',{type:'comms',toc:false,ts:Date.now(),text:'Callsigns: WOC = Tiger 1 · TOC = Mufasa 1 · Tiger 1 = Simba 1 · Tiger 2 = Nala 1 · Tiger 3 = Scar 1 · Tiger 4 = Pumba 1'})}
   if(S.pirs._seed1)return;const now=Date.now();
   const L={'loc-runway':{name:'Runway area',grid:'N of 120 / W of 679',type:'Site',status:'Unverified',source:'Intel #1',frago:'globalhawk',notes:'Only area on the island able to support a runway. Enemy posturing to occupy it.'},
    'loc-village':{name:'Village (humanitarian aid)',grid:'6816/1216',type:'Civilian',status:'Visited',source:'Intel #2 · Day 1 Tiger 1 1300 AAR',frago:'ironchef',notes:'Locals need food and medical supplies. Same 100 m square as WGS tower 1.',left:'2 litters, 9 poker chips, 2 JFAKs (Day 1 Tiger 1)',owed:'1 litter, 3 JFAKs, 1 poker chip'},
