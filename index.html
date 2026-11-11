@@ -862,11 +862,12 @@ const PREREQ={
  muzzler:{inputs:[['uxo','UXO location from A2']]},
  tidalwave:{inputs:[['rhexists','Enemy Red Horse present? (if yes, destroy it before GTAS)']]}
 };
-function fragoDone(){const s=new Set();allMissions().forEach(m=>{if(m.frago&&m.state==='Complete'&&!(m.aar&&/Not complete|Failed/.test(m.aar.result||'')))s.add(m.frago)});return s}
+function resOf(){return (S.pirs._results&&S.pirs._results.r)||{}}
+function fragoDone(){const s=new Set(Object.entries(resOf()).filter(([,v])=>v==='Passed').map(([k])=>k));allMissions().forEach(m=>{if(m.frago&&m.state==='Complete'&&!(m.aar&&/Not complete|Failed/.test(m.aar.result||'')))s.add(m.frago)});return s}
 function failedMissions(){return allMissions().filter(m=>m.state==='Scrubbed'||(m.aar&&/Not complete|Failed|Partial/.test(m.aar.result||'')))}
 function readiness(fid,m){const p=PREREQ[fid]||{};const done=fragoDone();const out={blocked:[],missing:[],soft:[],ok:true};
   (p.needs||[]).forEach(k=>{if(!done.has(k))out.blocked.push(`${FR[k].no} ${FR[k].name} must be complete first`)});
-  if(p.failed&&!failedMissions().length)out.blocked.push('No failed or partial mission to reattempt yet');
+  if(p.failed&&!failedMissions().length&&!Object.values(resOf()).includes('Failed'))out.blocked.push('No failed or partial mission to reattempt yet');
   (p.soft||[]).forEach(([k,l])=>{if(l&&!done.has(k))out.soft.push(l)});
   const inp=inputsOf(fid,m);(p.inputs||[]).forEach(([k,l,opt])=>{if(!opt&&!String(inp[k]||'').trim())out.missing.push(l)});
   out.state=out.blocked.length?'blocked':out.missing.length?'input':'ready';return out}
@@ -883,7 +884,7 @@ function fragoStatusCard(){const done=fragoDone();const all=allMissions();
    const kind={yn:'yes/no',num:'number',ta:'notes',tx:'text'};
    return `<details class="fdet" data-fid="${f.id}" ${UI.fdOpen===f.id?'open':''}><summary class="mrow" style="grid-template-columns:44px minmax(0,1fr) auto"><div class="tm">${f.no}</div><div style="min-width:0"><div class="nm" style="font-size:14px">${esc(f.name)} <span class="small muted" style="font-family:var(--body);font-weight:400">${esc(f.type)}</span></div>
    <div class="small muted">${[...r.blocked,...r.soft].map(esc).join(' · ')||(inputs.filter(x=>!x[2]).length?'WOC provides: '+inputs.filter(x=>!x[2]).map(x=>esc(x[1])).join('; '):'No prerequisites')}</div></div>
-   <span class="pill ${isDone?'st-Complete':r.blocked.length?'e-NMC':'e-FMC'}">${isDone?'Done':r.blocked.length?'Blocked':'Available'}</span></summary>
+   ${resOf()[f.id]==='Failed'&&!isDone?'<span class="pill e-NMC">Failed · try again</span> ':''}<span class="pill ${isDone?'st-Complete':r.blocked.length?'e-NMC':'e-FMC'}">${isDone?'✓ Passed':r.blocked.length?'Blocked':'Available'}</span></summary>
    <div class="fbody">
     ${(()=>{const x=EXORD[f.id]||{};return `<div class="exord"><div class="exh">EXORD overview · FRAGO ${esc(f.name)}</div>
      <div class="exr"><span>1 · Situation</span><p>${esc(x.sit||'')}</p></div>
@@ -1344,6 +1345,8 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   <div class="tools"><button type="button" class="btn" data-act="addcyoa">+ Add a mission</button></div>
   <h2 class="ezh">Gear <span class="small muted">tap a row to change counts</span></h2>
   <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Item</th><th>Free now</th><th>We have</th><th>Who has it</th><th>Broken</th></tr></thead><tbody>${eqRows||'<tr><td colspan="6" class="muted">No gear counted yet. Go to A1/4 → Equipment.</td></tr>'}</tbody></table></div>
+  <h2 class="ezh">Mission scorecard <span class="small muted">pick Passed / Failed / Not tried</span></h2>
+  <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>#</th><th>Mission</th><th>Result</th><th>Notes</th></tr></thead><tbody>${FRAGOS.map((f,i)=>{const v=resOf()[f.id]||'';const r=readiness(f.id,null);return `<tr class="${v==='Passed'?'ez-Complete':''}"><td class="rn">${i+1}</td><td class="mono">${f.no}</td><td><a data-cymenu="${f.id}">${esc(f.name)}</a></td><td><select class="ezsel" data-res="${f.id}" style="${v==='Passed'?'color:#16a34a':v==='Failed'?'color:#dc2626':''}">${[['','—'],['Passed','✓ Passed'],['Failed','✗ Failed'],['Not tried','Not tried']].map(([a,b])=>`<option value="${a}" ${v===a?'selected':''}>${b}</option>`).join('')}</select></td><td class="small">${v==='Passed'?'':r.blocked.length?esc(r.blocked[0]):v==='Failed'?'Can try again':'Can do'}</td></tr>`}).join('')}</tbody></table></div>
   <h2 class="ezh">Places &amp; grids <span class="small muted">tap a row to fix it</span></h2>
   <div class="tablewrap"><table class="xl"><thead><tr><th class="rn"></th><th>Grid</th><th>Place</th><th>Notes</th></tr></thead><tbody>${locRows||'<tr><td colspan="4" class="muted">No places yet.</td></tr>'}</tbody></table></div>
   <div class="tools"><button type="button" class="btn" data-act="addloc">+ Add a place</button><span style="margin-left:auto"></span><button type="button" class="btn ghost" data-tab="overview">Full dashboard →</button></div>
@@ -1433,7 +1436,8 @@ function renderA3(A){
   </div>`}
 /* ---------- one-time seed: binder intel + Day 1 results ---------- */
 let LIVE=new Set();
-function maybeSeed(){if(window.__seeded||!['missions','intel','pirs'].every(c=>LIVE.has(c)))return;window.__seeded=1;if(S.pirs._seed1)return;const now=Date.now();
+function maybeSeed(){if(window.__seeded||!['missions','intel','pirs'].every(c=>LIVE.has(c)))return;window.__seeded=1;if(!S.pirs._results){const pass=['2.1','2.2','2.3','2.4','2.5','2.8','2.17'];const r={};FRAGOS.forEach(f=>r[f.id]=pass.includes(f.no)?'Passed':'Failed');writeDoc('pirs','_results',{r,day:'1',note:'Day 1 results from A3: 2.1, 2.2, 2.3, 2.4, 2.5, 2.8, 2.17 passed; all others failed'});writeDoc('log','seed2-results',{type:'aar',toc:false,ts:Date.now(),text:'Day 1 mission results: PASSED 2.1 Global Hawk, 2.2 Sentinel, 2.3 Iron Chef, 2.4 Uphold Democracy, 2.5 Reaper, 2.8 WGS, 2.17 Commando Solo. All others: mission failure.'})}
+  if(S.pirs._seed1)return;const now=Date.now();
   const L={'loc-runway':{name:'Runway area',grid:'N of 120 / W of 679',type:'Site',status:'Unverified',source:'Intel #1',frago:'globalhawk',notes:'Only area on the island able to support a runway. Enemy posturing to occupy it.'},
    'loc-village':{name:'Village (humanitarian aid)',grid:'6816/1216',type:'Civilian',status:'Visited',source:'Intel #2 · Day 1 Tiger 1 1300 AAR',frago:'ironchef',notes:'Locals need food and medical supplies. Same 100 m square as WGS tower 1.',left:'2 litters, 9 poker chips, 2 JFAKs (Day 1 Tiger 1)',owed:'1 litter, 3 JFAKs, 1 poker chip'},
    'loc-uxo':{name:'UXO (WW2)',grid:'677/119',type:'Hazard',status:'Unsecured',source:'Intel #4',frago:'muzzler',notes:'~100 m from the backup site and at the edge of the runway area. No radios within 25 ft. EOD via MC → CABS/CC → WOC → HHQ.'},
@@ -1690,7 +1694,8 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-loadout],[data-gearin],[data-cytog],[data-loc],[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-cymenu],[data-loadout],[data-gearin],[data-cytog],[data-loc],[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.cymenu){UI.fsOpen=true;UI.fdOpen=t.dataset.cymenu;setTab('cyoa');setTimeout(()=>{const d=document.querySelector(`.fdet[data-fid="${t.dataset.cymenu}"]`);if(d){d.open=true;d.scrollIntoView({block:'start'})}},60);return}
   if(t.dataset.loadout){loadoutDlg(t.dataset.loadout);return}
   if(t.dataset.gearin){checkInDlg(t.dataset.gearin);return}
   if(t.dataset.cytog){const [id,k,on]=t.dataset.cytog.split('|');toggleCy(id,k,on==='1');return}
@@ -1808,6 +1813,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='crewq'){const q=e.target.value.toLowerCase();document.querySelectorAll('#picker label').forEach(l=>l.style.display=l.dataset.n.includes(q)?'':'none')}
 });
 document.addEventListener('change',e=>{
+  if(e.target.dataset&&e.target.dataset.res){const fid=e.target.dataset.res,v=e.target.value;const r=Object.assign({},resOf());if(v)r[fid]=v;else delete r[fid];writeDoc('pirs','_results',Object.assign({},S.pirs._results||{},{r}));logIt({type:'aar',text:`Scorecard: ${FR[fid].no} ${FR[fid].name} → ${v||'cleared'}`});toast(`${FR[fid].no} ${FR[fid].name}: ${v||'cleared'}`);return}
   if(e.target.dataset&&e.target.dataset.est){const id=e.target.dataset.est,v=e.target.value;const m=allMissions().find(x=>x.id===id);setMissionState(id,v);toast(`${mName(m)}: ${EZST.find(x=>x[0]===v)[1]}`);if(v==='RTB'&&m&&m.loadout&&Object.keys(m.loadout).length&&!m.gearIn)setTimeout(()=>checkInDlg(id),80);return}
   if(e.target.dataset.rep&&e.target.type==='checkbox'){const id=e.target.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:e.target.checked,repAt:Date.now()}));return}
   if(e.target.id==='opsmid'){UI.opsMid=e.target.value;return}
