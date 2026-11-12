@@ -1584,7 +1584,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
     <li>They walk in → set <b>Back</b> and write what happened.</li></ol>
     <p class="small muted">Blue text can be tapped. Changes save by themselves.</p>
     <div class="ccir"><b>Your deadlines for each mission window</b><ul><li>TOC planning starts 45 min before launch</li><li>Pick the mission at the WOC 20 min before that and tell the ATF/CC instructor</li><li>Tell the TOC (CABS/CC + instructor) 10 min before that, with resupply items</li></ul>
-    <b>If the ATF/CC is gone</b><ul><li>You (WOC A3) are next in command</li></ul></div></details>
+    <b>If the ATF/CC is gone</b><ul><li>The Deputy CC fills the ATF/CC position</li></ul></div></details>
   </div>
   ${card('tline','Timeline','Who is out and when · tap a bar for details','',`<div class="tlwrap">${timelineHtml(A,true)}<div class="tlkey"><span><i class="k0"></i>Not yet</span><span><i class="k1"></i>Out</span><span><i class="k2"></i>Back</span><span><i class="k3"></i>Done</span><span><i class="k4"></i>GO given</span><span><i class="k5"></i>Now</span></div></div>`)}
   ${card('today',"Today's missions",`${ms.filter(m=>/^Tiger /.test(m.lane)).length} windows today · pick from 19 missions + ${FRAGOS.filter(f=>f.extra).length} extra · tap blue text to change it`,`<button type="button" class="btn sm" data-act="addcyoa">+ Add mission</button>`,`<div class="tw"><table class="nt"><thead><tr><th class="rn">#</th><th>Time</th><th>Team</th><th>Status</th><th>Go?</th><th>Mission</th><th title="Mission commander">MC</th><th>People</th></tr></thead><tbody>${rows||'<tr><td colspan="8" class="muted">No missions today.</td></tr>'}</tbody></table></div>`)}
