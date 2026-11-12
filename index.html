@@ -590,7 +590,7 @@ function missionCard(m,A,now){
   const chips=crew(m).map(x=>{const p=person(x);return `<button type="button" class="chip ${x===m.mc?'mc':''} ${p.status!=='EFF'?'s-'+p.status:''}" data-person="${x}" title="${esc(nm(x))}">${x===m.mc?'★ ':''}${!isMission(m)&&staffRoleOf(m,x)&&x!==m.mc?`<b>${esc(staffRoleOf(m,x))}</b> `:''}${esc(short(x))}${isMission(m)?` <span class="muted tnum">${A.c[x]}</span>`:''}</button>`}).join('');
   return `<div class="mission ${isNow?'now':''} ${fl==='bad'?'badc':fl==='warn'?'warnc':''}" id="m-${esc(m.id)}">
    <div class="mhead"><b>${esc(m.lane)}</b><span class="mono small">${esc(m.start)}–${esc(m.end)}</span><span class="pill st-${esc(st)}">${esc(st)}</span>${isMission(m)&&m.go&&m.go.d?goPill(m):''}${aarPill(m)}${cas?`<span class="pill ${cas>5?'s-WIAR':'s-WIAY'}">${cas} cas</span>`:''}<span style="margin-left:auto"></span><button type="button" class="btn sm" data-mission="${esc(m.id)}">Edit</button></div>
-   ${isMission(m)?(m.frago&&FR[m.frago]?`<div class="small" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${[m.frago,...extrasOf(m)].filter(f=>FR[f]).map((f,i)=>{const r=resFor(m,f);return `${i?'<span class="muted">+</span>':''}<span class="pill ${/^Complete/.test(r)?'st-Complete':r&&r!=='Scrubbed'?'e-NMC':'st-Out'}">${/^Complete/.test(r)?'✓ ':r&&r!=='Scrubbed'?'✗ ':''}${esc(FR[f].name)}</span>`}).join('')}${extrasOf(m).length?'':` <span class="muted">${esc(FR[m.frago].type)}</span>`}</div>${needsOf(m).length?`<div class="small"><b>Needs:</b> ${needsOf(m).map(esc).join(', ')}</div>`:''}`:(m.state==='Planned'?`<button type="button" class="btn sm" data-assign="${esc(m.id)}" style="justify-self:start">Pick mission</button>`:'')):''}
+   ${isMission(m)?(m.frago&&FR[m.frago]?`<div class="small" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${[m.frago,...extrasOf(m)].filter(f=>FR[f]).map((f,i)=>{const r=resFor(m,f);return `${i?'<span class="muted">+</span>':''}<span class="pill ${/^Complete/.test(r)?'st-Complete':r&&r!=='Scrubbed'?'e-NMC':'st-Out'}">${/^Complete/.test(r)?'✓ ':r&&r!=='Scrubbed'?'✗ ':''}${esc(fName(m,f))}</span>`}).join('')}${extrasOf(m).length?'':` <span class="muted">${esc(FR[m.frago].type)}</span>`}</div>${needsOf(m).length?`<div class="small"><b>Needs:</b> ${needsOf(m).map(esc).join(', ')}</div>`:''}`:(m.state==='Planned'?`<button type="button" class="btn sm" data-assign="${esc(m.id)}" style="justify-self:start">Pick mission</button>`:'')):''}
    <div class="small muted">${isMission(m)?'MC':'Lead'}: <b style="color:var(--ink)">${m.mc?esc(nm(m.mc)):'Not assigned'}</b> · ${crew(m).length} pax</div>
    <div class="chips">${chips||'<span class="muted small">No crew assigned</span>'}</div>
    ${m.note?`<div class="small">${esc(m.note)}</div>`:''}
@@ -803,8 +803,12 @@ function a3Alerts(A){const out=[];const nowM=nowMinFor(UI.day);
 function extrasOf(m){return (m.extra||[]).filter(f=>FR[f]&&f!==m.frago)}
 function resFor(m,f){const a=m.aar;if(a){if(f===m.frago&&a.result)return a.result;if(a.extra&&a.extra[f])return a.extra[f]}const p=(m.prog||{})[f];return p?p.r:''}
 function extrasPicker(m){return `<details class="xtra wide" ${extrasOf(m).length?'open':''}><summary><b>Also doing on this trip${extrasOf(m).length?' ('+extrasOf(m).length+')':''}</b> <span class="small muted">tick a 2nd or 3rd mission</span></summary><div class="picker" style="max-height:240px">${FRAGOS.filter(f=>!f.closed||extrasOf(m).includes(f.id)).map(f=>`<label><input type="checkbox" name="extra" value="${f.id}" ${extrasOf(m).includes(f.id)?'checked':''}><span><span class="mono small muted">${f.no}</span> ${esc(f.name)}${resOf()[f.id]==='Passed'||fragoDone().has(f.id)?' <span class="small muted">· passed</span>':''}</span></label>`).join('')}</div></details>`}
+const VARIANTS={stronghold:['Ambush','Attack','Support','Defend']};
+function variantPicker(m){return Object.entries(VARIANTS).map(([f,opts])=>`<label class="wide">${esc(FR[f].name)} type <span class="small muted">(if this team is doing ${esc(FR[f].name)})</span><select name="var_${f}"><option value="">Pick one</option>${opts.map(o=>`<option ${((m.variant||{})[f]||'')===o?'selected':''}>${o}</option>`).join('')}</select></label>`).join('')}
+function readVariant(form,m){const v=Object.assign({},m.variant||{});Object.keys(VARIANTS).forEach(f=>{const el=form.querySelector(`[name=var_${f}]`);if(el){if(el.value)v[f]=el.value;else delete v[f]}});return v}
+function fName(m,f){const v=(m&&m.variant||{})[f];return FR[f].name+(v?` (${v})`:'')}
 function readExtras(form,main){return [...form.querySelectorAll('[name=extra]:checked')].map(i=>i.value).filter(x=>x&&x!==main)}
-function fragoNames(m){return [m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>FR[f].name).join(' + ')}
+function fragoNames(m){return [m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>fName(m,f)).join(' + ')}
 function mName(m){return m.lane==='CYOA'?(m.note||fragoNames(m)||'CYOA'):m.lane+(fragoNames(m)?' · '+fragoNames(m):'')}
 function rel(left){if(left==null)return'';if(left<0)return `${-left}m late`;if(left===0)return'now';return left<60?`in ${left}m`:`in ${Math.floor(left/60)}h${String(left%60).padStart(2,'0')}`}
 function nextStep(m){const id=esc(m.id);const st=m.state||'Planned';const g=m.go&&m.go.d;
@@ -1113,7 +1117,7 @@ function saveCyoa(){const f=document.getElementById('cyform');if(!f.reportValidi
 function assignDlg(id){const m=allMissions().find(x=>x.id===id);if(!m)return;
   openDlg(`<form class="dlg" id="asform" data-mid="${esc(id)}"><h3>Assign FRAGO · ${esc(m.lane)} ${esc(m.start)}</h3><div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax</div>
   <div class="fields"><label class="wide">FRAGO<select name="frago" id="asfrago">${fragoOpts(m.frago||'')}</select></label></div><div id="asfragocard">${fragoCard(fragoOf(m),m)}</div>
-  ${extrasPicker(m)}</form>
+  ${extrasPicker(m)}<div class="fields" style="margin-top:8px">${variantPicker(m)}</div></form>
   <div class="dfoot"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="button" class="btn pri" data-act="saveassign">Assign</button></div>`)}
 function durMin(a,b){return a&&b?Math.round((b-a)/60000):null}
 function aarField(k,label,type,val){const nmk='d_'+k;
@@ -1181,7 +1185,7 @@ function opsEvent(id,ev){const m=allMissions().find(x=>x.id===id);if(!m)return;
   else if(ev==='TIC')logIt({type:'ops',mid:id,ccir:true,text:`CCIR troops in contact: ${m.lane==='CYOA'?(m.note||'CYOA'):m.lane} ${m.start}`})}
 
 function a3Brief(A){const ms=A.dayMs.filter(isMission).slice().sort((a,b)=>(a.start||'').localeCompare(b.start||''));const nowM=nowMinFor(UI.day);
-  const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;const fn=m=>[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>FR[f].name).join(' + ')||(m.lane==='CYOA'?'':'mission not picked');
+  const nm2=m=>m.lane==='CYOA'?(m.note||'CYOA'):m.lane;const fn=m=>[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>fName(m,f)).join(' + ')||(m.lane==='CYOA'?'':'mission not picked');
   const fromCard=m=>cardVerdict(m)||'see scorecard';
   const vOf=r=>/^Complete/.test(r||'')?'PASSED':/Not complete|Partial/.test(r||'')?'FAILED':r==='Scrubbed'?'not tried':'';
   const verdict=m=>{const r=resFor(m,m.frago);if(r==='See scorecard')return fromCard(m);return vOf(r)||(m.aar?'?':'no result yet')};
@@ -1542,7 +1546,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   const late=out.filter(m=>nowM!=null&&m.end&&toMin(m.end)<nowM);
   const hurt=ROSTER.filter(p=>person(p.pid).status!=='EFF');
   const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);
-  const what=m=>fragoNames(m)?[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>{const r=resFor(m,f);return esc(FR[f].name)+(/^Complete/.test(r)?' <span class="ok" style="color:var(--ok)">✓</span>':r&&r!=='Scrubbed'?' <span style="color:var(--bad)">✗</span>':'')}).join(' + '):m.lane==='CYOA'?esc(m.note||'Extra mission'):'';
+  const what=m=>fragoNames(m)?[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>{const r=resFor(m,f);return esc(fName(m,f))+(/^Complete/.test(r)?' <span class="ok" style="color:var(--ok)">✓</span>':r&&r!=='Scrubbed'?' <span style="color:var(--bad)">✗</span>':'')}).join(' + '):m.lane==='CYOA'?esc(m.note||'Extra mission'):'';
   const stSel=m=>{const st=m.state||'Planned';return (st==='Out'||st==='TIC'?`<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">`:'')+`<select class="stsel s-${esc(st)}" data-est="${esc(m.id)}" aria-label="Status">${EZST.map(([v,l])=>`<option value="${v}" ${st===v?'selected':''}>${l}</option>`).join('')}</select>`+(st==='Out'||st==='TIC'?`${updLine(m)}<button type="button" class="btn sm ghost" data-upd="${esc(m.id)}">+ Status update</button></div>`:'')};
   const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="tag ok">✓ Go</span>';if(g==='NOGO')return '<span class="tag bad">✗ No-go</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<a data-msheet="${esc(m.id)}" style="cursor:pointer">${pbChip(m)}</a><br><span class="gobtns"><button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button><button type="button" class="btn sm ghost" data-go="${esc(m.id)}">Check</button></span>`};
   const gearCell=m=>m.loadout&&Object.keys(m.loadout).length?`<a class="lnk" data-loadout="${esc(m.id)}">${loText(m.loadout)}</a>${loPhys(m)?` <button type="button" class="btn sm" data-gearin="${esc(m.id)}">Got it back</button>`:m.gearIn?' <span class="tag ok">back</span>':''}`:`<a class="lnk add" data-loadout="${esc(m.id)}">+ Add</a>`;
@@ -1623,7 +1627,7 @@ function scoreSnap(){const R=S.pirs._results||{};const rd=R.day||'1';const r=R.r
   const tot={out:0,pass:0,fail:0};Object.values(days).forEach(d=>{tot.out+=d.out;tot.pass+=d.pass;tot.fail+=d.fail});return{days,tot}}
 const RCOL={PASSED:'ok',FAILED:'bad',OUT:'info'};
 function resultsList(day){const rs=dayResults(day);if(!rs.length)return '<div class="clear muted">No missions this day.</div>';
-  return `<div class="tw"><table class="nt"><thead><tr><th>Time</th><th>Team</th><th>Mission</th><th>Result</th><th>Leader</th><th class="num">Hurt</th></tr></thead><tbody>${rs.map(({m,f,v})=>`<tr class="click" data-msheet="${esc(m.id)}"><td class="mono t">${esc(m.start||'')}</td><td><b>${esc(m.lane==='CYOA'?'Extra':m.lane)}</b></td><td>${f?`<span class="mono small muted">${FR[f].no}</span> ${esc(FR[f].name)}`:`<span class="muted">${esc(m.note||'not picked')}</span>`}</td><td>${RCOL[v]?`<span class="tag ${RCOL[v]==='info'?'':RCOL[v]}" style="${RCOL[v]==='info'?'background:var(--infobg);color:var(--info)':''}">${v==='PASSED'?'✓ ':v==='FAILED'?'✗ ':''}${esc(v)}</span>`:`<span class="muted small">${esc(v)}</span>`}</td><td class="small">${m.mc?esc(short(m.mc)):'—'}</td><td class="num">${casualtiesFor(m.id)||''}</td></tr>`).join('')}</tbody></table></div>`}
+  return `<div class="tw"><table class="nt"><thead><tr><th>Time</th><th>Team</th><th>Mission</th><th>Result</th><th>Leader</th><th class="num">Hurt</th></tr></thead><tbody>${rs.map(({m,f,v})=>`<tr class="click" data-msheet="${esc(m.id)}"><td class="mono t">${esc(m.start||'')}</td><td><b>${esc(m.lane==='CYOA'?'Extra':m.lane)}</b></td><td>${f?`<span class="mono small muted">${FR[f].no}</span> ${esc(fName(m,f))}`:`<span class="muted">${esc(m.note||'not picked')}</span>`}</td><td>${RCOL[v]?`<span class="tag ${RCOL[v]==='info'?'':RCOL[v]}" style="${RCOL[v]==='info'?'background:var(--infobg);color:var(--info)':''}">${v==='PASSED'?'✓ ':v==='FAILED'?'✗ ':''}${esc(v)}</span>`:`<span class="muted small">${esc(v)}</span>`}</td><td class="small">${m.mc?esc(short(m.mc)):'—'}</td><td class="num">${casualtiesFor(m.id)||''}</td></tr>`).join('')}</tbody></table></div>`}
 function dayTotals(day){const x=scoreSnap().days[day]||{out:0,pass:0,fail:0};return x}
 function renderResults(A){const v='sum';const sn=scoreSnap();const pct=x=>x.out?Math.round(x.pass/x.out*100)+'%':'—';
   const seg=`<div class="seg resseg" style="align-self:flex-start;padding:3px">${[['sum','Summary'],...DAYS.map(d=>[d.id,d.name.replace('Day ','D')])].map(([k,l])=>`<button type="button" data-resview="${k}" aria-pressed="${v===k}">${esc(l)}</button>`).join('')}</div>`;
@@ -1831,7 +1835,7 @@ function missionDlg(mid,isNew){
     <label>Status<select name="state">${opt(EZST,m.state)}</select></label>
     <label class="wide">MC / lead<select name="mc">${opt([['','Not assigned'],...ROSTER.map(p=>[p.pid,`${p.name} (${A.c[p.pid]})`])],m.mc)}</select></label>
     <label class="wide">Main mission<select name="frago">${fragoOpts(m.frago||'')}</select></label>
-    ${extrasPicker(m)}
+    ${extrasPicker(m)}${variantPicker(m)}
     <label class="wide">Note (MTO, route, ISR, etc.)<input name="note" value="${esc(m.note||'')}"></label>
    </div>
    <div class="fl">Crew <b id="crewct" class="tnum" style="${sel.size>10?'color:var(--bad)':''}">${sel.size} / 10</b> <span class="muted">incl. MC · number = completed missions, floor ${A.fl}${tn?` · Tiger ${tn} listed first`:''}</span></div>
@@ -1846,7 +1850,7 @@ function saveMission(){
   const isNew=!!f.dataset.new;const id=isNew?('x'+uid()):f.dataset.mid;const old=isNew?null:allMissions().find(m=>m.id===id);
   const mc=fd.get('mc');const crewSel=fd.getAll('crew');
   {const L=fd.get('lane');const c=new Set(crewSel.concat(mc?[mc]:[])).size;if(L!=='WOC'&&L!=='TOC'&&c>10&&!confirmOnce('crew10',`${c} pax. FRAGO max is 10 including the MC. Tap Save again to keep it.`))return}
-  const n=Object.assign({},S.missions[id]||{},{day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note'),frago:fd.get('frago')||'',extra:readExtras(f,fd.get('frago')||'')});
+  const n=Object.assign({},S.missions[id]||{},{day:old?old.day:UI.day,lane:fd.get('lane'),start:hhmm(fd.get('start')),end:hhmm(fd.get('end')),mc,members:crewSel.filter(x=>x!==mc),state:fd.get('state'),note:fd.get('note'),frago:fd.get('frago')||'',extra:readExtras(f,fd.get('frago')||''),variant:readVariant(f,old||{})});
   {const o=String(fd.get('outT')||'').trim(),r=String(fd.get('rtbT')||'').trim();const oo=old&&old.outAt?fmtT(old.outAt):'',ro=old&&old.rtbAt?fmtT(old.rtbAt):'';
    if(o!==oo){if(o){n.outAt=tsAt(n.day,hhmm(o));}else delete n.outAt}if(r!==ro){if(r){n.rtbAt=tsAt(n.day,hhmm(r));}else delete n.rtbAt}
    if(o!==oo||r!==ro)setTimeout(()=>logIt({type:'msn',mid:id,text:`${n.lane} ${n.start} actual times: left ${o||'—'}, back ${r||'—'}`}),0)}
@@ -2092,7 +2096,7 @@ document.addEventListener('click',e=>{
   else if(a==='addloc')locDlg(null);else if(a==='saveloc')saveLoc();
   else if(a==='delloc'){deleteDoc('intel',document.getElementById('locform').dataset.id);closeDlg()}
   else if(a==='savestaff')saveStaff();else if(a==='clearstaff')saveStaff(true);
-  else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);const ex=readExtras(f,v);patchMission(id,{frago:v,extra:ex});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${[v,...ex].filter(Boolean).map(x=>FR[x].name).join(' + ')||'FRAGO cleared'}`});closeDlg()}
+  else if(a==='saveassign'){const f=document.getElementById('asform');const id=f.dataset.mid;const v=f.frago.value;const m=allMissions().find(x=>x.id===id);const ex=readExtras(f,v);patchMission(id,{frago:v,extra:ex,variant:readVariant(f,m)});logIt({type:'msn',mid:id,text:`${m.lane} ${m.start} tasked: ${[v,...ex].filter(Boolean).map(x=>FR[x].name).join(' + ')||'FRAGO cleared'}`});closeDlg()}
   else if(a==='logops')quickLog();
   else if(a==='more')moreSheet();
   else if(a==='partgo'){UI.partOpen=true;setTab('personnel');setTimeout(()=>{const el=document.getElementById('participation');if(el)el.scrollIntoView({block:'start'})},50)}
