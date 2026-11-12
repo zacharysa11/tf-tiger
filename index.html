@@ -438,6 +438,13 @@ main>*{min-width:0}
 .resseg button{padding:7px 16px;font-size:13px}
 .rstats{grid-template-columns:repeat(4,minmax(0,1fr))}@media (max-width:640px){.rstats{grid-template-columns:repeat(2,minmax(0,1fr))}.hidem{display:none}}
 .offl{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)!important;background:var(--warnbg)}
+
+.pbbox{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel2);display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.pbbox.pb-ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.pbbox.pb-back{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}.pbbox.pb-review{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.pbbox.pb-ok .pbstate b{color:var(--ok)}.pbbox.pb-back .pbstate b{color:var(--bad)}.pbbox.pb-review .pbstate b{color:var(--warn)}
+.pbbtns{display:flex;gap:6px;flex-wrap:wrap}.pbfix{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.pbchip{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-bottom:3px;background:var(--soft);color:var(--muted)}
+.pbchip.pb-ok{background:var(--okbg);color:var(--ok)}.pbchip.pb-review{background:var(--warnbg);color:var(--warn)}.pbchip.pb-back{background:var(--badbg);color:var(--bad)}
 </style>
 </head>
 <body>
@@ -820,6 +827,8 @@ function actionQueue(A){const nowM=nowMinFor(UI.day);const out=[];
     if(st==='Planned'&&/^Tiger /.test(m.lane)&&!m.cyoa&&(nowM==null||S0-nowM<=150)){const T=S0-45;
       if(!m.frago)push({dueM:T-20,title:`Pick a mission: ${mName(m)} ${m.start}`,short:`Pick ${mName(m)}`,sub:`Decide at the WOC, tell the ATF/CC instructor · TOC plans at ${fromMin(T)}`,btns:`<button type="button" class="btn sm pri" data-assign="${id}">Pick mission</button>`});
       else if(!m.toToc)push({dueM:T-10,title:`Tell TOC: ${m.lane} ${m.start} = ${fragoNames(m)||'mission'}`,short:`To TOC ${mName(m)}`,sub:`CABS/CC + their instructor, with any resupply items`,btns:`<button type="button" class="btn sm pri" data-toctold="${id}">TOC told</button>`})}
+    if(st==='Planned'&&pbOf(m).s==='review')push({dueM:S0-15,k:'warn',title:`Review prebrief: ${mName(m)} ${m.start}`,short:`Prebrief ${mName(m)}`,sub:'Does it meet the intent? Approve or send back with fixes',btns:`<button type="button" class="btn sm pri" data-msheet="${id}">Review</button>`});
+    if(st==='Planned'&&pbOf(m).s==='back')push({dueM:S0-15,k:'info',title:`Waiting on fixed prebrief: ${mName(m)} ${m.start}`,short:`Prebrief back ${mName(m)}`,sub:'Fixes: '+(pbOf(m).fix||''),btns:`<button type="button" class="btn sm" data-msheet="${id}">Open</button>`});
     if(st==='Planned'&&m.frago&&(nowM==null||S0-nowM<=120)){const r=readiness(m.frago,m);if(r.state==='blocked')push({dueM:S0-45,k:'bad',title:`Blocked: ${mName(m)} ${m.start}`,short:`Blocked ${mName(m)}`,sub:r.blocked.join(' · '),btns:`<button type="button" class="btn sm" data-assign="${id}">Change FRAGO</button>`});else if(r.state==='input')push({dueM:S0-45,title:`WOC input for ${mName(m)} ${m.start}`,short:`Input ${mName(m)}`,sub:'Need: '+r.missing.join('; '),btns:`<button type="button" class="btn sm pri" data-go="${id}">Enter</button>`})}
     if(st==='Planned'&&!g&&(nowM==null||S0-nowM<=75))push({dueM:S0-15,title:`Go / No-Go: ${mName(m)} ${m.start}`,short:`Go/No-Go ${mName(m)}`,sub:`MC ${m.mc?short(m.mc):'not assigned'} · ${crew(m).length} pax · launches ${m.start}`,btns:`<button type="button" class="btn sm" data-go="${id}">Checklist</button><button type="button" class="btn sm okb" data-quickgo="${id}">GO</button>`});
     else if(st==='Planned'&&g==='GO'&&(nowM==null||S0-nowM<=10))push({dueM:S0,title:`Launch ${mName(m)}`,short:`Launch ${mName(m)}`,sub:`GO given ${fmtT(m.go.at)} · ${crew(m).length} pax`,btns:`<button type="button" class="btn sm pri" data-ops="${id}|Out">Mark out</button>`});
@@ -844,6 +853,7 @@ function missionSheet(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!
   <div class="small muted">MC ${m.mc?esc(nm(m.mc)):'not assigned'} · ${crew(m).length} pax${cas?` · ${cas} casualties`:''}${m.go&&m.go.d?` · ${m.go.d==='GO'?'GO':'NO-GO'} at ${fmtT(m.go.at)}`:''}</div>
   ${flags.length?`<ul class="alerts">${flags.map(a=>`<li class="${a.k}">${esc(a.t)}</li>`).join('')}</ul>`:''}
   ${ns?`<button type="button" class="btn pri lg ${ns.c||''}" ${ns.a}>Next: ${esc(ns.l)}</button>`:''}
+  ${st==='Planned'?pbBox(m):''}
   ${[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).length&&st!=='Scrubbed'?`<div class="progbox"><div class="small"><b>Mission results</b> <span class="muted">· mark each one as soon as you hear, even while they are still out</span></div>${[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>{const r=resFor(m,f);const ok=/^Complete/.test(r),bad=r&&!ok&&r!=='Scrubbed';return `<div class="progrow"><span>${esc(FR[f].name)}</span><span class="progbtns"><button type="button" class="btn sm ${ok?'okb':''}" data-prog="${i}|${f}|Complete">✓ Done</button><button type="button" class="btn sm ${bad?'warnb':''}" data-prog="${i}|${f}|Not complete">✗ Failed</button>${r&&!m.aar?`<button type="button" class="btn sm ghost" data-prog="${i}|${f}|">Clear</button>`:''}</span></div>`}).join('')}</div>`:''}
   <div class="sheetbtns">
    <button type="button" class="btn" data-go="${i}">Go/No-Go checklist</button>
@@ -1464,6 +1474,19 @@ function goAuto(m,A,inputs){const n=crew(m).length;const unfit=crew(m).filter(x=
    ['Participation',part.length?'warn':'ok',part.length?'Someone goes again while others are still behind':'OK']];
   if(r){rows.push(['Prerequisites',r.blocked.length?'bad':'ok',r.blocked.join('; ')||'Met']);rows.push(['WOC inputs',r.missing.length?'bad':'ok',r.missing.length?'Missing: '+r.missing.join('; '):'In hand'])}
   return rows}
+
+/* ---------- Prebrief / debrief plan review ---------- */
+function pbOf(m){return m.pb||{}}
+const PBL={'':'Not received yet',review:'Waiting on your review',back:'Sent back for fixes',ok:'Approved: meets intent'};
+function pbChip(m){const p=pbOf(m),s=p.s||'';return `<span class="pbchip pb-${s||'none'}">${s==='ok'?'✓ Prebrief OK':s==='review'?'Prebrief: review':s==='back'?'Prebrief sent back':'No prebrief yet'}</span>`}
+function pbBox(m){const p=pbOf(m),s=p.s||'',id=esc(m.id),r=(p.hist||[]).filter(h=>h.s==='back').length;
+  return `<div class="pbbox pb-${s||'none'}"><div class="small"><b>Prebrief + debrief plan</b> <span class="muted">· MC briefs CABS/CC (TOC), TOC sends it to the WOC, you check it meets the intent</span></div>
+  <div class="pbstate"><b>${esc(PBL[s])}</b>${r?` <span class="small muted">· sent back ${r}×</span>`:''}${p.at?` <span class="small muted">· ${fmtT(p.at)}</span>`:''}</div>
+  ${s==='back'&&p.fix?`<div class="small"><b>Fixes asked for:</b> ${esc(p.fix)}</div>`:''}
+  <div class="pbbtns">${s===''||s==='back'?`<button type="button" class="btn sm" data-pb="${id}|review">${s==='back'?'Fixed prebrief received':'Prebrief received from TOC'}</button>`:''}
+  ${s==='review'?`<button type="button" class="btn sm okb" data-pb="${id}|ok">✓ Meets intent</button><button type="button" class="btn sm warnb" data-pbback="${id}">✗ Send back with fixes</button>`:''}
+  ${s==='ok'?`<button type="button" class="btn sm ghost" data-pbback="${id}">Send back after all</button>`:''}</div>
+  <div class="pbfix" id="pbfix-${id}" hidden><textarea rows="2" placeholder="What needs to change? e.g. add route back, name the security element, debrief plan missing PIR answers" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font:inherit"></textarea><button type="button" class="btn sm warnb" data-pb="${id}|back">Send back</button></div></div>`}
 function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)return;const g=m.go||{};const ck=g.checks||{};const f=fragoOf(m);
   const auto=goAuto(m,A);const r=m.frago?readiness(m.frago,m):null;const p=PREREQ[m.frago]||{};
   const need=(p.inputs||[]).filter(([k,l,o])=>!o&&r&&r.missing.includes(l));
@@ -1473,7 +1496,8 @@ function goDlg(id){const A=analyze();const m=A.ms.find(x=>x.id===id);if(!m)retur
   <div class="gochk">${auto.map(([l,s,t])=>`<div class="gor ${s}"><span class="gi">${s==='ok'?'✓':s==='warn'?'!':'✗'}</span><b>${esc(l)}</b><span>${esc(t)}</span></div>`).join('')}</div>
   ${need.length?`<div class="fields">${need.map(([k,l])=>`<label class="wide">${esc(l)}<input name="inp_${k}" placeholder="Enter grid / detail"></label>`).join('')}</div>`:''}
   <div class="tools"><button type="button" class="btn sm" data-mission="${esc(id)}">Change crew</button></div>
-  <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief?'checked':''}><span>MC briefed the plan to CABS/CC and the OTS instructor${S.pirs._roe?` <b>and the team knows the current ROE</b> (FRAGO ${esc(S.pirs._roe.frago)}: lethal force authorized)`:''}</span></label>
+  ${pbBox(m)}
+  <div class="gotick"><label><input type="checkbox" name="ck_brief" ${ck.brief||pbOf(m).s==='ok'?'checked':''} disabled><span>Prebrief + debrief plan approved by you (meets the intent)${S.pirs._roe?` · team knows the current ROE (FRAGO ${esc(S.pirs._roe.frago)})`:''}</span></label>
   <label><input type="checkbox" name="ck_instr" ${ck.instr?'checked':''}><span>OTS instructor is going with the team</span></label>
   <label><input type="checkbox" name="ck_a4" ${ck.a4?'checked':''}><span>Gear checked with the A4${(()=>{const w=allMissions().find(x=>x.day===m.day&&x.lane==='WOC');const r=w?crew(w).find(pid=>staffRoleOf(w,pid)==='A4'):null;return r?' ('+esc(short(r))+')':''})()}${(BRING[m.frago]||[]).length?`: <b>${BRING[m.frago].map(esc).join(', ')}</b>`:''}</span></label>
   <label><input type="checkbox" name="ck_cc" ${ck.cc?'checked':''}><span>Coordinated with the ATF/CC (team is leaving the base). The GO is still yours.</span></label></div>
@@ -1485,9 +1509,9 @@ function saveGo(d){const f=document.getElementById('goform');const fd=new FormDa
   const reason=String(fd.get('reason')||'').trim();
   if(d==='NOGO'&&!reason){const det=f.querySelector('details');if(det)det.open=true;toast('Add the reason for the NO-GO.');return}
   const inputs=Object.assign({},m.inputs||{});(PREREQ[m.frago]&&PREREQ[m.frago].inputs||[]).forEach(([k])=>{const v=fd.get('inp_'+k);if(v!=null&&String(v).trim())inputs[k]=String(v).trim()});
-  const checks={brief:fd.get('ck_brief')==='on',instr:fd.get('ck_instr')==='on',a4:fd.get('ck_a4')==='on',cc:fd.get('ck_cc')==='on'};
+  const checks={brief:pbOf(m).s==='ok',instr:fd.get('ck_instr')==='on',a4:fd.get('ck_a4')==='on',cc:fd.get('ck_cc')==='on'};
   if(d==='GO'){const bad=goAuto(m,analyze(),inputs).find(x=>x[1]==='bad');if(bad&&!confirmOnce('gobad',`${bad[0]}: ${bad[2]}. Tap GO again to override.`))return;
-    if(!bad&&(!checks.brief||!checks.instr||!checks.a4||!checks.cc)&&!confirmOnce('gotick','Not all 4 boxes are ticked (brief, instructor, gear with A4, coordinated with ATF/CC). Tap GO again to give the GO anyway.'))return}
+    if(!bad&&(!checks.brief||!checks.instr||!checks.a4||!checks.cc)&&!confirmOnce('gotick',(pbOf(m).s!=='ok'?'Prebrief not approved yet. ':'Not all boxes are ticked (instructor, gear with A4, ATF/CC). ')+' Tap GO again to give the GO anyway.'))return}
   patchMission(id,{inputs,go:{d,at:Date.now(),by:ME||null,checks,offbase:fd.get('offbase')==='on',reason}});
   logIt({type:'go',mid:id,text:`${d==='GO'?'GO':'NO-GO'}: ${mName(m)} ${m.start}${reason?' ('+reason+')':''}`});closeDlg()}
 /* ---------- grids & sites ---------- */
@@ -1510,7 +1534,7 @@ function renderEasy(A){const d=dayObj(UI.day);const nowM=nowMinFor(UI.day);
   const team=m=>m.lane==='CYOA'?'Extra':esc(m.lane);
   const what=m=>fragoNames(m)?[m.frago,...extrasOf(m)].filter(f=>f&&FR[f]).map(f=>{const r=resFor(m,f);return esc(FR[f].name)+(/^Complete/.test(r)?' <span class="ok" style="color:var(--ok)">✓</span>':r&&r!=='Scrubbed'?' <span style="color:var(--bad)">✗</span>':'')}).join(' + '):m.lane==='CYOA'?esc(m.note||'Extra mission'):'';
   const stSel=m=>{const st=m.state||'Planned';return `<select class="stsel s-${esc(st)}" data-est="${esc(m.id)}" aria-label="Status">${EZST.map(([v,l])=>`<option value="${v}" ${st===v?'selected':''}>${l}</option>`).join('')}</select>`};
-  const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="tag ok">✓ Go</span>';if(g==='NOGO')return '<span class="tag bad">✗ No-go</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<span class="gobtns"><button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button><button type="button" class="btn sm ghost" data-go="${esc(m.id)}">Check</button></span>`};
+  const goCell=m=>{const g=m.go&&m.go.d;const st=m.state||'Planned';if(g==='GO')return '<span class="tag ok">✓ Go</span>';if(g==='NOGO')return '<span class="tag bad">✗ No-go</span>';if(st!=='Planned')return '<span class="muted">—</span>';return `<a data-msheet="${esc(m.id)}" style="cursor:pointer">${pbChip(m)}</a><br><span class="gobtns"><button type="button" class="btn sm okb" data-quickgo="${esc(m.id)}">Yes</button><button type="button" class="btn sm ghost" data-go="${esc(m.id)}">Check</button></span>`};
   const gearCell=m=>m.loadout&&Object.keys(m.loadout).length?`<a class="lnk" data-loadout="${esc(m.id)}">${loText(m.loadout)}</a>${loPhys(m)?` <button type="button" class="btn sm" data-gearin="${esc(m.id)}">Got it back</button>`:m.gearIn?' <span class="tag ok">back</span>':''}`:`<a class="lnk add" data-loadout="${esc(m.id)}">+ Add</a>`;
   const isNow=m=>nowM!=null&&m.start&&m.end&&toMin(m.start)<=nowM&&nowM<toMin(m.end)&&m.state!=='Scrubbed';
   const rows=ms.map((m,i)=>{const cs=csOf(m.lane);return `<tr class="r-${esc(m.state||'Planned')}${isNow(m)?' now':''}"><td class="rn">${i+1}</td><td class="t mono"><a class="lnk" data-mission="${esc(m.id)}" title="Change times">${ezHm(m.start)||'—'}</a>${m.outAt?`<div class="cs" style="color:var(--info)">left ${ezHm(fmtT(m.outAt))}</div>`:''}${m.rtbAt?`<div class="cs" style="color:var(--ok)">back ${ezHm(fmtT(m.rtbAt))}</div>`:m.end?`<div class="cs">due ${ezHm(m.end)}</div>`:''}</td><td><div class="tm">${team(m)}</div>${cs?`<div class="cs">${esc(cs)}</div>`:''}</td><td>${stSel(m)}</td><td>${goCell(m)}</td><td>${what(m)?`<a class="lnk" data-msheet="${esc(m.id)}">${what(m)}</a>${m.lane!=='CYOA'&&(m.state||'Planned')==='Planned'?` <a class="lnk add" data-assign="${esc(m.id)}" title="Add another mission to this trip">+ mission</a>`:''}${m.toToc?' <span class="tag ok" title="Passed to TOC">TOC ✓</span>':''}`:`<a class="lnk add" ${m.lane==='CYOA'?'data-msheet':'data-assign'}="${esc(m.id)}">+ Pick</a>`}</td><td><a class="lnk${m.mc?'':' add'}" data-mission="${esc(m.id)}">${m.mc?esc(short(m.mc)):'+ Pick'}</a></td><td class="tnum"><a class="lnk" data-mission="${esc(m.id)}" style="${crew(m).length>10?'color:var(--bad);font-weight:700':''}">${crew(m).length}</a></td></tr>`}).join('');
@@ -1983,7 +2007,14 @@ async function copy(t){try{await navigator.clipboard.writeText(t);toast('Copied'
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-lost],[data-resview],[data-prog],[data-toctold],[data-cymenu],[data-loadout],[data-gearin],[data-cytog],[data-loc],[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  const t=e.target.closest('[data-pb],[data-pbback],[data-lost],[data-resview],[data-prog],[data-toctold],[data-cymenu],[data-loadout],[data-gearin],[data-cytog],[data-loc],[data-staff],[data-reattempt],[data-assign],[data-aarcopy],[data-sec],[data-pir],[data-intel],[data-isr],[data-net],[data-cs],[data-chk],[data-cydone],[data-quickgo],button[data-rep],[data-msheet],[data-quick],[data-cyedit],[data-go],[data-aar],[data-ops],[data-serials],[data-gear],[data-ret],[data-day],[data-tab],[data-person],[data-mission],[data-mstate],[data-equip],[data-resupply],[data-rs],[data-act],[data-setstatus]');if(!t)return;
+  if(t.dataset.pbback){const el=document.getElementById('pbfix-'+t.dataset.pbback);if(el){el.hidden=false;el.querySelector('textarea').focus()}return}
+  if(t.dataset.pb){const [id,a]=t.dataset.pb.split('|');const m=allMissions().find(x=>x.id===id);const p=Object.assign({},pbOf(m));let fix='';
+    if(a==='back'){fix=(document.querySelector('#pbfix-'+CSS.escape(id)+' textarea')||{}).value||'';fix=fix.trim();if(!fix){toast('Say what needs to change');return}}
+    p.s=a;p.at=Date.now();if(a==='back')p.fix=fix;p.hist=[...(p.hist||[]),{s:a,at:p.at,by:ME||null,fix}];patchMission(id,{pb:p});
+    logIt({type:'go',mid:id,text:a==='review'?`Prebrief + debrief plan received from TOC: ${mName(m)} ${m.start}`:a==='ok'?`Prebrief APPROVED (meets intent): ${mName(m)} ${m.start}`:`Prebrief SENT BACK: ${mName(m)} ${m.start}. Fixes: ${fix}`});
+    toast(a==='ok'?'Prebrief approved: give the GO when ready':a==='back'?'Sent back to TOC with fixes':'Prebrief received: review it');
+    const inGo=!!document.getElementById('goform');closeDlg();setTimeout(()=>inGo?goDlg(id):missionSheet(id),60);return}
   if(t.dataset.lost){const f=t.dataset.lost;const L=Object.assign({},lostOf());const un=L[f]&&!fragoDone().has(f);if(un)delete L[f];else L[f]={at:Date.now(),by:ME||null};writeDoc('pirs','_lost',{f:L});logIt({type:'msn',text:un?`${FR[f].name}: lost-to-enemy undone`:`${FR[f].name} TAKEN OVER BY ENEMY: must be redone`});toast(un?'Undone':`${FR[f].name} marked lost: redo it`);return}
   if(t.dataset.resview){UI.resView=t.dataset.resview;render();return}
   if(t.dataset.prog){const [id,f,r]=t.dataset.prog.split('|');const m=allMissions().find(x=>x.id===id);const p=Object.assign({},m.prog||{});if(r)p[f]={r,at:Date.now(),by:ME||null};else delete p[f];const patch={prog:p};
@@ -2010,7 +2041,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.chk){const net=(document.getElementById('chknet')||{}).value||'';const who=((document.getElementById('chkwho')||{}).value||'').trim();if(!who){toast('Enter the station you checked with.');return}
     logIt({type:'comms',text:`Comm check${net?' on '+net:''} with ${who}: ${t.dataset.chk}`});if(t.dataset.chk==='No contact')toast('Logged. Consider an alternate net or runner.');return}
   if(t.dataset.cydone){const [id,k]=t.dataset.cydone.split('|');toggleCy(id,k,true);return}
-  if(t.dataset.quickgo){const id=t.dataset.quickgo;const m=allMissions().find(x=>x.id===id);patchMission(id,{go:{d:'GO',at:Date.now(),by:ME||null,checks:{},quick:true,offbase:!!(m.cyoa&&m.cyoa.offbase),reason:''}});logIt({type:'go',mid:id,text:`GO: ${mName(m)} ${m.start} (quick, checklist not recorded)`});return}
+  if(t.dataset.quickgo){const id=t.dataset.quickgo;const m=allMissions().find(x=>x.id===id);if(pbOf(m).s!=='ok'&&!confirmOnce('qgpb'+id,'Prebrief not approved yet. Tap Yes again to give the GO anyway.'))return;patchMission(id,{go:{d:'GO',at:Date.now(),by:ME||null,checks:{},quick:true,offbase:!!(m.cyoa&&m.cyoa.offbase),reason:''}});logIt({type:'go',mid:id,text:`GO: ${mName(m)} ${m.start} (quick, checklist not recorded)`});return}
   if(t.dataset.rep){const id=t.dataset.rep;const l=S.log[id];if(l)writeDoc('log',id,Object.assign({},l,{rep:true,repAt:Date.now()}));return}
   if(t.dataset.msheet){missionSheet(t.dataset.msheet);return}
   if(t.dataset.quick){quickLog(t.dataset.quick);return}
