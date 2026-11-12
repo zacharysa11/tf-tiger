@@ -437,6 +437,7 @@ main>*{min-width:0}
 .progbox{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel2);display:flex;flex-direction:column;gap:7px}.progrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.progrow>span:first-child{flex:1;font-weight:700;min-width:120px}.progbtns{display:flex;gap:6px}
 .resseg button{padding:7px 16px;font-size:13px}
 .rstats{grid-template-columns:repeat(4,minmax(0,1fr))}@media (max-width:640px){.rstats{grid-template-columns:repeat(2,minmax(0,1fr))}.hidem{display:none}}
+.offl{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)!important;background:var(--warnbg)}
 </style>
 </head>
 <body>
@@ -454,9 +455,11 @@ main>*{min-width:0}
 <script src="config.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-Object.assign(window.FB,{initializeApp,getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
+import {getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+Object.assign(window.FB,{initializeApp,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
 window.bootFirebase();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+const NET=()=>{window.ONLINE=navigator.onLine;try{typeof render==='function'&&render()}catch(e){}};addEventListener('online',NET);addEventListener('offline',NET);NET();
 </script>
 <script>
 window.FB={};
@@ -721,7 +724,8 @@ function renderHeader(A){
     `<span class="tick ${out?'':'ok'}" data-tab="a3">Teams out <span class="mono">${out}</span></span>`+
     `<span class="tick ${ccir?'bad':''}" data-tab="a3"title="CCIR: things the boss must hear">Tell boss <span class="mono">${ccir}</span></span>`+
     (()=>{const pc=peopleCount(A);return `<span class="tick" data-tab="easy" title="People on missions / on base at the ICL (WOC staff not counted)">People out <span class="mono">${pc.out}</span> · base <span class="mono">${pc.base}</span></span>`})();
-  document.getElementById('sync').innerHTML=`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span><button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
+  const off=window.ONLINE===false;
+  document.getElementById('sync').innerHTML=`${off?`<span class="iconbtn offl" title="No internet. Keep working: changes are saved on this device and send by themselves when the connection is back."><i class="dot local"></i>OFFLINE · saving here</span>`:`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span>`}<button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
 }
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
@@ -2136,7 +2140,7 @@ function subscribe(){unsubs.forEach(u=>u());unsubs=[];
 window.bootFirebase=function(){
   const C=window.FIREBASE_CONFIG;
   if(!C||!C.apiKey||String(C.apiKey).startsWith('PASTE')){MODE='setup';render();return}
-  const app=FB.initializeApp(C);FB.db=FB.getFirestore(app);CAN_EDIT=true;
+  const app=FB.initializeApp(C);try{FB.db=FB.initializeFirestore(app,{localCache:FB.persistentLocalCache({tabManager:FB.persistentMultipleTabManager()})})}catch(e){FB.db=FB.getFirestore(app)}CAN_EDIT=true;
   try{ME=localStorage.getItem('tftiger-who')||null}catch(e){}
   subscribe();render();
 };
