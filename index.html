@@ -2199,7 +2199,7 @@ window.bootFirebase=function(){
   const auth=FB.getAuth(app);window.__auth=auth;const lock=document.getElementById('lock');let started=false;
   FB.onAuthStateChanged(auth,u=>{if(u){lock.hidden=true;if(!started){started=true;subscribe()}render()}else{lock.hidden=false;setTimeout(()=>{const i=document.getElementById('lockpw');if(i)i.focus()},50)}});
   document.getElementById('lockform').addEventListener('submit',e=>{e.preventDefault();const pw=document.getElementById('lockpw').value;const err=document.getElementById('lockerr');const b=document.getElementById('lockgo');b.disabled=true;err.textContent='';
-    FB.signInWithEmailAndPassword(auth,C.loginEmail||'board@tf-tiger.app',pw).then(()=>{document.getElementById('lockpw').value=''}).catch(x=>{err.textContent=/network/i.test(String(x&&x.code))?'No internet. Connect once to unlock.':'Wrong password.'}).finally(()=>{b.disabled=false})});
+    FB.signInWithEmailAndPassword(auth,C.loginEmail||'board@tf-tiger.app',pw).then(()=>{document.getElementById('lockpw').value=''}).catch(x=>{const c=String(x&&x.code||x);err.textContent=/network/i.test(c)?'No internet. Connect once to unlock.':/invalid-credential|wrong-password|user-not-found|invalid-login/i.test(c)?'Wrong password (or no user board@tf-tiger.app). Code: '+c:/too-many/i.test(c)?'Too many tries. Wait a few minutes. Code: '+c:/operation-not-allowed/i.test(c)?'Email/Password sign-in is off in Firebase. Code: '+c:'Sign-in error: '+c}).finally(()=>{b.disabled=false})});
   render();
 };
 </script>
