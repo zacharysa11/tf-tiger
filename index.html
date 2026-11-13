@@ -460,7 +460,7 @@ main>*{min-width:0}
 <nav class="bnav" id="bnav" aria-label="Sections"></nav>
 <dialog id="dlg"></dialog>
 <div id="lock" hidden><form id="lockform" autocomplete="on"><div class="patch" style="margin:0 auto 10px">TF</div><h2>TF Tiger A3 Board</h2><p class="muted small">Enter the board password.</p>
-<input type="password" id="lockpw" autocomplete="current-password" placeholder="Password" required>
+<input type="password" id="lockpw" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Password" required>
 <button type="submit" class="btn pri" id="lockgo">Unlock</button><p id="lockerr" class="small" style="color:var(--bad);min-height:1.2em;margin:6px 0 0"></p></form></div>
 
 <script src="config.js"></script>
@@ -2198,7 +2198,7 @@ window.bootFirebase=function(){
   try{ME=localStorage.getItem('tftiger-who')||null}catch(e){}
   const auth=FB.getAuth(app);window.__auth=auth;const lock=document.getElementById('lock');let started=false;
   FB.onAuthStateChanged(auth,u=>{if(u){lock.hidden=true;if(!started){started=true;subscribe()}render()}else{lock.hidden=false;setTimeout(()=>{const i=document.getElementById('lockpw');if(i)i.focus()},50)}});
-  document.getElementById('lockform').addEventListener('submit',e=>{e.preventDefault();const pw=document.getElementById('lockpw').value;const err=document.getElementById('lockerr');const b=document.getElementById('lockgo');b.disabled=true;err.textContent='';
+  document.getElementById('lockform').addEventListener('submit',e=>{e.preventDefault();const pw=document.getElementById('lockpw').value.trim();const err=document.getElementById('lockerr');const b=document.getElementById('lockgo');b.disabled=true;err.textContent='';
     FB.signInWithEmailAndPassword(auth,C.loginEmail||'view@tf-tiger.com',pw).then(()=>{document.getElementById('lockpw').value=''}).catch(x=>{const c=String(x&&x.code||x);err.textContent=/network/i.test(c)?'No internet. Connect once to unlock.':/invalid-credential|wrong-password|user-not-found|invalid-login/i.test(c)?'Wrong password (or no user '+(C.loginEmail||'view@tf-tiger.com')+'). Code: '+c:/too-many/i.test(c)?'Too many tries. Wait a few minutes. Code: '+c:/operation-not-allowed/i.test(c)?'Email/Password sign-in is off in Firebase. Code: '+c:'Sign-in error: '+c}).finally(()=>{b.disabled=false})});
   render();
 };
