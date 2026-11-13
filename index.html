@@ -445,6 +445,7 @@ main>*{min-width:0}
 .pbbtns{display:flex;gap:6px;flex-wrap:wrap}.pbfix{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .pbchip{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-bottom:3px;background:var(--soft);color:var(--muted)}
 .pbchip.pb-ok{background:var(--okbg);color:var(--ok)}.pbchip.pb-review{background:var(--warnbg);color:var(--warn)}.pbchip.pb-back{background:var(--badbg);color:var(--bad)}
+#lock{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg)}#lock[hidden]{display:none}#lockform{width:min(340px,90vw);text-align:center;display:flex;flex-direction:column;gap:10px;padding:26px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}#lockform h2{margin:0}#lockform input{padding:11px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--soft);color:var(--ink);font:inherit;font-size:16px}
 </style>
 </head>
 <body>
@@ -458,12 +459,16 @@ main>*{min-width:0}
 <div class="app"><nav class="rail" id="tabs" aria-label="Sections"></nav><main id="main"></main></div>
 <nav class="bnav" id="bnav" aria-label="Sections"></nav>
 <dialog id="dlg"></dialog>
+<div id="lock" hidden><form id="lockform" autocomplete="on"><div class="patch" style="margin:0 auto 10px">TF</div><h2>TF Tiger A3 Board</h2><p class="muted small">Enter the board password.</p>
+<input type="password" id="lockpw" autocomplete="current-password" placeholder="Password" required>
+<button type="submit" class="btn pri" id="lockgo">Unlock</button><p id="lockerr" class="small" style="color:var(--bad);min-height:1.2em;margin:6px 0 0"></p></form></div>
 
 <script src="config.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-Object.assign(window.FB,{initializeApp,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+Object.assign(window.FB,{getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,initializeApp,getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot,query,orderBy,limit});
 window.bootFirebase();
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 const NET=()=>{window.ONLINE=navigator.onLine;try{typeof render==='function'&&render()}catch(e){}};addEventListener('online',NET);addEventListener('offline',NET);NET();
@@ -732,7 +737,7 @@ function renderHeader(A){
     `<span class="tick ${ccir?'bad':''}" data-tab="a3"title="CCIR: things the boss must hear">Tell boss <span class="mono">${ccir}</span></span>`+
     (()=>{const pc=peopleCount(A);return `<span class="tick" data-tab="easy" title="People on missions / on base at the ICL (WOC staff not counted)">People out <span class="mono">${pc.out}</span> · base <span class="mono">${pc.base}</span></span>`})();
   const off=window.ONLINE===false;
-  document.getElementById('sync').innerHTML=`${off?`<span class="iconbtn offl" title="No internet. Keep working: changes are saved on this device and send by themselves when the connection is back."><i class="dot local"></i>OFFLINE · saving here</span>`:`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span>`}<button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
+  document.getElementById('sync').innerHTML=`<button type="button" class="iconbtn" data-act="lockboard" title="Lock the board on this device">🔒</button>${off?`<span class="iconbtn offl" title="No internet. Keep working: changes are saved on this device and send by themselves when the connection is back."><i class="dot local"></i>OFFLINE · saving here</span>`:`<span class="iconbtn" title="${MODE==='live'?'Live: changes sync to everyone':MODE==='error'?'Sync stopped':'Connecting'}"><i class="dot ${MODE==='live'?'live':MODE==='error'?'local':''}"></i>${MODE==='live'?'LIVE':MODE==='error'?'OFF':'…'}</span>`}<button type="button" class="iconbtn" data-act="who" title="Your name and role">${ME?esc(ME):'Set name'}${ROLE?' · '+esc(ROLE):''}</button><button type="button" class="iconbtn" data-act="help" aria-label="Help and tours" title="Help and tours (?)" style="font:700 14px var(--display)">?</button><button type="button" class="iconbtn" data-act="mode" aria-label="Switch light or dark">${ic(THEME==='light'?'moon':'sun')}</button>`;
 }
 function renderTabs(A){
   const n=A.alerts.filter(a=>a.k==='bad').length;const pend=Object.values(S.resupply).filter(r=>r.status==='Pending').length;
@@ -2084,6 +2089,7 @@ document.addEventListener('click',e=>{
   else if(a==='savea3rec'){const v=document.getElementById('a3rec').value.trim();const d=Object.assign({},((S.pirs._a3rec||{}).d)||{});d[UI.day]=v;writeDoc('pirs','_a3rec',{d});toast('Saved to the A3 slide')}
   else if(a==='roeinfo'){const r=S.pirs._roe||{};openDlg(`<div class="dlg"><h3>Current ROE · FRAGO #${esc(r.frago||'')} <span class="mono small muted">DTG ${esc(r.dtg||'')}</span></h3><p><b>${esc(r.text||'')}</b></p><p class="small muted">${esc(r.why||'')}</p><p class="small">Brief this to every team before they leave (Go/No-Go box 1). Breaking the ROE is a CCIR: tell the ATF/CC right away.</p></div><div class="dfoot"><button type="button" class="btn pri" data-act="close">Got it</button></div>`)}
   else if(a==='saveupd'){const f=document.getElementById('updform');const id=f.dataset.mid;const tx=String(new FormData(f).get('text')||'').trim();if(!tx){toast('Type or tap an update');return}const m=allMissions().find(x=>x.id===id);patchMission(id,{upd:{text:tx,at:Date.now(),by:ME||null}});logIt({type:/Enemy contact/i.test(tx)?'ccir':'msn',ccir:/Enemy contact|Casualty/i.test(tx),mid:id,text:`${m.lane} status (from TOC): ${tx}`});closeDlg();toast('Update logged')}
+  else if(a==='lockboard'){if(window.__auth)FB.signOut(window.__auth).then(()=>location.reload())}
   else if(a==='saveloadout')saveLoadout();
   else if(a==='savegearin')saveGearIn();
   else if(a==='reopengear'){const id=document.getElementById('loform').dataset.mid;patchMission(id,{gearIn:null});logIt({type:'equip',mid:id,text:'Gear check-in reopened'});closeDlg();toast('Check-in reopened')}
@@ -2190,7 +2196,11 @@ window.bootFirebase=function(){
   if(!C||!C.apiKey||String(C.apiKey).startsWith('PASTE')){MODE='setup';render();return}
   const app=FB.initializeApp(C);try{FB.db=FB.initializeFirestore(app,{localCache:FB.persistentLocalCache({tabManager:FB.persistentMultipleTabManager()})})}catch(e){FB.db=FB.getFirestore(app)}CAN_EDIT=true;
   try{ME=localStorage.getItem('tftiger-who')||null}catch(e){}
-  subscribe();render();
+  const auth=FB.getAuth(app);window.__auth=auth;const lock=document.getElementById('lock');let started=false;
+  FB.onAuthStateChanged(auth,u=>{if(u){lock.hidden=true;if(!started){started=true;subscribe()}render()}else{lock.hidden=false;setTimeout(()=>{const i=document.getElementById('lockpw');if(i)i.focus()},50)}});
+  document.getElementById('lockform').addEventListener('submit',e=>{e.preventDefault();const pw=document.getElementById('lockpw').value;const err=document.getElementById('lockerr');const b=document.getElementById('lockgo');b.disabled=true;err.textContent='';
+    FB.signInWithEmailAndPassword(auth,C.loginEmail||'board@tf-tiger.app',pw).then(()=>{document.getElementById('lockpw').value=''}).catch(x=>{err.textContent=/network/i.test(String(x&&x.code))?'No internet. Connect once to unlock.':'Wrong password.'}).finally(()=>{b.disabled=false})});
+  render();
 };
 </script>
 </body>

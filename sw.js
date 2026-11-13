@@ -4,10 +4,11 @@
    - Firebase library + fonts: saved copy first (they never change).
    - Live data (Firestore) is never touched here; Firebase keeps its own offline copy and
      sends queued changes the moment the connection is back. */
-const CACHE='tftiger-v1';
+const CACHE='tftiger-v2';
 const SHELL=['./','index.html','config.js',
  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js',
- 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'];
+ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js',
+ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>Promise.all(SHELL.map(u=>c.add(new Request(u,{cache:'reload'})).catch(()=>{}))))
   .then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
