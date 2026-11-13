@@ -7,5 +7,5 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "674864852832",
   appId: "1:674864852832:web:2100ab56bb0a7c08f2b805",
   // Shared login: create this user in Firebase Authentication with the board password.
-  loginEmail: "board@tf-tiger.app"
+  loginEmail: "view@tf-tiger.com"
 };
