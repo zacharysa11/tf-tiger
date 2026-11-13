@@ -4,7 +4,7 @@
    - Firebase library + fonts: saved copy first (they never change).
    - Live data (Firestore) is never touched here; Firebase keeps its own offline copy and
      sends queued changes the moment the connection is back. */
-const CACHE='tftiger-v6';
+const CACHE='tftiger-v7';
 const SHELL=['./','index.html','config.js',
  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js',
  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js',
